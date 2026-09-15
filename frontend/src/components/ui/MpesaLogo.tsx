@@ -61,14 +61,14 @@ export const MpesaLogo: React.FC<MpesaLogoProps> = ({
 
   if (variant === 'card') {
     return (
-      <div className={`rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-[#00A859]/20 via-ink-100 to-ink-50 p-4 text-bone shadow-3d-md ${className}`}>
-        <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
+      <div className={`rounded-2xl border border-emerald-300 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/50 p-4 text-slate-900 shadow-sm ${className}`}>
+        <div className="flex items-center justify-between border-b border-emerald-200 pb-3">
           {logoImage}
-          <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-mono font-bold text-emerald-400 border border-emerald-500/40">
+          <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-mono font-bold text-emerald-800 border border-emerald-300">
             Instant 1-Tap Payment
           </span>
         </div>
-        <p className="mt-3 text-xs text-bone/70 leading-relaxed">
+        <p className="mt-3 text-xs text-slate-600 leading-relaxed font-medium">
           Pay directly via Safaricom M-PESA STK Push prompt on your mobile phone. Instant booking confirmation guaranteed.
         </p>
       </div>

@@ -45,7 +45,7 @@ export function Card3D({ children, className = '', intensity = 15, glare = true 
   }
 
   return (
-    <div className="perspective-1000 w-full" ref={cardRef}>
+    <div className="perspective-1000 w-full h-full" ref={cardRef}>
       <motion.div
         onMouseMove={handleMouseMove}
         onMouseEnter={handleMouseEnter}
@@ -55,19 +55,19 @@ export function Card3D({ children, className = '', intensity = 15, glare = true 
           rotateY: isHovered ? rotateY : 0,
           transformStyle: 'preserve-3d',
         }}
-        className={`glass-card-3d relative overflow-hidden transition-shadow duration-300 ${
-          isHovered ? 'shadow-3d-glow border-marigold/30' : 'border-white/10'
+        className={`card-luxe relative overflow-hidden transition-all duration-300 h-full flex flex-col justify-between ${
+          isHovered ? 'shadow-card-hover border-amber-500/40 -translate-y-1' : 'border-slate-200/80'
         } ${className}`}
       >
-        <div style={{ transform: 'translateZ(20px)', transformStyle: 'preserve-3d' }}>
+        <div className="h-full flex flex-col justify-between" style={{ transform: 'translateZ(20px)', transformStyle: 'preserve-3d' }}>
           {children}
         </div>
 
         {glare && isHovered && (
           <motion.div
-            className="pointer-events-none absolute inset-0 z-20 rounded-xl2 opacity-30"
+            className="pointer-events-none absolute inset-0 z-20 rounded-2xl opacity-40"
             style={{
-              background: `radial-gradient(circle at ${glareX} ${glareY}, rgba(255, 255, 255, 0.6) 0%, transparent 60%)`,
+              background: `radial-gradient(circle at ${glareX} ${glareY}, rgba(245, 158, 11, 0.15) 0%, transparent 65%)`,
             }}
           />
         )}

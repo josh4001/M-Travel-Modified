@@ -58,15 +58,15 @@ const DEMO_FLEET: FleetVehicle[] = [
 ];
 
 const STATUS_COLORS: Record<DriverTripStatus, string> = {
-  OFFLINE: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-  ONLINE: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  AVAILABLE: 'bg-teal/20 text-teal border-teal/30',
-  BOOKING_ASSIGNED: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  DRIVING_TO_PICKUP: 'bg-blue-400/20 text-blue-400 border-blue-400/30 animate-pulse',
-  WAITING_FOR_TOURIST: 'bg-amber-400/20 text-amber-400 border-amber-400/30',
-  TRIP_STARTED: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  TRIP_IN_PROGRESS: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 animate-pulse',
-  TRIP_COMPLETED: 'bg-white/10 text-bone/60 border-white/20',
+  OFFLINE: 'bg-slate-100 text-slate-500 border-slate-300',
+  ONLINE: 'bg-blue-50 text-blue-700 border-blue-300',
+  AVAILABLE: 'bg-teal/10 text-teal border-teal/30',
+  BOOKING_ASSIGNED: 'bg-amber-50 text-amber-800 border-amber-300',
+  DRIVING_TO_PICKUP: 'bg-blue-50 text-blue-700 border-blue-300 animate-pulse',
+  WAITING_FOR_TOURIST: 'bg-amber-100/70 text-amber-800 border-amber-300',
+  TRIP_STARTED: 'bg-emerald-50 text-emerald-700 border-emerald-300',
+  TRIP_IN_PROGRESS: 'bg-emerald-50 text-emerald-700 border-emerald-300 animate-pulse',
+  TRIP_COMPLETED: 'bg-slate-100 text-slate-700 border-slate-300',
 };
 
 const STATUS_LABELS: Record<DriverTripStatus, string> = {
@@ -129,16 +129,16 @@ export function FleetGpsMonitor({ vehicles: propVehicles }: FleetGpsMonitorProps
       {/* FLEET STATS BAR */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: 'Fleet Online', value: `${onlineCount}/${fleet.length}`, icon: Wifi, color: 'text-emerald-400' },
+          { label: 'Fleet Online', value: `${onlineCount}/${fleet.length}`, icon: Wifi, color: 'text-emerald-700' },
           { label: 'Active Trips', value: activeTrips, icon: Activity, color: 'text-teal' },
-          { label: 'Available', value: fleet.filter(v => v.status === 'AVAILABLE').length, icon: Car, color: 'text-marigold' },
-          { label: 'Alerts', value: '2', icon: AlertTriangle, color: 'text-coral' },
+          { label: 'Available', value: fleet.filter(v => v.status === 'AVAILABLE').length, icon: Car, color: 'text-amber-700' },
+          { label: 'Alerts', value: '2', icon: AlertTriangle, color: 'text-red-600' },
         ].map(s => (
-          <div key={s.label} className="glass-card rounded-xl p-4 flex items-center gap-3">
+          <div key={s.label} className="card-luxe bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
             <s.icon className={`h-5 w-5 ${s.color}`} />
             <div>
               <p className={`font-mono text-lg font-bold ${s.color}`}>{s.value}</p>
-              <p className="text-[10px] text-bone/50">{s.label}</p>
+              <p className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">{s.label}</p>
             </div>
           </div>
         ))}
@@ -147,25 +147,25 @@ export function FleetGpsMonitor({ vehicles: propVehicles }: FleetGpsMonitorProps
       {/* SEARCH & FILTER BAR */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-bone/40" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search by driver, vehicle, tourist, plate..."
-            className="w-full rounded-xl bg-ink-100 border border-white/10 px-3 py-2 pl-9 text-sm text-bone placeholder:text-bone/30 focus:border-purple-400/50 focus:outline-none"
+            className="input-field text-xs !py-2.5 !pl-9"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-1.5">
-          <Filter className="h-4 w-4 text-bone/40" />
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Filter className="h-4 w-4 text-slate-400 shrink-0" />
           {['ALL', 'TRIP_IN_PROGRESS', 'DRIVING_TO_PICKUP', 'AVAILABLE', 'OFFLINE'].map(s => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`rounded-full px-3 py-1 text-[10px] font-bold border transition ${
+              className={`rounded-full px-3 py-1.5 text-[10px] font-bold border transition ${
                 statusFilter === s
-                  ? 'border-purple-400 bg-purple-500/20 text-purple-300'
-                  : 'border-white/10 text-bone/50 hover:text-bone'
+                  ? 'border-amber-500 bg-amber-500 text-slate-950 shadow-sm'
+                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
               }`}
             >
               {s === 'ALL' ? 'All' : STATUS_LABELS[s as DriverTripStatus] ?? s}
@@ -180,63 +180,63 @@ export function FleetGpsMonitor({ vehicles: propVehicles }: FleetGpsMonitorProps
           <div
             key={v.id}
             onClick={() => setSelectedVehicle(selectedVehicle?.id === v.id ? null : v)}
-            className={`glass-card-3d rounded-2xl p-4 cursor-pointer transition hover:border-white/25 ${
-              selectedVehicle?.id === v.id ? 'border-purple-400/50 ring-1 ring-purple-400/30' : ''
+            className={`card-luxe bg-white rounded-2xl p-4 cursor-pointer transition border border-slate-200 shadow-sm hover:border-amber-400 ${
+              selectedVehicle?.id === v.id ? 'border-amber-500 ring-2 ring-amber-400/20 shadow-md' : ''
             }`}
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className={`relative flex h-10 w-10 items-center justify-center rounded-xl ${
-                  v.isOnline ? 'bg-emerald-500/20' : 'bg-gray-500/20'
+                  v.isOnline ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-slate-100 text-slate-400 border border-slate-200'
                 }`}>
-                  <Car className={`h-5 w-5 ${v.isOnline ? 'text-emerald-400' : 'text-gray-400'}`} />
+                  <Car className={`h-5 w-5 ${v.isOnline ? 'text-emerald-600' : 'text-slate-400'}`} />
                   {v.isOnline && (
-                    <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 border border-ink animate-ping" />
+                    <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border border-white animate-ping" />
                   )}
                 </div>
                 <div>
-                  <p className="font-display font-bold text-bone text-sm">{v.make} {v.model}</p>
-                  <p className="text-[10px] text-marigold font-mono">{v.plateNumber}</p>
+                  <p className="font-display font-bold text-slate-900 text-sm">{v.make} {v.model}</p>
+                  <p className="text-[10px] text-amber-700 font-bold font-mono">{v.plateNumber}</p>
                 </div>
               </div>
-              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${STATUS_COLORS[v.status]}`}>
+              <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${STATUS_COLORS[v.status]}`}>
                 {STATUS_LABELS[v.status]}
               </span>
             </div>
 
             {/* DRIVER & TOURIST INFO */}
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-lg bg-white/5 p-2">
-                <span className="text-[10px] text-bone/40 block">Driver</span>
-                <span className="font-semibold text-bone flex items-center gap-1">
+              <div className="rounded-lg bg-slate-50 border border-slate-100 p-2">
+                <span className="text-[10px] text-slate-500 font-bold uppercase block">Driver</span>
+                <span className="font-bold text-slate-900 flex items-center gap-1 mt-0.5">
                   <User className="h-3 w-3 text-teal" /> {v.driverName}
                 </span>
               </div>
-              <div className="rounded-lg bg-white/5 p-2">
-                <span className="text-[10px] text-bone/40 block">Tourist</span>
-                <span className="font-semibold text-bone flex items-center gap-1">
-                  <User className="h-3 w-3 text-marigold" /> {v.touristName}
+              <div className="rounded-lg bg-slate-50 border border-slate-100 p-2">
+                <span className="text-[10px] text-slate-500 font-bold uppercase block">Tourist</span>
+                <span className="font-bold text-slate-900 flex items-center gap-1 mt-0.5">
+                  <User className="h-3 w-3 text-amber-600" /> {v.touristName}
                 </span>
               </div>
             </div>
 
             {/* TELEMETRY ROW */}
-            <div className="mt-3 flex items-center gap-4 rounded-xl bg-ink-100/50 p-2.5 text-xs">
+            <div className="mt-3 flex items-center gap-4 rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-xs">
               <div>
-                <span className="text-[10px] text-bone/40 block">Speed</span>
+                <span className="text-[10px] text-slate-500 font-bold block">Speed</span>
                 <span className="font-mono font-bold text-teal">{v.speed} km/h</span>
               </div>
-              <div className="border-l border-white/10 pl-3">
-                <span className="text-[10px] text-bone/40 block">ETA</span>
-                <span className="font-mono font-bold text-marigold">{v.eta}</span>
+              <div className="border-l border-slate-200 pl-3">
+                <span className="text-[10px] text-slate-500 font-bold block">ETA</span>
+                <span className="font-mono font-bold text-amber-700">{v.eta}</span>
               </div>
-              <div className="border-l border-white/10 pl-3">
-                <span className="text-[10px] text-bone/40 block">Distance</span>
-                <span className="font-mono font-bold text-bone">{v.distance}</span>
+              <div className="border-l border-slate-200 pl-3">
+                <span className="text-[10px] text-slate-500 font-bold block">Distance</span>
+                <span className="font-mono font-bold text-slate-900">{v.distance}</span>
               </div>
-              <div className="border-l border-white/10 pl-3">
-                <span className="text-[10px] text-bone/40 block">GPS</span>
-                <span className="font-mono text-[11px] text-bone/60">
+              <div className="border-l border-slate-200 pl-3">
+                <span className="text-[10px] text-slate-500 font-bold block">GPS</span>
+                <span className="font-mono text-[11px] text-slate-700 font-semibold">
                   {v.latitude.toFixed(4)}, {v.longitude.toFixed(4)}
                 </span>
               </div>
@@ -245,22 +245,22 @@ export function FleetGpsMonitor({ vehicles: propVehicles }: FleetGpsMonitorProps
             {/* TRIP PROGRESS BAR */}
             {v.tripProgress > 0 && (
               <div className="mt-3 space-y-1">
-                <div className="flex justify-between text-[10px] text-bone/50">
+                <div className="flex justify-between text-[10px] text-slate-600 font-bold">
                   <span>Trip Progress</span>
                   <span className="font-mono">{Math.round(v.tripProgress)}%</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-teal via-emerald-400 to-marigold transition-all duration-1000"
+                    className="h-full rounded-full bg-gradient-to-r from-teal via-emerald-500 to-amber-500 transition-all duration-1000"
                     style={{ width: `${v.tripProgress}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-[10px] text-bone/40">
+                <div className="flex justify-between text-[10px] text-slate-600 font-medium">
                   <span className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-emerald-400" /> Start
+                    <MapPin className="h-3 w-3 text-emerald-600" /> Start
                   </span>
                   <span className="flex items-center gap-1">
-                    <Navigation className="h-3 w-3 text-marigold" /> {v.destination}
+                    <Navigation className="h-3 w-3 text-amber-600" /> {v.destination}
                   </span>
                 </div>
               </div>
@@ -268,7 +268,7 @@ export function FleetGpsMonitor({ vehicles: propVehicles }: FleetGpsMonitorProps
 
             {/* EXPANDED: TOUR TIMELINE */}
             {selectedVehicle?.id === v.id && (
-              <div className="mt-4 border-t border-white/10 pt-4">
+              <div className="mt-4 border-t border-slate-200 pt-4">
                 <TourTimeline
                   currentStatus={v.status}
                   pickupLocation="Nairobi CBD"
@@ -281,9 +281,9 @@ export function FleetGpsMonitor({ vehicles: propVehicles }: FleetGpsMonitorProps
       </div>
 
       {filtered.length === 0 && (
-        <div className="glass-card rounded-2xl p-12 text-center">
-          <Car className="mx-auto h-12 w-12 text-bone/20" />
-          <p className="mt-4 text-sm text-bone/60">No vehicles match your search criteria</p>
+        <div className="card-luxe bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm">
+          <Car className="mx-auto h-12 w-12 text-slate-300" />
+          <p className="mt-4 text-sm text-slate-600 font-semibold">No vehicles match your search criteria</p>
         </div>
       )}
     </div>

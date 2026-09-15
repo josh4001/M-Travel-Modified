@@ -28,20 +28,20 @@ export function Stats3DCard({
     <Card3D intensity={10} className="p-5">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs uppercase tracking-wider text-bone/50">{title}</p>
-          <h3 className="mt-2 font-mono text-3xl font-semibold tracking-tight text-bone">{value}</h3>
-          {subtitle && <p className="mt-1 text-xs text-bone/60">{subtitle}</p>}
+          <p className="text-xs uppercase font-bold tracking-wider text-slate-500">{title}</p>
+          <h3 className="mt-2 font-mono text-3xl font-bold tracking-tight text-slate-900">{value}</h3>
+          {subtitle && <p className="mt-1 text-xs text-slate-600 font-medium">{subtitle}</p>}
         </div>
 
-        <div className={`rounded-xl border p-3 ${colorMap[accentColor]} shadow-3d-sm`}>
+        <div className={`rounded-xl border p-3 ${colorMap[accentColor]} shadow-sm`}>
           {icon}
         </div>
       </div>
 
       {trend && (
-        <div className="mt-4 border-t border-white/10 pt-3 text-xs text-bone/60 flex items-center justify-between">
+        <div className="mt-4 border-t border-slate-200 pt-3 text-xs text-slate-600 font-medium flex items-center justify-between">
           <span>Activity</span>
-          <span className="font-mono text-marigold">{trend}</span>
+          <span className="font-mono font-bold text-amber-700">{trend}</span>
         </div>
       )}
     </Card3D>

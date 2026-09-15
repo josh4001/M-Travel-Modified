@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Compass, Play, Pause, Sun, Moon, Gauge
+  Compass, Play, Pause, Sun, Moon, Gauge, Car, Radio, Camera
 } from 'lucide-react';
 
 interface LiveVehicleTrackingVideoProps {
@@ -348,30 +348,33 @@ export const LiveVehicleTrackingVideo: React.FC<LiveVehicleTrackingVideoProps> =
           </span>
         </div>
 
-        <div className="pointer-events-auto flex items-center gap-1.5 rounded-xl bg-black/70 p-1 border border-white/15 backdrop-blur-md">
+        <div className="pointer-events-auto flex items-center gap-1.5 rounded-xl bg-black/80 p-1 border border-white/20 backdrop-blur-md">
           <button
             onClick={() => setViewMode('3d_drive')}
-            className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-              viewMode === '3d_drive' ? 'bg-marigold text-ink shadow-md' : 'text-bone/70 hover:text-white'
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+              viewMode === '3d_drive' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-200 hover:text-white'
             }`}
           >
-            🚗 3D Drive
+            <Car className="h-3.5 w-3.5" />
+            3D Drive
           </button>
           <button
             onClick={() => setViewMode('satellite_radar')}
-            className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-              viewMode === 'satellite_radar' ? 'bg-teal text-ink shadow-md' : 'text-bone/70 hover:text-white'
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+              viewMode === 'satellite_radar' ? 'bg-teal text-slate-950 shadow-md' : 'text-slate-200 hover:text-white'
             }`}
           >
-            🛰️ Radar
+            <Radio className="h-3.5 w-3.5" />
+            Radar
           </button>
           <button
             onClick={() => setViewMode('ai_dashcam')}
-            className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-              viewMode === 'ai_dashcam' ? 'bg-emerald-500 text-ink shadow-md' : 'text-bone/70 hover:text-white'
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+              viewMode === 'ai_dashcam' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-200 hover:text-white'
             }`}
           >
-            🤖 AI Cam
+            <Camera className="h-3.5 w-3.5" />
+            AI Cam
           </button>
         </div>
       </div>
@@ -385,24 +388,24 @@ export const LiveVehicleTrackingVideo: React.FC<LiveVehicleTrackingVideoProps> =
       />
 
       {/* 3. BOTTOM TELEMETRY HUD STRIP */}
-      <div className="absolute bottom-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/15 bg-black/75 p-3 backdrop-blur-md">
+      <div className="absolute bottom-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/20 bg-black/85 p-3 backdrop-blur-md shadow-lg">
         <div className="flex items-center gap-4 text-xs">
           <div className="flex items-center gap-2">
             <Gauge className="h-4 w-4 text-teal" />
             <div>
-              <span className="block text-[9px] uppercase tracking-wider text-bone/50">Speed</span>
+              <span className="block text-[9px] uppercase tracking-wider text-slate-300 font-bold">Speed</span>
               <span className="font-mono font-bold text-teal text-sm">{speed} km/h</span>
             </div>
           </div>
 
-          <div className="border-l border-white/10 pl-3">
-            <span className="block text-[9px] uppercase tracking-wider text-bone/50">Live Coordinates</span>
-            <span className="font-mono text-xs text-marigold">-1.2921° S, 36.8219° E</span>
+          <div className="border-l border-white/20 pl-3">
+            <span className="block text-[9px] uppercase tracking-wider text-slate-300 font-bold">Live Coordinates</span>
+            <span className="font-mono text-xs text-amber-400 font-bold">-1.2921° S, 36.8219° E</span>
           </div>
 
-          <div className="hidden sm:block border-l border-white/10 pl-3">
-            <span className="block text-[9px] uppercase tracking-wider text-bone/50">Driver Onboard</span>
-            <span className="font-medium text-xs text-bone">{driverName}</span>
+          <div className="hidden sm:block border-l border-white/20 pl-3">
+            <span className="block text-[9px] uppercase tracking-wider text-slate-300 font-bold">Driver Onboard</span>
+            <span className="font-bold text-xs text-white">{driverName}</span>
           </div>
         </div>
 
@@ -410,14 +413,14 @@ export const LiveVehicleTrackingVideo: React.FC<LiveVehicleTrackingVideoProps> =
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsNight(!isNight)}
-            className="rounded-lg bg-white/10 p-1.5 text-bone hover:bg-white/20 transition"
+            className="rounded-lg bg-white/10 p-1.5 text-white hover:bg-white/20 transition"
             title={isNight ? 'Switch to Sunset/Day' : 'Switch to Night'}
           >
             {isNight ? <Sun className="h-4 w-4 text-yellow-400" /> : <Moon className="h-4 w-4 text-blue-300" />}
           </button>
           <button
             onClick={() => setIsPlaying(!isPlaying)}
-            className="flex items-center gap-1.5 rounded-lg bg-marigold px-3 py-1.5 text-xs font-bold text-ink hover:bg-marigold/90 transition shadow-glow"
+            className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-400 transition shadow-sm"
           >
             {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
             {isPlaying ? 'Live Motion' : 'Paused'}

@@ -1,34 +1,39 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Bot, Sparkles, X } from 'lucide-react';
 import { AiTravelAssistant } from './AiTravelAssistant';
 
 export function FloatingAiAssistant() {
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+
+  // Hide on auth pages to avoid obstructing the login/register forms
+  if (['/login', '/register'].includes(location.pathname)) {
+    return null;
+  }
 
   return (
     <>
-      {/* FLOATING ACTION BUTTON */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-        {!isOpen && (
-          <div className="mb-2 hidden sm:flex items-center gap-2 rounded-full border border-marigold/40 bg-ink-50/95 px-3.5 py-1.5 backdrop-blur-md shadow-3d-glow animate-bounce">
-            <Sparkles className="h-3.5 w-3.5 text-marigold" />
-            <span className="text-xs font-semibold text-bone">Ask AI Safari Guide & Cost Calculator</span>
-          </div>
-        )}
-
+      {/* FLOATING CONCIERGE BUTTON */}
+      <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-marigold via-coral to-teal text-ink shadow-3d-glow transition-transform duration-300 hover:scale-110 active:scale-95"
-          title="Open M-TRAVEL AI Assistant"
+          className="group flex items-center gap-2.5 rounded-full bg-slate-950/95 text-white border border-amber-400/40 px-4 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.3)] backdrop-blur-xl hover:border-amber-400 hover:scale-105 active:scale-95 transition-all duration-200"
+          title="Open M-TRAVEL AI Safari Concierge"
         >
           {isOpen ? (
-            <X className="h-6 w-6 text-ink stroke-[2.5]" />
+            <>
+              <X className="h-4 w-4 text-slate-300 group-hover:text-white" />
+              <span className="text-xs font-bold text-slate-200">Close</span>
+            </>
           ) : (
             <>
-              <Bot className="h-7 w-7 text-ink" />
-              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-400 text-[10px] font-bold text-ink border-2 border-ink animate-pulse">
-                •
-              </span>
+              <div className="relative flex items-center justify-center">
+                <Bot className="h-4 w-4 text-amber-400" />
+                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-slate-950 animate-pulse" />
+              </div>
+              <span className="text-xs font-bold tracking-wide font-display text-white">AI Concierge</span>
+              <Sparkles className="h-3.5 w-3.5 text-amber-400/80" />
             </>
           )}
         </button>

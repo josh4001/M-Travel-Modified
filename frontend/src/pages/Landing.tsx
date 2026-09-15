@@ -1,6 +1,9 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Car, Bus, Palmtree, Home, ShieldCheck, Wallet, Star, ArrowRight, Bot, Compass, Crown } from 'lucide-react';
+import {
+  Car, Bus, Palmtree, Home, ShieldCheck, Wallet, Star, ArrowRight,
+  Bot, Compass, Crown, Search, CalendarCheck, Sparkles
+} from 'lucide-react';
 import { RouteGlobe } from '@/components/RouteGlobe';
 import { Hero3DCanvas } from '@/components/ui/Hero3DCanvas';
 import { Card3D } from '@/components/ui/Card3D';
@@ -30,40 +33,59 @@ const fadeUp = {
 
 export default function Landing() {
   return (
-    <div className="relative overflow-hidden font-display text-bone">
+    <div className="relative overflow-hidden font-display text-slate-900 bg-[#F8F9FA]">
       {/* 3D BACKGROUND CANVAS */}
       <Hero3DCanvas />
 
       {/* HERO SECTION WITH M-TRAVEL LUXURY FLOATING SEARCH WIDGET */}
-      <section className="relative px-6 pt-12 pb-20 md:pt-16">
-        <div className="mx-auto max-w-7xl space-y-12">
+      <section className="relative px-6 pt-10 pb-16 md:pt-14 md:pb-20">
+        <div className="mx-auto max-w-7xl space-y-8 md:space-y-10">
           {/* HERO HEADLINE & 3D GLOBE */}
-          <div className="grid max-w-7xl items-center gap-10 lg:grid-cols-[1.1fr_1fr]">
+          <div className="grid max-w-7xl items-center gap-10 lg:grid-cols-[1.15fr_1fr]">
             <motion.div initial="hidden" animate="show" variants={fadeUp} className="max-w-2xl">
               <div className="mb-5 flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center gap-2 rounded-full border border-mtravel-gold/40 bg-mtravel-burgundy/40 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-mtravel-lightGold backdrop-blur-md shadow-3d-sm">
-                  <Crown className="h-3.5 w-3.5 text-mtravel-gold" /> East Africa's Premier Travel Marketplace
+                <span className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-800 shadow-sm">
+                  <Crown className="h-3.5 w-3.5 text-amber-600" /> East Africa's Premier Travel Marketplace
                 </span>
               </div>
 
-              <h1 className="font-serif text-5xl font-bold leading-[1.05] tracking-tight md:text-7xl">
+              <h1 className="font-serif text-5xl font-bold leading-[1.06] tracking-tight md:text-7xl text-slate-900">
                 Experience Kenya,
                 <br />
                 <span className="bg-gold-gradient bg-clip-text text-transparent">In Unmatched Luxury.</span>
               </h1>
 
-              <p className="mt-5 max-w-lg text-base md:text-lg text-bone/80 leading-relaxed">
-                Seamless vehicle hire, safari cruises, bus express reservations, and beachfront villas — 
-                curated to the highest luxury travel standards, paid instantly with M-PESA.
+              <p className="mt-5 max-w-xl text-base md:text-lg text-slate-600 leading-relaxed">
+                Seamless 4x4 safari cruiser hire, executive chauffeurs, VIP intercity buses, and beachfront holiday villas — curated to world-class hospitality standards, paid instantly with M-PESA.
               </p>
 
               <div className="mt-8 flex flex-wrap items-center gap-4">
-                <Link to="/search" className="btn-primary !bg-gold-gradient text-mtravel-obsidian font-bold shadow-gold-glow !px-7 !py-3.5 flex items-center gap-2">
+                <Link to="/catalogue" className="btn-primary !px-7 !py-3.5 flex items-center gap-2 font-bold shadow-md hover:shadow-lg text-sm">
                   <Compass className="h-4 w-4" /> Explore Vehicles & Safaris
                 </Link>
-                <Link to="/register" className="btn-ghost !px-6 !py-3.5 text-xs font-bold uppercase tracking-wider">
-                  List Your Vehicle <ArrowRight className="h-4 w-4" />
+                <Link to="/register" className="btn-secondary !px-6 !py-3.5 text-xs font-bold uppercase tracking-wider">
+                  List Your Vehicle or Stay <ArrowRight className="h-4 w-4" />
                 </Link>
+              </div>
+
+              {/* LIVE PLATFORM METRICS */}
+              <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-slate-200/80 pt-6">
+                <div>
+                  <p className="font-mono text-2xl font-bold text-slate-900">500+</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Cruisers & Villas</p>
+                </div>
+                <div>
+                  <p className="font-mono text-2xl font-bold text-slate-900">99.2%</p>
+                  <p className="text-[11px] text-slate-500 font-medium">On-Time Trips</p>
+                </div>
+                <div>
+                  <p className="font-mono text-2xl font-bold text-emerald-600">100%</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Instant M-PESA</p>
+                </div>
+                <div>
+                  <p className="font-mono text-2xl font-bold text-amber-600">24/7</p>
+                  <p className="text-[11px] text-slate-500 font-medium">VIP Concierge</p>
+                </div>
               </div>
             </motion.div>
 
@@ -73,12 +95,9 @@ export default function Landing() {
               transition={{ delay: 0.2, duration: 0.9, ease: 'easeOut' }}
               className="perspective-1000"
             >
-              <div className="glass-card-3d p-4 shadow-3d-glow border-mtravel-gold/20">
-                <RouteGlobe />
-                <div className="mt-3 text-center text-xs text-bone/60 flex items-center justify-center gap-2 font-mono">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /> Live Kenyan Destination & Route Network
-                </div>
-              </div>
+              {/* Ambient Glow Aura */}
+              <div className="absolute -inset-1.5 rounded-[32px] bg-gradient-to-tr from-amber-500/25 via-amber-400/10 to-rose-500/15 blur-2xl opacity-75 -z-10" />
+              <RouteGlobe />
             </motion.div>
           </div>
 
@@ -87,120 +106,88 @@ export default function Landing() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.7 }}
-            className="pt-4"
+            className="pt-2"
           >
             <BookingSearch />
           </motion.div>
         </div>
 
-        {/* JOURNEY PIPELINE */}
+        {/* JOURNEY PIPELINE WITH PRECISE CIRCLE CONNECTOR ALIGNMENT */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.8 }}
-          className="relative mx-auto mt-20 max-w-5xl px-4"
+          className="relative mx-auto mt-14 max-w-5xl px-4"
         >
-          <div className="relative flex items-center justify-between">
-            <div className="absolute left-0 right-0 top-1/2 h-0.5 -translate-y-1/2 bg-gold-gradient opacity-40 shadow-gold-glow" />
-            {journey.map((stop, i) => (
-              <motion.div
-                key={stop.label}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 + i * 0.15, duration: 0.5 }}
-                className="relative z-10 flex flex-col items-center text-center"
-              >
-                <span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-mtravel-obsidian border border-mtravel-gold shadow-gold-glow">
-                  <span className="h-2.5 w-2.5 rounded-full bg-mtravel-gold animate-ping" />
-                  <span className="absolute h-2 w-2 rounded-full bg-mtravel-gold" />
-                </span>
-                <p className="mt-3 font-serif text-sm font-bold text-bone">{stop.label}</p>
-                <p className="mt-1 hidden max-w-[9rem] text-xs text-bone/50 sm:block">{stop.desc}</p>
-              </motion.div>
-            ))}
+          <div className="relative flex items-start justify-between">
+            {/* The connector line runs right through the center of the step badges (top-5), safely above text */}
+            <div className="absolute left-8 right-8 top-5 h-0.5 bg-amber-400/35" />
+            {journey.map((stop, i) => {
+              const stepIcons = [Search, CalendarCheck, Car, Sparkles];
+              const StepIcon = stepIcons[i] || Sparkles;
+              return (
+                <motion.div
+                  key={stop.label}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 + i * 0.15, duration: 0.5 }}
+                  className="relative z-10 flex flex-col items-center text-center max-w-[11rem] px-2"
+                >
+                  <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white border-2 border-amber-500 shadow-sm ring-4 ring-[#F8F9FA] transition-transform hover:scale-110">
+                    <StepIcon className="h-4 w-4 text-amber-700" />
+                  </div>
+                  <h4 className="mt-3 font-serif text-sm font-bold text-slate-900">{stop.label}</h4>
+                  <p className="mt-1 text-xs text-slate-500 leading-relaxed">{stop.desc}</p>
+                </motion.div>
+              );
+            })}
           </div>
         </motion.div>
       </section>
 
-      {/* M-TRAVEL PRIVILEGE CLUB & SPECIAL OFFERS SECTION */}
-      <OffersRewards />
-
-      {/* LIVE TRANSPORT TRACKER SECTION */}
-      <section className="px-6 py-12 relative bg-gradient-to-b from-transparent via-mtravel-burgundy/20 to-transparent">
+      {/* CATEGORIES WITH 3D TACTILE CARDS (UNIFORM HEIGHT & ALIGNED FOOTERS) */}
+      <section className="px-6 py-20 relative bg-white border-y border-slate-200/70">
         <div className="mx-auto max-w-7xl">
-          <div className="text-center max-w-xl mx-auto mb-8">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-mtravel-gold/20 border border-mtravel-gold/40 px-3.5 py-1 text-xs font-mono font-bold text-mtravel-lightGold">
-              <ShieldCheck className="h-4 w-4 text-emerald-400" /> Easy & Simple Live Tracking
-            </span>
-            <h2 className="mt-3 font-serif text-3xl font-bold text-bone">
-              Track Your Trip & Driver
-            </h2>
-            <p className="mt-2 text-xs md:text-sm text-bone/70">
-              Already booked? Enter your booking reference or M-PESA code below for real-time status.
-            </p>
-          </div>
-
-          <TrackerWidget />
-        </div>
-      </section>
-
-      {/* AI SAFARI & TOUR CONCIERGE FEATURED SECTION */}
-      <section className="px-6 py-16 relative bg-gradient-to-b from-transparent via-ink-100/50 to-transparent">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-8 text-center max-w-2xl mx-auto">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-mtravel-gold/20 px-3.5 py-1 text-xs font-bold text-mtravel-lightGold border border-mtravel-gold/30">
-              <Bot className="h-4 w-4 text-mtravel-gold" /> M-TRAVEL AI Travel Concierge
-            </span>
-            <h2 className="mt-3 font-serif text-3xl md:text-5xl font-bold text-bone">
-              Ask. Plan. Book with M-PESA.
-            </h2>
-            <p className="mt-2 text-bone/70 text-sm md:text-base">
-              Our AI concierge answers any travel question — destination guides, vehicle recommendations, cost breakdowns, visa info, packing lists, safety tips, and live booking links. All in one conversation.
-            </p>
-          </div>
-
-          <AiTravelAssistant />
-        </div>
-      </section>
-
-      {/* CATEGORIES WITH 3D TILT */}
-      <section className="px-6 py-20 relative">
-        <div className="mx-auto max-w-7xl">
-          <div className="flex items-end justify-between border-b border-white/10 pb-6">
+          <div className="flex items-end justify-between border-b border-slate-200/80 pb-6">
             <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={fadeUp}>
-              <span className="text-xs uppercase tracking-widest text-mtravel-lightGold font-mono font-bold">Premium Services</span>
-              <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight md:text-4xl">
+              <span className="text-xs uppercase tracking-widest text-amber-700 font-bold">Curated Fleet & Stays</span>
+              <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight md:text-4xl text-slate-900">
                 Everywhere you need to go in Kenya
               </h2>
             </motion.div>
 
-            <Link to="/search" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-mtravel-lightGold hover:underline">
-              View all vehicles <ArrowRight className="h-4 w-4" />
+            <Link to="/catalogue" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-amber-700 hover:text-amber-800">
+              View all offerings <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
 
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
             {categories.map((c, i) => (
               <motion.div
                 key={c.title}
                 initial="hidden" whileInView="show" viewport={{ once: true, margin: '-60px' }}
                 variants={fadeUp} transition={{ delay: i * 0.08 }}
+                className="h-full"
               >
-                <Link to={c.to} className="block group">
-                  <Card3D intensity={12} className="p-6 border-mtravel-gold/20 hover:border-mtravel-gold/50">
-                    <div className="flex items-center justify-between">
-                      <div className="rounded-xl border border-mtravel-gold/40 bg-mtravel-burgundy/40 p-3 text-mtravel-lightGold shadow-3d-sm group-hover:scale-110 transition-transform">
-                        <c.icon className="h-7 w-7" strokeWidth={1.75} />
+                <Link to={c.to} className="block group h-full">
+                  <Card3D intensity={10} className="p-6 h-full flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-amber-700 shadow-sm group-hover:scale-110 transition-transform">
+                          <c.icon className="h-6 w-6" strokeWidth={2} />
+                        </div>
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600">
+                          {c.count}
+                        </span>
                       </div>
-                      <span className="rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5 text-[10px] font-mono text-bone/60">
-                        {c.count}
-                      </span>
+
+                      <h3 className="mt-6 font-serif text-xl font-bold text-slate-900 group-hover:text-amber-700 transition-colors">
+                        {c.title}
+                      </h3>
+                      <p className="mt-2 text-xs text-slate-500 leading-relaxed min-h-[2.5rem]">{c.desc}</p>
                     </div>
 
-                    <h3 className="mt-6 font-serif text-xl font-bold text-bone group-hover:text-mtravel-lightGold transition-colors">{c.title}</h3>
-                    <p className="mt-1.5 text-xs text-bone/60 leading-relaxed">{c.desc}</p>
-
-                    <div className="mt-6 flex items-center gap-1 text-xs font-bold text-mtravel-lightGold group-hover:translate-x-1 transition-transform">
+                    <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-1 text-xs font-bold text-amber-700 group-hover:translate-x-1 transition-transform">
                       Explore category <ArrowRight className="h-3.5 w-3.5" />
                     </div>
                   </Card3D>
@@ -211,22 +198,63 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* M-TRAVEL PRIVILEGE CLUB & SPECIAL OFFERS SECTION */}
+      <OffersRewards />
+
+      {/* LIVE TRANSPORT TRACKER SECTION */}
+      <section className="px-6 py-16 relative bg-[#FAF8F5]">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center max-w-xl mx-auto mb-8">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3.5 py-1 text-xs font-bold text-emerald-800">
+              <ShieldCheck className="h-4 w-4 text-emerald-600" /> Easy & Simple Live Tracking
+            </span>
+            <h2 className="mt-3 font-serif text-3xl font-bold text-slate-900">
+              Track Your Trip & Driver
+            </h2>
+            <p className="mt-2 text-xs md:text-sm text-slate-600">
+              Already booked? Enter your booking reference or M-PESA code below for real-time status.
+            </p>
+          </div>
+
+          <TrackerWidget />
+        </div>
+      </section>
+
+      {/* AI SAFARI & TOUR CONCIERGE FEATURED SECTION */}
+      <section className="px-6 py-20 relative bg-white border-y border-slate-200/70">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-10 text-center max-w-2xl mx-auto">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-4 py-1 text-xs font-bold text-amber-800 border border-amber-200">
+              <Bot className="h-4 w-4 text-amber-600" /> M-TRAVEL AI Travel Concierge
+            </span>
+            <h2 className="mt-3 font-serif text-3xl md:text-5xl font-bold text-slate-900">
+              Ask. Plan. Book with M-PESA.
+            </h2>
+            <p className="mt-2 text-slate-600 text-sm md:text-base">
+              Our AI concierge answers any travel question — destination guides, vehicle recommendations, cost breakdowns, visa info, packing lists, and live booking links.
+            </p>
+          </div>
+
+          <AiTravelAssistant />
+        </div>
+      </section>
+
       {/* TRUST & INFRASTRUCTURE STRIP */}
-      <section className="border-y border-white/10 bg-mtravel-gradient px-6 py-16 backdrop-blur-xl">
+      <section className="border-b border-slate-200/70 bg-[#FAF8F5] px-6 py-16">
         <div className="mx-auto grid max-w-7xl gap-8 sm:grid-cols-3">
           {[
-            { icon: ShieldCheck, title: 'Verified & Secure', desc: 'Insured vehicles, vetted owners, encrypted M-Pesa STK Push payments.' },
-            { icon: Wallet, title: 'Unified M-Pesa Wallet', desc: 'Earn, spend, and withdraw instantly across every safari and car rental.' },
-            { icon: Star, title: 'Rated by Travelers', desc: 'Verified reviews and transparent ratings for every journey.' },
+            { icon: ShieldCheck, title: 'Verified & Insured Fleet', desc: 'Every 4x4 cruiser and executive van undergoes rigorous mechanical inspection and carries comprehensive PSV insurance.' },
+            { icon: Wallet, title: 'Instant M-PESA STK Push', desc: 'Pay frictionlessly in Kenyan Shillings or convert to USD/EUR/GBP with zero hidden transaction surcharges.' },
+            { icon: Star, title: 'Rated by Real Travelers', desc: 'Transparent traveler reviews and vetted safari guides ensure 5-star experiences from Nairobi to the Mara.' },
           ].map((f) => (
-            <Card3D key={f.title} intensity={8} className="p-6 border-mtravel-gold/20">
+            <Card3D key={f.title} intensity={6} className="p-6">
               <div className="flex items-start gap-4">
-                <div className="rounded-xl border border-mtravel-gold/40 bg-mtravel-burgundy/40 p-3 text-mtravel-lightGold shadow-3d-sm">
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-amber-700 shadow-sm shrink-0">
                   <f.icon className="h-6 w-6" strokeWidth={1.75} />
                 </div>
                 <div>
-                  <h4 className="font-serif font-bold text-bone text-lg">{f.title}</h4>
-                  <p className="mt-1 text-xs text-bone/70 leading-relaxed">{f.desc}</p>
+                  <h4 className="font-serif font-bold text-slate-900 text-lg">{f.title}</h4>
+                  <p className="mt-1.5 text-xs text-slate-600 leading-relaxed">{f.desc}</p>
                 </div>
               </div>
             </Card3D>
@@ -234,18 +262,25 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="px-6 py-28 text-center relative">
-        <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={fadeUp} className="mx-auto max-w-xl">
-          <Card3D intensity={15} className="p-10 text-center border-mtravel-gold/40 bg-mtravel-gradient">
-            <h2 className="font-serif text-3xl font-bold tracking-tight md:text-4xl text-bone">
+      {/* FINAL HIGH-IMPACT CTA */}
+      <section className="px-6 py-24 text-center relative bg-white">
+        <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={fadeUp} className="mx-auto max-w-3xl">
+          <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50/80 via-white to-amber-50/40 p-10 md:p-14 text-center shadow-card relative overflow-hidden">
+            <h2 className="font-serif text-3xl font-bold tracking-tight md:text-5xl text-slate-900">
               Ready for your next Kenya adventure?
             </h2>
-            <p className="mt-4 text-sm text-bone/80">Create your free M-TRAVEL account and book your next luxury travel experience in seconds with M-PESA.</p>
-            <Link to="/register" className="btn-primary mt-8 shadow-gold-glow !bg-gold-gradient text-mtravel-obsidian font-bold">
-              Get Started Free
-            </Link>
-          </Card3D>
+            <p className="mt-4 text-sm md:text-base text-slate-600 max-w-xl mx-auto">
+              Create your free M-TRAVEL account, unlock member-only rates, and book your next luxury travel experience in seconds with M-PESA.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              <Link to="/register" className="btn-primary !px-8 !py-3.5 text-sm font-bold shadow-md hover:shadow-lg">
+                Get Started Free
+              </Link>
+              <Link to="/catalogue" className="btn-secondary !px-8 !py-3.5 text-sm font-semibold">
+                Browse Full Fleet
+              </Link>
+            </div>
+          </div>
         </motion.div>
       </section>
     </div>

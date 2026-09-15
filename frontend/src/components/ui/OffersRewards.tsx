@@ -48,67 +48,69 @@ export const OffersRewards: React.FC = () => {
   ];
 
   return (
-    <section className="py-16 px-6 relative">
+    <section className="py-20 px-6 relative bg-[#FAF8F5] border-y border-slate-200/70">
       <div className="mx-auto max-w-7xl">
         {/* SECTION HEADER */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-mtravel-gold/20 pb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-200/80 pb-8">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-mtravel-gold/40 bg-mtravel-burgundy/40 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-mtravel-lightGold backdrop-blur-md">
-              <Crown className="h-4 w-4 text-mtravel-gold" /> M-TRAVEL Privilege Club & Special Offers
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-800">
+              <Crown className="h-4 w-4 text-amber-600" /> M-TRAVEL Privilege Club & Curated Offers
             </div>
-            <h2 className="mt-3 font-serif text-3xl md:text-5xl font-bold text-bone tracking-tight">
-              Fly, Drive & Earn with <span className="text-mtravel-lightGold">M-PESA</span>
+            <h2 className="mt-3 font-serif text-3xl md:text-5xl font-bold text-slate-900 tracking-tight">
+              Fly, Drive & Earn with <span className="bg-gold-gradient bg-clip-text text-transparent">M-PESA</span>
             </h2>
-            <p className="mt-2 text-bone/70 text-sm max-w-xl">
+            <p className="mt-2 text-slate-600 text-sm max-w-xl">
               Enjoy curated luxury Kenyan travel packages inspired by global hospitality standards, with instant M-PESA payment rewards.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <MpesaLogo variant="badge" />
-            <span className="text-xs text-mtravel-lightGold font-mono">100% Guaranteed Instant STK Confirmation</span>
+            <span className="text-xs text-emerald-800 font-semibold bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+              100% Instant STK Confirmation
+            </span>
           </div>
         </div>
 
-        {/* M-TRAVEL PRIVILEGE CLUB BANNER */}
-        <div className="mt-10 rounded-3xl border border-mtravel-gold/30 bg-mtravel-gradient p-6 md:p-8 shadow-3d-glow relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8">
-          <div className="space-y-4 max-w-2xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-mtravel-gold/20 border border-mtravel-gold/40 px-3 py-1 text-[11px] font-mono font-bold text-mtravel-lightGold">
-              <Sparkles className="h-3.5 w-3.5 text-mtravel-gold" /> Loyalty Privilege Rewards
+        {/* REWARDS CALLOUT BANNER */}
+        <div className="mt-10 rounded-3xl border border-amber-200/80 bg-gradient-to-br from-amber-50/70 via-white to-amber-50/40 p-6 md:p-8 flex flex-col lg:flex-row items-center justify-between gap-8 shadow-sm">
+          <div className="space-y-3 max-w-2xl">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-400/40 px-3 py-1 text-[11px] font-bold text-amber-800">
+              <Sparkles className="h-3.5 w-3.5 text-amber-600" /> Loyalty Privilege Rewards
             </span>
-            <h3 className="font-serif text-2xl md:text-3xl font-bold text-bone">
+            <h3 className="font-serif text-2xl md:text-3xl font-bold text-slate-900">
               Join the M-TRAVEL Privilege Club
             </h3>
-            <p className="text-sm text-bone/80 leading-relaxed">
-              Earn <span className="text-mtravel-lightGold font-bold">5 M-PESA Loyalty Points</span> for every KES 1,000 spent on car hire, safaris, and bus reservations. Redeem points instantly for M-PESA cashbacks or free vehicle upgrades.
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Earn <span className="text-amber-700 font-bold">5 M-PESA Loyalty Points</span> for every KES 1,000 spent on car hire, safaris, and bus reservations. Redeem points instantly for M-PESA cashbacks or free vehicle upgrades.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-2">
-              <div className="flex items-center gap-2 bg-black/40 p-2.5 rounded-xl border border-white/10">
-                <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                <span>Instant M-PESA STK Cashbacks</span>
+              <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm text-slate-800 font-medium">
+                <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span>Instant M-PESA Cashbacks</span>
               </div>
-              <div className="flex items-center gap-2 bg-black/40 p-2.5 rounded-xl border border-white/10">
-                <Check className="h-4 w-4 text-mtravel-gold shrink-0" />
+              <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm text-slate-800 font-medium">
+                <Check className="h-4 w-4 text-amber-600 shrink-0" />
                 <span>Complimentary Airport Pickup</span>
               </div>
-              <div className="flex items-center gap-2 bg-black/40 p-2.5 rounded-xl border border-white/10">
-                <Check className="h-4 w-4 text-teal shrink-0" />
+              <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm text-slate-800 font-medium">
+                <Check className="h-4 w-4 text-teal-600 shrink-0" />
                 <span>Priority Safari Vehicle Booking</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-black/50 p-6 rounded-2xl border border-mtravel-gold/40 text-center space-y-3 w-full lg:w-72 shrink-0">
-            <div className="mx-auto w-12 h-12 rounded-full bg-gold-gradient flex items-center justify-center text-mtravel-obsidian shadow-gold-glow">
+          <div className="bg-white p-6 rounded-2xl border border-amber-200 text-center space-y-3 w-full lg:w-72 shrink-0 shadow-card">
+            <div className="mx-auto w-12 h-12 rounded-full bg-gold-gradient flex items-center justify-center text-white shadow-md">
               <Gift className="h-6 w-6" />
             </div>
-            <p className="text-xs font-mono uppercase tracking-widest text-mtravel-lightGold">Welcome Bonus</p>
-            <p className="font-serif text-xl font-bold text-bone">500 Bonus Points</p>
-            <p className="text-[11px] text-bone/60">Credited automatically on your first M-PESA booking</p>
+            <p className="text-xs uppercase font-bold tracking-widest text-amber-800">Welcome Bonus</p>
+            <p className="font-serif text-2xl font-bold text-slate-900">500 Bonus Points</p>
+            <p className="text-[11px] text-slate-500">Credited automatically on your first M-PESA booking</p>
             <button
               onClick={() => navigate('/register')}
-              className="btn-primary w-full text-xs !py-2.5 !bg-gold-gradient text-mtravel-obsidian font-bold"
+              className="btn-primary w-full text-xs !py-2.5 font-bold"
             >
               Claim Privilege Pass
             </button>
@@ -116,58 +118,60 @@ export const OffersRewards: React.FC = () => {
         </div>
 
         {/* OFFERS CARDS GRID */}
-        <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
           {offers.map((offer) => (
             <div
               key={offer.id}
-              className="group rounded-3xl border border-white/10 bg-ink-100/80 overflow-hidden shadow-3d-md hover:border-mtravel-gold/50 transition-all duration-500 hover:-translate-y-1.5 flex flex-col justify-between"
+              className="group rounded-3xl border border-slate-200/90 bg-white overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between h-full"
             >
-              <div>
+              <div className="flex flex-col flex-1">
                 {/* IMAGE CONTAINER */}
                 <div className="relative h-56 w-full overflow-hidden">
                   <img
                     src={offer.image}
                     alt={offer.title}
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent" />
                   
-                  <span className="absolute top-4 left-4 rounded-full bg-mtravel-burgundy/90 backdrop-blur-md text-mtravel-lightGold text-xs font-bold px-3 py-1 border border-mtravel-gold/40 shadow-md">
+                  <span className="absolute top-4 left-4 rounded-full bg-white/95 backdrop-blur-md text-amber-800 text-xs font-bold px-3 py-1 border border-amber-300 shadow-sm">
                     {offer.badge}
                   </span>
 
-                  <span className="absolute bottom-4 left-4 flex items-center gap-1 text-xs text-bone/90 bg-black/60 px-3 py-1 rounded-full backdrop-blur-md border border-white/10 font-mono">
-                    <Star className="h-3.5 w-3.5 fill-mtravel-gold text-mtravel-gold" />
+                  <span className="absolute bottom-4 left-4 flex items-center gap-1.5 text-xs text-white bg-slate-900/75 px-3 py-1 rounded-full backdrop-blur-md font-semibold">
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                     <span>{offer.rating}</span>
-                    <span className="text-bone/50">({offer.reviews})</span>
+                    <span className="text-slate-300">({offer.reviews})</span>
                   </span>
                 </div>
 
                 {/* CONTENT */}
-                <div className="p-6 space-y-3">
-                  <h3 className="font-serif text-xl font-bold text-bone leading-snug group-hover:text-mtravel-lightGold transition-colors">
-                    {offer.title}
-                  </h3>
-                  <p className="text-xs text-bone/60 leading-relaxed">
-                    {offer.subtitle}
-                  </p>
+                <div className="p-6 space-y-2.5 flex-1 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-serif text-xl font-bold text-slate-900 leading-snug group-hover:text-amber-700 transition-colors min-h-[3rem]">
+                      {offer.title}
+                    </h3>
+                    <p className="text-xs text-slate-600 leading-relaxed mt-1 min-h-[2.5rem]">
+                      {offer.subtitle}
+                    </p>
+                  </div>
 
-                  <div className="flex items-center gap-2 pt-2 text-[11px] text-emerald-400 font-mono">
-                    <Tag className="h-3.5 w-3.5" />
+                  <div className="flex items-center gap-2 pt-3 text-[11px] text-emerald-700 font-semibold">
+                    <Tag className="h-3.5 w-3.5 text-emerald-600" />
                     <span>{offer.mpesaCashback}</span>
                   </div>
                 </div>
               </div>
 
               {/* FOOTER & PRICING */}
-              <div className="p-6 pt-0 border-t border-white/10 flex items-end justify-between mt-4">
+              <div className="p-6 pt-3 border-t border-slate-150 flex items-end justify-between mt-auto">
                 <div>
-                  <span className="text-[10px] uppercase font-mono text-bone/40 block">From</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">From</span>
                   <div className="flex items-baseline gap-2">
-                    <span className="font-mono text-2xl font-bold text-mtravel-lightGold">
+                    <span className="text-2xl font-bold text-slate-900">
                       {formatPrice(offer.price)}
                     </span>
-                    <span className="text-xs text-bone/40 line-through font-mono">
+                    <span className="text-xs text-slate-400 line-through">
                       {formatPrice(offer.originalPrice)}
                     </span>
                   </div>
@@ -175,7 +179,7 @@ export const OffersRewards: React.FC = () => {
 
                 <button
                   onClick={() => navigate('/search')}
-                  className="btn-primary text-xs !px-4 !py-2.5 shadow-glow flex items-center gap-1.5"
+                  className="btn-primary text-xs !px-4 !py-2.5 flex items-center gap-1.5 shadow-sm"
                 >
                   <MpesaLogo variant="icon" size="sm" />
                   <span>Book Now</span>

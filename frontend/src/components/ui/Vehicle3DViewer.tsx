@@ -95,29 +95,29 @@ export function Vehicle3DViewer({ make = 'Toyota', model = 'Prado TX' }: { make?
   ];
 
   return (
-    <div className="glass-card-3d overflow-hidden p-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
+    <div className="card-luxe bg-white border border-slate-200 rounded-2xl overflow-hidden p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
-          <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-marigold">
-            <Sparkles className="h-3.5 w-3.5" /> Interactive 3D Showcase
+          <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-amber-700">
+            <Sparkles className="h-3.5 w-3.5 text-amber-600" /> Interactive 3D Showcase
           </span>
-          <h3 className="font-display text-xl font-medium">{make} {model}</h3>
+          <h3 className="font-display text-xl font-bold text-slate-900">{make} {model}</h3>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setAutoRotate(!autoRotate)}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium border transition ${
-              autoRotate ? 'border-marigold text-marigold bg-marigold/10' : 'border-white/15 text-bone/60'
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold border transition ${
+              autoRotate ? 'border-amber-500 text-amber-800 bg-amber-50' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
             }`}
           >
-            <RotateCw className={`h-3.5 w-3.5 ${autoRotate ? 'animate-spin' : ''}`} style={{ animationDuration: '6s' }} />
+            <RotateCw className={`h-3.5 w-3.5 text-amber-600 ${autoRotate ? 'animate-spin' : ''}`} style={{ animationDuration: '6s' }} />
             {autoRotate ? 'Auto Orbiting' : 'Paused'}
           </button>
         </div>
       </div>
 
-      <div className="relative h-[300px] w-full sm:h-[360px]">
+      <div className="relative h-[300px] w-full sm:h-[360px] bg-slate-50 rounded-xl overflow-hidden border border-slate-100">
         <Canvas shadows dpr={[1, 2]}>
           <PerspectiveCamera makeDefault position={[3.5, 2, 4]} fov={45} />
           <ambientLight intensity={0.7} />
@@ -134,13 +134,13 @@ export function Vehicle3DViewer({ make = 'Toyota', model = 'Prado TX' }: { make?
           <OrbitControls enableZoom={false} maxPolarAngle={Math.PI / 2} minPolarAngle={Math.PI / 6} />
         </Canvas>
 
-        <div className="absolute bottom-3 right-3 rounded-full bg-ink/80 px-3 py-1 text-[11px] text-bone/60 backdrop-blur-md border border-white/10 flex items-center gap-1">
-          <Eye className="h-3 w-3 text-marigold" /> Drag to rotate 360°
+        <div className="absolute bottom-3 right-3 rounded-full bg-slate-900/85 px-3 py-1 text-[11px] text-white font-medium backdrop-blur-md border border-white/20 flex items-center gap-1 shadow-md">
+          <Eye className="h-3 w-3 text-amber-400" /> Drag to rotate 360°
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
-        <span className="text-xs text-bone/60">Choose Chassis Finish:</span>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+        <span className="text-xs font-bold text-slate-700">Choose Chassis Finish:</span>
         <div className="flex gap-2">
           {colors.map((c) => (
             <button
@@ -148,7 +148,7 @@ export function Vehicle3DViewer({ make = 'Toyota', model = 'Prado TX' }: { make?
               onClick={() => setColor(c.hex)}
               title={c.name}
               className={`h-7 w-7 rounded-full border-2 transition-transform hover:scale-110 ${
-                color === c.hex ? 'border-white scale-110 shadow-glow' : 'border-transparent opacity-70 hover:opacity-100'
+                color === c.hex ? 'border-amber-600 scale-110 shadow-md ring-2 ring-amber-400/50' : 'border-transparent opacity-80 hover:opacity-100'
               }`}
               style={{ backgroundColor: c.hex }}
             />

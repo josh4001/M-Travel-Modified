@@ -141,19 +141,19 @@ export const CatalogueTabs: React.FC = () => {
   return (
     <section className="py-10">
       <div className="text-center max-w-3xl mx-auto mb-8">
-        <span className="inline-block rounded-full border border-marigold/30 bg-marigold/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-marigold font-display">
+        <span className="inline-block rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-800">
           Catalogue & Services
         </span>
-        <h2 className="mt-3 font-display text-3xl md:text-4xl font-bold text-bone">
+        <h2 className="mt-3 font-serif text-3xl md:text-4xl font-bold text-slate-900">
           Explore Our Specialized Service Catalogues
         </h2>
-        <p className="mt-2 text-sm text-bone/60">
+        <p className="mt-2 text-sm text-slate-600">
           Switch tabs to preview dedicated vehicles, luxury bus coaches, safaris, and holiday stays.
         </p>
       </div>
 
       {/* CATALOGUE TABS BAR */}
-      <div className="mx-auto max-w-4xl flex flex-wrap gap-2 justify-center rounded-2xl border border-white/10 bg-ink-100/90 p-2 backdrop-blur-xl mb-8 shadow-3d-md">
+      <div className="mx-auto max-w-4xl flex flex-wrap gap-2 justify-center rounded-2xl border border-slate-200/80 bg-white p-2 mb-8 shadow-card">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -163,8 +163,8 @@ export const CatalogueTabs: React.FC = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 min-w-[160px] flex items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-xs font-bold transition-all duration-200 ${
                 isActive
-                  ? 'bg-marigold text-ink shadow-glow font-display scale-[1.02]'
-                  : 'text-bone/70 hover:text-bone hover:bg-white/5'
+                  ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
               <Icon className="h-4 w-4 shrink-0" />
@@ -176,7 +176,7 @@ export const CatalogueTabs: React.FC = () => {
         })}
       </div>
 
-      {/* CATALOGUE CARDS GRID WITH INTENDED PURPOSE IMAGERY */}
+      {/* CATALOGUE CARDS GRID */}
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
@@ -184,23 +184,21 @@ export const CatalogueTabs: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -15 }}
           transition={{ duration: 0.3 }}
-          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2"
+          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 items-stretch"
         >
           {currentItems.map((item) => (
             <div
               key={item.id}
-              className="glass-card-3d overflow-hidden rounded-3xl border border-white/15 hover:border-marigold/40 transition-all duration-300 group flex flex-col md:flex-row"
+              className="card-luxe overflow-hidden rounded-3xl border border-slate-200/90 shadow-card hover:shadow-card-hover transition-all duration-300 group flex flex-col md:flex-row hover:-translate-y-1 h-full"
             >
               {/* SPECIFIC CATALOGUE IMAGE */}
-              <div className="relative h-60 md:h-auto md:w-1/2 overflow-hidden bg-ink/80 shrink-0">
+              <div className="relative h-60 md:h-auto md:w-1/2 overflow-hidden bg-slate-100 shrink-0">
                 <img
                   src={item.imageUrl}
                   alt={item.title}
                   className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-transparent to-transparent md:bg-gradient-to-r" />
-
-                <span className="absolute top-3 left-3 rounded-full bg-ink/80 backdrop-blur-md border border-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-marigold font-display">
+                <span className="absolute top-3 left-3 rounded-full bg-white/95 backdrop-blur-md border border-amber-200 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-800 shadow-sm">
                   {item.badge}
                 </span>
               </div>
@@ -208,13 +206,13 @@ export const CatalogueTabs: React.FC = () => {
               {/* DETAILS */}
               <div className="p-6 flex flex-col justify-between flex-1">
                 <div>
-                  <span className="flex items-center gap-1 text-xs text-teal font-semibold mb-1">
-                    <MapPin className="h-3.5 w-3.5 text-teal" /> {item.location}
+                  <span className="flex items-center gap-1 text-xs text-teal-700 font-semibold mb-1">
+                    <MapPin className="h-3.5 w-3.5 text-teal-600" /> {item.location}
                   </span>
-                  <h3 className="font-display text-xl font-bold text-bone group-hover:text-marigold transition-colors">
+                  <h3 className="font-serif text-xl font-bold text-slate-900 group-hover:text-amber-700 transition-colors">
                     {item.title}
                   </h3>
-                  <p className="mt-1.5 text-xs text-bone/60 leading-relaxed">
+                  <p className="mt-1.5 text-xs text-slate-600 leading-relaxed">
                     {item.subtitle}
                   </p>
 
@@ -223,7 +221,7 @@ export const CatalogueTabs: React.FC = () => {
                     {item.specs.map((spec) => (
                       <span
                         key={spec}
-                        className="rounded-lg bg-white/5 border border-white/10 px-2.5 py-1 text-[10px] font-medium text-bone/70"
+                        className="rounded-lg bg-slate-100 border border-slate-200/60 px-2.5 py-1 text-[10px] font-medium text-slate-700"
                       >
                         {spec}
                       </span>
@@ -231,18 +229,18 @@ export const CatalogueTabs: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
+                <div className="mt-6 flex items-center justify-between border-t border-slate-150 pt-4">
                   <div>
-                    <span className="text-[10px] text-bone/50 uppercase tracking-widest block font-mono">Rate</span>
-                    <span className="font-mono text-lg font-bold text-marigold">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-widest block font-bold">Rate</span>
+                    <span className="text-xl font-bold text-slate-900">
                       {formatPrice(item.priceKES)}
-                      <span className="text-xs font-sans font-normal text-bone/50">{item.priceUnit}</span>
+                      <span className="text-xs font-normal text-slate-500">{item.priceUnit}</span>
                     </span>
                   </div>
 
                   <Link
                     to={`/catalogue?category=${activeTab}`}
-                    className="btn-primary !px-4 !py-2 text-xs flex items-center gap-1.5 shadow-glow"
+                    className="btn-primary !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold shadow-sm"
                   >
                     Select Catalogue <ArrowRight className="h-3.5 w-3.5" />
                   </Link>

@@ -112,10 +112,15 @@ export const NavigableKenyaUberMap: React.FC<NavigableKenyaUberMapProps> = ({
         className: '',
         html: `
           <div style="
-            background:#000000; color:#ffffff; width:28px; height:28px;
+            background:#0f172a; width:28px; height:28px;
             border-radius:50%; display:flex; align-items:center; justify-content:center;
-            border:3px solid #ffffff; box-shadow:0 4px 10px rgba(0,0,0,0.3); font-size:12px;
-          ">📍</div>
+            border:2.5px solid #ffffff; box-shadow:0 4px 12px rgba(0,0,0,0.35);
+          ">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+          </div>
         `,
         iconSize: [28, 28],
         iconAnchor: [14, 14],
@@ -129,10 +134,15 @@ export const NavigableKenyaUberMap: React.FC<NavigableKenyaUberMapProps> = ({
         className: '',
         html: `
           <div style="
-            background:#f59e0b; color:#000000; width:28px; height:28px;
+            background:#d97706; width:28px; height:28px;
             border-radius:50%; display:flex; align-items:center; justify-content:center;
-            border:3px solid #ffffff; box-shadow:0 4px 10px rgba(0,0,0,0.3); font-size:12px; font-weight:bold;
-          ">🏁</div>
+            border:2.5px solid #ffffff; box-shadow:0 4px 12px rgba(217,119,6,0.4);
+          ">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+              <line x1="4" x2="4" y1="22" y2="15"/>
+            </svg>
+          </div>
         `,
         iconSize: [28, 28],
         iconAnchor: [14, 14],
@@ -149,8 +159,15 @@ export const NavigableKenyaUberMap: React.FC<NavigableKenyaUberMapProps> = ({
             <div style="
               width:40px; height:40px; border-radius:50%; background:#0f172a;
               border:2.5px solid #ffffff; box-shadow:0 4px 14px rgba(0,0,0,0.4);
-              display:flex; align-items:center; justify-content:center; font-size:18px;
-            ">🚗</div>
+              display:flex; align-items:center; justify-content:center;
+            ">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/>
+                <circle cx="7" cy="17" r="2"/>
+                <path d="M9 17h6"/>
+                <circle cx="17" cy="17" r="2"/>
+              </svg>
+            </div>
             <span style="
               position:absolute; top:-2px; right:-2px; width:12px; height:12px;
               border-radius:50%; background:#10b981; border:2px solid #ffffff;
@@ -169,11 +186,11 @@ export const NavigableKenyaUberMap: React.FC<NavigableKenyaUberMapProps> = ({
       const carMarker = L.marker(KENYA_ROUTE_COORDS[0], { icon: carIcon })
         .addTo(map)
         .bindPopup(`
-          <div style="font-family:sans-serif; min-width:140px;">
-            <p style="margin:0; font-weight:bold; font-size:13px;">🚗 ${vehicleModel}</p>
-            <p style="margin:2px 0; color:#64748b; font-size:11px;">Plate: ${plateNumber}</p>
-            <p style="margin:2px 0; color:#10b981; font-weight:bold; font-size:11px;">Speed: ${speed} km/h • On Route</p>
-            <p style="margin:0; font-size:10px; color:#475569;">Driver: ${driverName}</p>
+          <div style="font-family:system-ui,-apple-system,sans-serif; min-width:160px; padding:2px;">
+            <p style="margin:0; font-weight:700; font-size:13px; color:#0f172a;">${vehicleModel}</p>
+            <p style="margin:2px 0; color:#64748b; font-size:11px; font-weight:600; text-transform:uppercase;">Plate: ${plateNumber}</p>
+            <p style="margin:4px 0; color:#059669; font-weight:600; font-size:11px;">Speed: ${speed} km/h • On Route</p>
+            <p style="margin:0; font-size:11px; color:#475569;">Driver: ${driverName}</p>
           </div>
         `);
       carMarkerRef.current = carMarker;

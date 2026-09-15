@@ -1,7 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { ArrowRight, Mail, Lock, Phone, User, Car, Shield, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Mail, Lock, Phone, User, Car, Shield, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { register } from '@/lib/authService';
 import { setUser } from '@/store/slices/authSlice';
 import { AuthVideoBackground } from '@/components/auth/AuthVideoBackground';
@@ -9,21 +9,21 @@ import { AuthVideoBackground } from '@/components/auth/AuthVideoBackground';
 const ROLES = [
   {
     value: 'TOURIST',
-    label: '🧳 Tourist / Traveler',
+    label: 'Tourist',
     description: 'Book safaris & vehicle hire',
     icon: User,
     color: 'teal',
   },
   {
     value: 'VEHICLE_OWNER',
-    label: '🚗 Car Owner',
+    label: 'Fleet Host',
     description: 'List vehicles & earn rental income',
     icon: Car,
     color: 'marigold',
   },
   {
     value: 'ADMIN',
-    label: '👑 System Admin',
+    label: 'System Admin',
     description: 'Platform control & vehicle monitoring',
     icon: Shield,
     color: 'purple',
@@ -79,175 +79,182 @@ export default function Register() {
 
   return (
     <AuthVideoBackground
-      title="Create Your Account"
-      subtitle="Join thousands of travelers discovering East Africa with M-TRAVEL."
+      title="Create Explorer Account"
+      subtitle="Join East Africa's premier luxury transport & safari platform."
     >
-      <form onSubmit={onSubmit} className="glass-card-3d space-y-4 p-8 border border-white/20 shadow-2xl">
-        {error && (
-          <div className="rounded-xl bg-coral/15 border border-coral/30 px-4 py-3 text-sm text-coral flex items-start gap-2">
-            <span className="mt-0.5">⚠️</span>
-            <span>{error}</span>
-          </div>
-        )}
+      <div className="relative group w-full">
+        {/* AMBIENT BACKLIGHT AURA */}
+        <div className="absolute -inset-1.5 rounded-[32px] bg-gradient-to-tr from-amber-500/25 via-amber-400/15 to-rose-500/20 blur-2xl opacity-80 group-hover:opacity-100 transition duration-700 -z-10" />
 
-        {/* Name row */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-bone/80">
-              First Name
-            </label>
-            <input
-              id="reg-first-name"
-              required
-              placeholder="Juma"
-              className="input-field bg-ink-100/90"
-              value={form.firstName}
-              onChange={(e) => update('firstName', e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-bone/80">
-              Last Name
-            </label>
-            <input
-              id="reg-last-name"
-              required
-              placeholder="Mwangi"
-              className="input-field bg-ink-100/90"
-              value={form.lastName}
-              onChange={(e) => update('lastName', e.target.value)}
-            />
-          </div>
-        </div>
+        <div className="relative rounded-[28px] bg-slate-950/85 backdrop-blur-2xl border border-white/20 p-6 sm:p-8 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] ring-1 ring-amber-400/30">
+          <form onSubmit={onSubmit} className="space-y-4">
+            {error && (
+              <div className="rounded-xl bg-red-500/15 border border-red-400/30 px-4 py-3 text-xs text-red-200 flex items-start gap-2.5">
+                <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{error}</span>
+              </div>
+            )}
 
-        {/* Email */}
-        <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-bone/80">
-            Email Address
-          </label>
-          <div className="relative">
-            <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-marigold" />
-            <input
-              id="reg-email"
-              type="email"
-              required
-              autoComplete="email"
-              placeholder="user@example.com"
-              className="input-field pl-10 bg-ink-100/90"
-              value={form.email}
-              onChange={(e) => update('email', e.target.value)}
-            />
-          </div>
-        </div>
+            {/* Name row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+                  First Name
+                </label>
+                <input
+                  id="reg-first-name"
+                  required
+                  placeholder="Juma"
+                  className="w-full rounded-xl bg-white/[0.06] hover:bg-white/[0.09] focus:bg-white/[0.12] border border-white/20 focus:border-amber-400 text-white placeholder:text-slate-400 px-4 py-2.5 text-sm transition outline-none focus:ring-2 focus:ring-amber-400/20 shadow-inner"
+                  value={form.firstName}
+                  onChange={(e) => update('firstName', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+                  Last Name
+                </label>
+                <input
+                  id="reg-last-name"
+                  required
+                  placeholder="Mwangi"
+                  className="w-full rounded-xl bg-white/[0.06] hover:bg-white/[0.09] focus:bg-white/[0.12] border border-white/20 focus:border-amber-400 text-white placeholder:text-slate-400 px-4 py-2.5 text-sm transition outline-none focus:ring-2 focus:ring-amber-400/20 shadow-inner"
+                  value={form.lastName}
+                  onChange={(e) => update('lastName', e.target.value)}
+                />
+              </div>
+            </div>
 
-        {/* Phone */}
-        <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-bone/80">
-            Phone Number (M-Pesa)
-          </label>
-          <div className="relative">
-            <Phone className="absolute left-3.5 top-3.5 h-4 w-4 text-teal" />
-            <input
-              id="reg-phone"
-              placeholder="+254 7xx xxx xxx"
-              className="input-field pl-10 bg-ink-100/90"
-              value={form.phone}
-              onChange={(e) => update('phone', e.target.value)}
-            />
-          </div>
-        </div>
+            {/* Email */}
+            <div>
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+                Email Address
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-amber-400">
+                  <Mail className="h-4 w-4" />
+                </div>
+                <input
+                  id="reg-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="user@example.com"
+                  className="w-full rounded-xl bg-white/[0.06] hover:bg-white/[0.09] focus:bg-white/[0.12] border border-white/20 focus:border-amber-400 text-white placeholder:text-slate-400 pl-10 pr-4 py-2.5 text-sm transition outline-none focus:ring-2 focus:ring-amber-400/20 shadow-inner"
+                  value={form.email}
+                  onChange={(e) => update('email', e.target.value)}
+                />
+              </div>
+            </div>
 
-        {/* Password */}
-        <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-bone/80">
-            Password
-          </label>
-          <div className="relative">
-            <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-marigold" />
-            <input
-              id="reg-password"
-              type={showPw ? 'text' : 'password'}
-              minLength={6}
-              required
-              autoComplete="new-password"
-              placeholder="At least 6 characters"
-              className="input-field pl-10 pr-10 bg-ink-100/90"
-              value={form.password}
-              onChange={(e) => update('password', e.target.value)}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPw((v) => !v)}
-              className="absolute right-3.5 top-3.5 text-bone/40 hover:text-bone/80 transition"
-              tabIndex={-1}
-            >
-              {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-        </div>
+            {/* Phone */}
+            <div>
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+                Phone Number (M-Pesa)
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-400">
+                  <Phone className="h-4 w-4" />
+                </div>
+                <input
+                  id="reg-phone"
+                  placeholder="+254 7xx xxx xxx"
+                  className="w-full rounded-xl bg-white/[0.06] hover:bg-white/[0.09] focus:bg-white/[0.12] border border-white/20 focus:border-amber-400 text-white placeholder:text-slate-400 pl-10 pr-4 py-2.5 text-sm transition outline-none focus:ring-2 focus:ring-amber-400/20 shadow-inner"
+                  value={form.phone}
+                  onChange={(e) => update('phone', e.target.value)}
+                />
+              </div>
+            </div>
 
-        {/* Role selector — card style */}
-        <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-bone/80">
-            Account Type
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {ROLES.map((r) => {
-              const active = form.role === r.value;
-              const colorMap: Record<string, string> = {
-                teal: 'border-teal/60 bg-teal/15 text-teal',
-                marigold: 'border-marigold/60 bg-marigold/15 text-marigold',
-                purple: 'border-purple-500/60 bg-purple-500/15 text-purple-300',
-              };
-              const inactiveMap: Record<string, string> = {
-                teal: 'border-white/10 text-bone/60 hover:border-teal/30',
-                marigold: 'border-white/10 text-bone/60 hover:border-marigold/30',
-                purple: 'border-white/10 text-bone/60 hover:border-purple-500/30',
-              };
-              return (
+            {/* Password */}
+            <div>
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+                Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-amber-400">
+                  <Lock className="h-4 w-4" />
+                </div>
+                <input
+                  id="reg-password"
+                  type={showPw ? 'text' : 'password'}
+                  minLength={6}
+                  required
+                  autoComplete="new-password"
+                  placeholder="At least 6 characters"
+                  className="w-full rounded-xl bg-white/[0.06] hover:bg-white/[0.09] focus:bg-white/[0.12] border border-white/20 focus:border-amber-400 text-white placeholder:text-slate-400 pl-10 pr-11 py-2.5 text-sm transition outline-none focus:ring-2 focus:ring-amber-400/20 shadow-inner"
+                  value={form.password}
+                  onChange={(e) => update('password', e.target.value)}
+                />
                 <button
-                  key={r.value}
                   type="button"
-                  id={`role-${r.value.toLowerCase()}`}
-                  onClick={() => update('role', r.value)}
-                  className={`rounded-xl border p-3 text-center transition flex flex-col items-center gap-1 text-xs font-semibold ${active ? colorMap[r.color] : inactiveMap[r.color]}`}
+                  onClick={() => setShowPw((v) => !v)}
+                  className="absolute right-3.5 top-2.5 text-slate-400 hover:text-white transition p-0.5"
+                  tabIndex={-1}
                 >
-                  <r.icon className="h-5 w-5" />
-                  <span className="leading-tight">{r.label.split(' ')[0]}</span>
-                  <span className="text-[10px] font-normal text-bone/50 leading-tight hidden sm:block">{r.description}</span>
+                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
-              );
-            })}
-          </div>
-        </div>
+              </div>
+            </div>
 
-        <button
-          id="register-submit-btn"
-          type="submit"
-          disabled={loading}
-          className="btn-primary w-full mt-2 font-semibold"
-        >
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-ink border-t-transparent" />
-              Creating account…
-            </span>
-          ) : (
-            <span className="flex items-center justify-center gap-2">
-              Create Account <ArrowRight className="h-4 w-4" />
-            </span>
-          )}
-        </button>
+            {/* Role selector */}
+            <div>
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-300">
+                Account Type
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {ROLES.map((r) => {
+                  const active = form.role === r.value;
+                  return (
+                    <button
+                      key={r.value}
+                      type="button"
+                      id={`role-${r.value.toLowerCase()}`}
+                      onClick={() => update('role', r.value)}
+                      className={`rounded-xl border p-2.5 text-center transition flex flex-col items-center gap-1 text-xs font-semibold ${
+                        active
+                          ? 'border-amber-400 bg-amber-500/20 text-amber-300 shadow-sm shadow-amber-500/20 scale-[1.02]'
+                          : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08] hover:text-white'
+                      }`}
+                    >
+                      <r.icon className="h-5 w-5" />
+                      <span className="leading-tight">{r.label}</span>
+                      <span className="text-[10px] font-normal text-slate-400 leading-tight hidden sm:block">{r.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-        <div className="border-t border-white/10 pt-4 text-center">
-          <p className="text-sm text-bone/70">
-            Already have an account?{' '}
-            <Link to="/login" className="font-semibold text-marigold hover:underline">
-              Log in
-            </Link>
-          </p>
+            <button
+              id="register-submit-btn"
+              type="submit"
+              disabled={loading}
+              className="relative group/btn w-full mt-2 overflow-hidden rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-3.5 px-6 shadow-[0_10px_25px_-5px_rgba(245,158,11,0.4)] transition-all duration-300 flex items-center justify-center gap-2 active:scale-[0.99] text-xs uppercase tracking-widest"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2 font-display">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-950 border-t-transparent" />
+                  Creating Account…
+                </span>
+              ) : (
+                <span className="flex items-center justify-center gap-2 font-display font-extrabold">
+                  Create Account <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                </span>
+              )}
+            </button>
+
+            <div className="border-t border-white/10 pt-4 text-center">
+              <p className="text-xs text-slate-300">
+                Already have an account?{' '}
+                <Link to="/login" className="font-bold text-amber-400 hover:text-amber-300 hover:underline">
+                  Sign in
+                </Link>
+              </p>
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
     </AuthVideoBackground>
   );
 }

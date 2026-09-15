@@ -46,7 +46,7 @@ export const OpenCvVehicleTracker: React.FC<OpenCvVehicleTrackerProps> = ({
   }, [isPlaying]);
 
   return (
-    <div className="w-full max-w-4xl mx-auto rounded-3xl border border-mtravel-gold/40 bg-mtravel-obsidian p-5 shadow-3d-glow text-bone font-display relative overflow-hidden">
+    <div className="w-full max-w-4xl mx-auto rounded-3xl border border-mtravel-gold/40 bg-mtravel-obsidian p-5 shadow-3d-glow text-white font-display relative overflow-hidden">
       {/* TOP HEADER */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
         <div>
@@ -56,8 +56,8 @@ export const OpenCvVehicleTracker: React.FC<OpenCvVehicleTrackerProps> = ({
             </span>
             <span className="text-[10px] font-mono text-mtravel-lightGold font-bold">Ref: {bookingRef}</span>
           </div>
-          <h3 className="font-serif text-xl font-bold text-bone mt-1 flex items-center gap-2">
-            <Car className="h-5 w-5 text-mtravel-gold" /> {vehicleName} <span className="text-sm font-mono text-bone/50">({vehiclePlate})</span>
+          <h3 className="font-serif text-xl font-bold text-white mt-1 flex items-center gap-2">
+            <Car className="h-5 w-5 text-mtravel-gold" /> {vehicleName} <span className="text-sm font-mono text-white/60">({vehiclePlate})</span>
           </h3>
         </div>
 
@@ -66,7 +66,7 @@ export const OpenCvVehicleTracker: React.FC<OpenCvVehicleTrackerProps> = ({
           {onClose && (
             <button
               onClick={onClose}
-              className="rounded-full bg-white/10 p-1.5 text-bone/60 hover:bg-white/20 hover:text-bone transition"
+              className="rounded-full bg-white/10 p-1.5 text-white/70 hover:bg-white/20 hover:text-white transition"
             >
               <X className="h-4 w-4" />
             </button>
@@ -91,7 +91,7 @@ export const OpenCvVehicleTracker: React.FC<OpenCvVehicleTrackerProps> = ({
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
                   isActive
                     ? 'bg-mtravel-burgundy text-mtravel-lightGold border border-mtravel-gold/40 shadow-sm'
-                    : 'text-bone/60 hover:text-bone'
+                    : 'text-white/70 hover:text-white'
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -145,7 +145,7 @@ export const OpenCvVehicleTracker: React.FC<OpenCvVehicleTrackerProps> = ({
               </div>
 
               {/* BOTTOM ROAD LOCATION */}
-              <div className="flex items-center justify-between text-[10px] text-bone/70 bg-black/60 p-2 rounded-lg backdrop-blur-sm border border-white/10">
+              <div className="flex items-center justify-between text-[10px] text-white/90 bg-black/60 p-2 rounded-lg backdrop-blur-sm border border-white/10 font-medium">
                 <span>SEGMENT: A104 Highway - Naivasha Rift Valley Escarpment</span>
                 <span className="text-mtravel-lightGold font-bold">MODE: OPENCV AI MOVEMENT</span>
               </div>
@@ -163,7 +163,7 @@ export const OpenCvVehicleTracker: React.FC<OpenCvVehicleTrackerProps> = ({
               <span className="font-mono text-mtravel-lightGold flex items-center gap-1 font-bold">
                 <Compass className="h-4 w-4 text-mtravel-gold" /> Uber GPS Live Route View
               </span>
-              <span className="text-[10px] text-bone/60 font-mono">{progress}% Journey Complete</span>
+              <span className="text-[10px] text-slate-300 font-mono font-medium">{progress}% Journey Complete</span>
             </div>
 
             {/* ROUTE LINE ANIMATION */}
@@ -189,11 +189,11 @@ export const OpenCvVehicleTracker: React.FC<OpenCvVehicleTrackerProps> = ({
             {/* LOCATIONS SUMMARY */}
             <div className="relative z-10 grid grid-cols-2 gap-2 text-[11px] bg-black/50 p-2.5 rounded-xl border border-white/10">
               <div>
-                <span className="text-bone/40 text-[9px] uppercase font-mono block">Origin</span>
-                <span className="font-bold text-bone truncate block">{pickup}</span>
+                <span className="text-white/60 text-[9px] uppercase font-mono block">Origin</span>
+                <span className="font-bold text-white truncate block">{pickup}</span>
               </div>
               <div>
-                <span className="text-bone/40 text-[9px] uppercase font-mono block">Destination</span>
+                <span className="text-white/60 text-[9px] uppercase font-mono block">Destination</span>
                 <span className="font-bold text-emerald-400 truncate block">{destination}</span>
               </div>
             </div>
@@ -208,13 +208,13 @@ export const OpenCvVehicleTracker: React.FC<OpenCvVehicleTrackerProps> = ({
             JK
           </div>
           <div>
-            <p className="font-bold text-bone flex items-center gap-1.5">
+            <p className="font-bold text-white flex items-center gap-1.5">
               {driverName}
               <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-mono text-emerald-400 font-bold">
                 Verified Chauffeur
               </span>
             </p>
-            <p className="text-bone/60 text-[11px] font-mono mt-0.5">
+            <p className="text-white/70 text-[11px] font-mono mt-0.5">
               Plate: <strong className="text-mtravel-lightGold">{vehiclePlate}</strong> | Rating: ★ 4.98 (210 Trips)
             </p>
           </div>

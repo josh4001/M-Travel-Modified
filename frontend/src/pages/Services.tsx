@@ -60,13 +60,13 @@ export default function Services() {
   return (
     <div className="mx-auto max-w-7xl px-6 py-12 space-y-16">
       <motion.div initial="hidden" animate="show" variants={fadeUp}>
-        <span className="mb-4 inline-block rounded-full border border-marigold/30 bg-marigold/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-marigold font-display">
+        <span className="mb-4 inline-block rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-800">
           What we offer
         </span>
-        <h1 className="font-display text-4xl font-bold tracking-tight md:text-5xl text-bone">
+        <h1 className="font-serif text-4xl font-bold tracking-tight md:text-5xl text-slate-900">
           Everything you need to travel, in one place.
         </h1>
-        <p className="mt-4 max-w-2xl text-bone/70">
+        <p className="mt-4 max-w-2xl text-slate-600 text-base leading-relaxed">
           M-TRAVEL brings vehicle hire, bus travel, tours, and holiday homes together under a
           single account, a single wallet, and a single support line.
         </p>
@@ -80,27 +80,35 @@ export default function Services() {
 
       {/* CORE FEATURES GRID */}
       <div>
-        <h2 className="font-display text-2xl font-bold text-bone mb-6">Platform Features & Services</h2>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <h2 className="font-serif text-2xl font-bold text-slate-900 mb-6">Platform Features & Services</h2>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
           {services.map((s, i) => {
             const cardContent = (
-              <>
-                <s.icon className="h-7 w-7 text-marigold group-hover:scale-110 transition-transform" strokeWidth={1.75} />
-                <h3 className="mt-4 font-display text-lg font-bold text-bone group-hover:text-marigold transition-colors">{s.title}</h3>
-                <p className="mt-2 text-xs text-bone/60 leading-relaxed">{s.desc}</p>
-                {s.cat && (
-                  <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-bold text-marigold font-mono group-hover:underline">
+              <div className="flex flex-col justify-between h-full">
+                <div>
+                  <div className="inline-flex rounded-2xl border border-amber-200 bg-amber-50 p-3 text-amber-700 shadow-sm group-hover:scale-110 transition-transform">
+                    <s.icon className="h-6 w-6" strokeWidth={2} />
+                  </div>
+                  <h3 className="mt-4 font-serif text-lg font-bold text-slate-900 group-hover:text-amber-700 transition-colors">{s.title}</h3>
+                  <p className="mt-2 text-xs text-slate-600 leading-relaxed min-h-[3rem]">{s.desc}</p>
+                </div>
+                {s.cat ? (
+                  <span className="mt-4 pt-3 border-t border-slate-150 inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 group-hover:translate-x-1 transition-transform">
                     Explore {s.title} Catalogue →
                   </span>
+                ) : (
+                  <span className="mt-4 pt-3 border-t border-slate-100 inline-flex items-center gap-1 text-[11px] font-medium text-slate-400">
+                    Included in All Trips
+                  </span>
                 )}
-              </>
+              </div>
             );
 
             return s.cat ? (
               <Link
                 key={s.title}
                 to={`/catalogue?category=${s.cat}`}
-                className="group glass-card p-6 rounded-2xl border border-white/10 hover:border-marigold/40 transition block"
+                className="group card-luxe p-6 rounded-2xl border border-slate-200/80 hover:border-amber-400/50 transition flex flex-col justify-between h-full"
               >
                 {cardContent}
               </Link>
@@ -109,7 +117,7 @@ export default function Services() {
                 key={s.title}
                 initial="hidden" whileInView="show" viewport={{ once: true, margin: '-60px' }}
                 variants={fadeUp} transition={{ delay: i * 0.05 }}
-                className="glass-card p-6 rounded-2xl border border-white/10 hover:border-marigold/40 transition"
+                className="card-luxe p-6 rounded-2xl border border-slate-200/80 hover:border-amber-400/50 transition flex flex-col justify-between h-full"
               >
                 {cardContent}
               </motion.div>
@@ -119,7 +127,7 @@ export default function Services() {
       </div>
 
       <div className="text-center pt-8">
-        <Link to="/search" className="btn-primary shadow-glow !px-8 !py-3 font-bold">Browse Available Vehicles & Trips</Link>
+        <Link to="/catalogue" className="btn-primary !px-8 !py-3 font-bold shadow-md">Browse Available Vehicles & Trips</Link>
       </div>
     </div>
   );

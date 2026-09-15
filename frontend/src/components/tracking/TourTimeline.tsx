@@ -108,13 +108,13 @@ export function TourTimeline({
   ];
 
   return (
-    <div className="glass-card p-5 rounded-2xl border border-white/10 space-y-4">
-      <div className="flex items-center justify-between border-b border-white/10 pb-3">
+    <div className="card-luxe bg-white p-5 rounded-2xl border border-slate-200 space-y-4 shadow-sm">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
         <div>
-          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-marigold">
-            📍 Tour Progress Timeline
+          <span className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-widest text-amber-700">
+            <MapPin className="h-3 w-3" /> Tour Progress Timeline
           </span>
-          <h3 className="text-sm font-bold text-bone font-display">Multi-Stop Journey Progress</h3>
+          <h3 className="text-sm font-bold text-slate-900 font-display">Multi-Stop Journey Progress</h3>
         </div>
         <span className="rounded-full bg-teal/10 border border-teal/30 px-3 py-1 text-[11px] font-bold text-teal flex items-center gap-1.5 font-mono">
           <Clock className="h-3 w-3 animate-pulse" /> Live Tracking Active
@@ -122,7 +122,7 @@ export function TourTimeline({
       </div>
 
       {/* TIMELINE LIST */}
-      <div className="relative pl-6 space-y-4 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-white/10">
+      <div className="relative pl-6 space-y-4 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
         {steps.map((step) => {
           const Icon = step.icon;
           const isDone = step.status === 'COMPLETED';
@@ -134,10 +134,10 @@ export function TourTimeline({
               <div
                 className={`absolute -left-6 top-0.5 flex h-5 w-5 items-center justify-center rounded-full border text-[10px] transition-all ${
                   isDone
-                    ? 'border-emerald-400 bg-emerald-500 text-ink shadow-glow'
+                    ? 'border-emerald-500 bg-emerald-500 text-white shadow-sm'
                     : isCurrent
-                    ? 'border-marigold bg-marigold text-ink animate-bounce shadow-glow'
-                    : 'border-white/20 bg-ink-100 text-bone/40'
+                    ? 'border-amber-500 bg-amber-500 text-slate-950 animate-bounce shadow-sm font-bold'
+                    : 'border-slate-300 bg-slate-100 text-slate-400'
                 }`}
               >
                 {isDone ? <CheckCircle2 className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
@@ -149,28 +149,29 @@ export function TourTimeline({
                   <h4
                     className={`text-xs font-bold ${
                       isDone
-                        ? 'text-bone'
+                        ? 'text-slate-900'
                         : isCurrent
-                        ? 'text-marigold'
-                        : 'text-bone/50'
+                        ? 'text-amber-700'
+                        : 'text-slate-500'
                     }`}
                   >
                     {step.label}
                   </h4>
                   {step.timestamp && (
-                    <span className="text-[10px] font-mono text-bone/40">{step.timestamp}</span>
+                    <span className="text-[10px] font-mono text-slate-500 font-medium">{step.timestamp}</span>
                   )}
                 </div>
-                <p className="text-[11px] text-bone/60 mt-0.5">{step.description}</p>
+                <p className="text-[11px] text-slate-600 font-medium mt-0.5">{step.description}</p>
               </div>
 
               {/* DRIVER ACTION BUTTON TO ADVANCE STEP */}
               {isDriver && isCurrent && onUpdateStep && (
                 <button
                   onClick={() => onUpdateStep(step.key)}
-                  className="ml-2 rounded-lg bg-marigold px-2.5 py-1 text-[10px] font-bold text-ink hover:bg-amber-400 transition"
+                  className="ml-2 inline-flex items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-slate-950 hover:bg-amber-400 transition shadow-sm"
                 >
-                  Mark Step Complete ✓
+                  <span>Mark Step Complete</span>
+                  <CheckCircle2 className="h-3 w-3" />
                 </button>
               )}
             </div>

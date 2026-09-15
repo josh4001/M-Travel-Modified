@@ -22,7 +22,15 @@ interface LiveMapProps {
   trackingMode?: boolean;
 }
 
-const TYPE_EMOJI: Record<string, string> = { CAR: '🚗', SUV: '🚙', VAN: '🚐', PICKUP: '🛻' };
+// Clean SVG vehicle icon markup for Leaflet
+const VEHICLE_SVG = (color: string, size: number) => `
+  <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/>
+    <circle cx="7" cy="17" r="2"/>
+    <path d="M9 17h6"/>
+    <circle cx="17" cy="17" r="2"/>
+  </svg>
+`;
 
 export default function LiveMap({
   vehicles = [],
@@ -88,37 +96,41 @@ export default function LiveMap({
       vehicles.forEach(v => {
         if (!v.latitude || !v.longitude) return;
         const isSelected = v.id === selectedId;
-        const emoji = TYPE_EMOJI[v.type] ?? '🚗';
         const color = v.is_available ? (isSelected ? '#f59e0b' : '#14b8a6') : '#ef4444';
+        const iconSize = isSelected ? 44 : 36;
+        const svgSize = isSelected ? 22 : 18;
 
         const icon = L.divIcon({
           className: '',
           html: `
             <div style="
               display:flex; align-items:center; justify-content:center;
-              width:${isSelected ? '44px' : '36px'}; height:${isSelected ? '44px' : '36px'};
+              width:${iconSize}px; height:${iconSize}px;
               border-radius:50%;
-              background:${color}22;
+              background:${color}18;
               border:2px solid ${color};
-              box-shadow:0 0 ${isSelected ? '12px' : '4px'} ${color}88;
-              font-size:${isSelected ? '20px' : '16px'};
+              box-shadow:0 0 ${isSelected ? '16px' : '6px'} ${color}66;
               transition:all 0.3s;
               cursor:pointer;
-            ">${emoji}</div>`,
-          iconSize: [isSelected ? 44 : 36, isSelected ? 44 : 36],
-          iconAnchor: [isSelected ? 22 : 18, isSelected ? 22 : 18],
+            ">${VEHICLE_SVG(color, svgSize)}</div>`,
+          iconSize: [iconSize, iconSize],
+          iconAnchor: [iconSize / 2, iconSize / 2],
         });
 
         const marker = L.marker([v.latitude, v.longitude], { icon })
           .addTo(mapInst.current)
           .bindPopup(`
-            <div style="font-family:sans-serif;min-width:160px;">
-              <p style="font-weight:bold;font-size:14px;margin:0 0 4px">${emoji} ${v.make} ${v.model}</p>
-              <p style="color:#888;font-size:11px;margin:0 0 6px">${v.type}</p>
-              <p style="color:${v.is_available ? '#14b8a6' : '#ef4444'};font-size:12px;font-weight:bold;margin:0 0 4px">
-                ${v.is_available ? '✅ Available' : '❌ Unavailable'}
+            <div style="font-family:system-ui,-apple-system,sans-serif;min-width:180px;padding:4px 2px;">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+                <span style="font-weight:700;font-size:14px;color:#0f172a;">${v.make} ${v.model}</span>
+              </div>
+              <p style="color:#64748b;font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;margin:0 0 6px">${v.type}</p>
+              <div style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;background:${v.is_available ? '#ecfdf5' : '#fef2f2'};color:${v.is_available ? '#059669' : '#dc2626'};margin-bottom:6px;">
+                ${v.is_available ? 'Available' : 'Booked'}
+              </div>
+              <p style="font-size:12px;color:#334155;margin:0;font-weight:500;">
+                KES ${Number(v.price_per_day).toLocaleString()}/day ${v.rating_average ? `&nbsp;&bull;&nbsp; ★ ${v.rating_average.toFixed(1)}` : ''}
               </p>
-              <p style="font-size:12px;margin:0">⭐ ${v.rating_average?.toFixed(1)} &nbsp;|&nbsp; KES ${Number(v.price_per_day).toLocaleString()}/day</p>
             </div>
           `);
 
@@ -196,7 +208,7 @@ export default function LiveMap({
         userMarkerRef.current?.remove();
         userMarkerRef.current = L.marker([latitude, longitude], { icon })
           .addTo(mapInst.current)
-          .bindPopup('<b>📍 Your Location</b>');
+          .bindPopup('<div style="font-family:system-ui,-apple-system,sans-serif;font-size:12px;font-weight:600;color:#0f172a;padding:2px 4px;">Current Location</div>');
 
         if (vehicles.length === 0) {
           mapInst.current.setView([latitude, longitude], 13);
@@ -209,7 +221,7 @@ export default function LiveMap({
     <div className="relative overflow-hidden rounded-2xl border border-white/10">
       {/* Map header bar */}
       <div className="absolute left-0 right-0 top-0 z-[1000] flex items-center justify-between bg-ink/80 px-4 py-2 backdrop-blur-sm">
-        <div className="flex items-center gap-2 text-xs text-bone/70">
+        <div className="flex items-center gap-2 text-xs text-white font-medium">
           <Navigation className="h-3.5 w-3.5 text-teal animate-pulse" />
           <span>Live GPS Map — Kenya</span>
           {vehicles.length > 0 && (
