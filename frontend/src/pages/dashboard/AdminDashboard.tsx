@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
   Users, Car, Shield, DollarSign, Activity, CheckCircle,
-  RefreshCw, BarChart3, TrendingUp, AlertTriangle, ArrowDownLeft, ArrowUpRight, FileCheck, Landmark, Video,
-  XCircle, Trash2, Server, Wifi, HardDrive, Clock, MapPin, Power
+  RefreshCw, BarChart3, TrendingUp, AlertTriangle, ArrowDownLeft, ArrowUpRight, FileCheck, Landmark,
+  XCircle, Trash2, Server, Wifi, HardDrive, Clock, MapPin, Power, Navigation
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useCurrency } from '@/context/CurrencyContext';
@@ -13,8 +13,7 @@ import {
   toggleVehicleLiveStatus, getVehicleHireStatus, deleteVehicle,
   type StoredBooking, type StoredVehicle
 } from '@/lib/bookingStore';
-import { OpenCvVehicleTracker } from '@/components/tracking/OpenCvVehicleTracker';
-import { AdminFleetMap } from '@/components/tracking/AdminFleetMap';
+import { UberLiveTracker } from '@/components/tracking/UberLiveTracker';
 
 interface DBUser {
   id: string; email: string; first_name: string; last_name: string;
@@ -761,9 +760,9 @@ export default function AdminDashboard() {
                           {['IN_PROGRESS', 'CONFIRMED', 'PAID', 'ACCEPTED'].includes(b.status) && (
                             <button
                               onClick={() => { setSelectedBookingForTrack(b); setShowOpenCvTracker(true); }}
-                              className="flex items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2 py-1 text-[10px] font-bold text-teal-800 hover:bg-teal-100 transition"
+                              className="flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-800 hover:bg-emerald-100 transition shadow-xs"
                             >
-                              <Video className="h-3 w-3 text-teal-700" /> Track
+                              <Navigation className="h-3 w-3 text-emerald-700" /> Track Ride (Uber GPS)
                             </button>
                           )}
                           {canCancel && (
@@ -813,41 +812,174 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ── MAP / LIVE FLEET COMMAND CENTER ── */}
-      {!loading && activeTab === 'map' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">
-              <Activity className="h-5 w-5 text-emerald-600 animate-pulse" /> Live Fleet GPS Command Center
-            </h2>
-            <span className="text-xs text-slate-500 font-medium">Real-time GPS telemetry from all registered Fleet Hosts</span>
-          </div>
-          <AdminFleetMap />
-        </div>
-      )}
+      {/* ── MAP / LIVE FLEET COMMAND CENTER (UBER GPS TRACKING FOR REGISTERED BOOKED VEHICLES) ── */}
+      {!loading && activeTab === 'map' && (() => {
+        const activeBooked = bookings.filter(b => ['IN_PROGRESS', 'CONFIRMED', 'PAID', 'ACCEPTED'].includes(b.status));
+        const currentTrackBooking = selectedBookingForTrack || activeBooked[0] || (bookings.length > 0 ? bookings[0] : null);
 
-      {/* OPENCV LIVE TRACKER MODAL */}
-      {showOpenCvTracker && selectedBookingForTrack && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-          <div className="rounded-3xl bg-white border border-slate-200 w-full max-w-4xl space-y-4 p-6 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Video className="h-5 w-5 text-teal-600 animate-pulse" />
-                Live Vehicle Feed — {selectedBookingForTrack.vehicleName}
-              </h3>
-              <button
-                onClick={() => { setShowOpenCvTracker(false); setSelectedBookingForTrack(null); }}
-                className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition"
-              >
-                ✕ Close
-              </button>
+        const activeVehicle = currentTrackBooking ? {
+          id: currentTrackBooking.vehicleId || 'v-admin-track',
+          hostId: 'host-1',
+          make: currentTrackBooking.vehicleName ? currentTrackBooking.vehicleName.split(' ')[0] : 'Toyota',
+          model: currentTrackBooking.vehicleName ? currentTrackBooking.vehicleName.split(' ').slice(1).join(' ') : 'Land Cruiser',
+          year: 2024,
+          type: 'SUV' as any,
+          seatingCapacity: 7,
+          fuelType: 'DIESEL' as any,
+          transmission: 'AUTOMATIC' as any,
+          dailyRate: 160,
+          isAvailable: true,
+          images: currentTrackBooking.vehicleImage ? [currentTrackBooking.vehicleImage] : [],
+          features: [],
+          rating: 4.9,
+          tripsCount: 142,
+          plateNumber: 'KDA 782P',
+          owner: {
+            id: 'owner-1',
+            firstName: currentTrackBooking.driverName ? currentTrackBooking.driverName.split(' ')[0] : 'James',
+            lastName: currentTrackBooking.driverName ? currentTrackBooking.driverName.split(' ')[1] || 'Mwangi' : 'Mwangi',
+            email: 'driver@mtravel.co.ke',
+            phone: '+254 712 345 678',
+            avatar: '',
+            rating: 4.9,
+            tripsCount: 142,
+          }
+        } : (vehicles.length > 0 ? {
+          id: vehicles[0].id,
+          hostId: vehicles[0].ownerId || 'host-1',
+          make: vehicles[0].make,
+          model: vehicles[0].model,
+          year: vehicles[0].year,
+          type: 'SUV' as any,
+          seatingCapacity: 7,
+          fuelType: 'DIESEL' as any,
+          transmission: 'AUTOMATIC' as any,
+          dailyRate: vehicles[0].pricePerDay,
+          isAvailable: true,
+          images: vehicles[0].images,
+          features: [],
+          rating: 4.9,
+          tripsCount: 142,
+          plateNumber: vehicles[0].plateNumber || 'KDA 890X',
+          owner: {
+            id: vehicles[0].ownerId || 'owner-1',
+            firstName: vehicles[0].ownerName?.split(' ')[0] || 'Fleet',
+            lastName: vehicles[0].ownerName?.split(' ')[1] || 'Host',
+            email: 'host@mtravel.co.ke',
+            phone: '+254 712 345 678',
+            avatar: '',
+            rating: 4.9,
+            tripsCount: 142,
+          }
+        } : null);
+
+        return (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <Navigation className="h-5 w-5 text-emerald-600 animate-pulse" /> Live Booked Fleet GPS Command Radar
+                </h2>
+                <p className="text-xs text-slate-600 font-medium">
+                  Track booked registered vehicles live to assist fleet hosts, monitor driver GPS speed, and verify passenger safety.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-emerald-100 text-emerald-800 px-3 py-1 text-xs font-bold font-mono">
+                  {activeBooked.length} Active Booked Vehicles
+                </span>
+              </div>
             </div>
-            <OpenCvVehicleTracker
-              bookingId={selectedBookingForTrack.id}
-              vehicleName={selectedBookingForTrack.vehicleName}
-              touristName={selectedBookingForTrack.touristName}
-              driverName={selectedBookingForTrack.driverName}
-              role="admin"
+
+            {/* ACTIVE BOOKINGS SELECTOR STRIP */}
+            {activeBooked.length > 0 && (
+              <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                {activeBooked.map((b) => (
+                  <button
+                    key={b.id}
+                    onClick={() => setSelectedBookingForTrack(b)}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition shrink-0 ${
+                      (currentTrackBooking?.id === b.id)
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Car className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>{b.vehicleName}</span>
+                    <span className="font-mono text-[10px] text-slate-500">({b.bookingRef})</span>
+                    <span className="rounded bg-teal/20 px-1.5 py-0.5 text-[9px] text-teal uppercase font-bold">{b.status}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* RENDER MODIFIED UBER LIVE TRACKER */}
+            {activeVehicle ? (
+              <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-lg bg-white">
+                <UberLiveTracker
+                  vehicle={activeVehicle}
+                  bookingRef={currentTrackBooking?.bookingRef || 'MT-ADMIN-LIVE'}
+                  tripId={currentTrackBooking?.id || 'MT-ADMIN-LIVE'}
+                  startDate={currentTrackBooking?.startDate}
+                  endDate={currentTrackBooking?.endDate}
+                  pickupLocation={currentTrackBooking?.pickupLocation || 'Westlands, Nairobi'}
+                  dropoffLocation={currentTrackBooking?.dropoffLocation || 'Maasai Mara National Reserve'}
+                  viewerRole="ADMIN"
+                />
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-white border border-slate-200 p-12 text-center text-slate-500">
+                <Car className="h-10 w-10 mx-auto text-slate-300 mb-2" />
+                <p className="font-semibold text-slate-700">No registered vehicles available to track yet.</p>
+                <p className="text-xs text-slate-400 mt-1">When fleet hosts register vehicles and tourists book trips, their live GPS will appear here.</p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* UBER LIVE GPS TRACKER MODAL (WHEN CLICKED FROM BOOKINGS LIST) */}
+      {showOpenCvTracker && selectedBookingForTrack && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="w-full max-w-4xl my-8">
+            <UberLiveTracker
+              vehicle={{
+                id: selectedBookingForTrack.vehicleId || 'v-live',
+                hostId: 'host-1',
+                make: selectedBookingForTrack.vehicleName ? selectedBookingForTrack.vehicleName.split(' ')[0] : 'Toyota',
+                model: selectedBookingForTrack.vehicleName ? selectedBookingForTrack.vehicleName.split(' ').slice(1).join(' ') : 'Land Cruiser',
+                year: 2024,
+                type: 'SUV' as any,
+                seatingCapacity: 7,
+                fuelType: 'DIESEL' as any,
+                transmission: 'AUTOMATIC' as any,
+                dailyRate: 150,
+                isAvailable: true,
+                images: selectedBookingForTrack.vehicleImage ? [selectedBookingForTrack.vehicleImage] : [],
+                features: [],
+                rating: 4.9,
+                tripsCount: 142,
+                plateNumber: 'KDA 782P',
+                owner: {
+                  id: 'owner-1',
+                  firstName: selectedBookingForTrack.driverName ? selectedBookingForTrack.driverName.split(' ')[0] : 'James',
+                  lastName: selectedBookingForTrack.driverName ? selectedBookingForTrack.driverName.split(' ')[1] || 'Mwangi' : 'Mwangi',
+                  email: 'driver@mtravel.co.ke',
+                  phone: '+254 712 345 678',
+                  avatar: '',
+                  rating: 4.9,
+                  tripsCount: 142,
+                }
+              }}
+              bookingRef={selectedBookingForTrack.bookingRef || selectedBookingForTrack.id.slice(0, 8)}
+              tripId={selectedBookingForTrack.id}
+              startDate={selectedBookingForTrack.startDate}
+              endDate={selectedBookingForTrack.endDate}
+              pickupLocation={selectedBookingForTrack.pickupLocation || 'Westlands, Nairobi'}
+              dropoffLocation={selectedBookingForTrack.dropoffLocation || 'Maasai Mara National Reserve'}
+              viewerRole="ADMIN"
+              onClose={() => { setShowOpenCvTracker(false); setSelectedBookingForTrack(null); }}
             />
           </div>
         </div>

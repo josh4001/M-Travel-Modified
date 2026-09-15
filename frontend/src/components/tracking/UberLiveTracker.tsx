@@ -1,23 +1,49 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Car, MapPin, Phone, MessageSquare, Shield, Navigation,
-  CheckCircle2, Star, X, Map, Video, Compass, Radio
+  CheckCircle2, Star, X, Radio, Locate, Play, Pause, AlertCircle
 } from 'lucide-react';
 import type { Vehicle } from '@/types';
 import { TourTimeline } from '@/components/tracking/TourTimeline';
-import { LiveVehicleTrackingVideo } from '@/components/tracking/LiveVehicleTrackingVideo';
-import { UberStreetLiveMap } from '@/components/tracking/UberStreetLiveMap';
-import { NavigableKenyaUberMap } from '@/components/tracking/NavigableKenyaUberMap';
 import { TravellerLiveMap } from '@/components/tracking/TravellerLiveMap';
 
+export interface TrackingVehicle {
+  id?: string;
+  make?: string;
+  model?: string;
+  year?: number;
+  type?: string;
+  seats?: number;
+  seatingCapacity?: number;
+  pricePerDay?: number | string;
+  dailyRate?: number | string;
+  plateNumber?: string;
+  images?: any[];
+  owner?: {
+    id?: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    avatarUrl?: string;
+    avatar?: string;
+    email?: string;
+    [key: string]: any;
+  } | any;
+  driverName?: string;
+  [key: string]: any;
+}
+
 interface UberLiveTrackerProps {
-  vehicle: Vehicle;
+  vehicle: TrackingVehicle | Vehicle | any;
   bookingRef: string;
   tripId?: string;
   startDate?: string;
   endDate?: string;
   pickupLocation?: string;
   dropoffLocation?: string;
+  pickupCoords?: [number, number];
+  dropoffCoords?: [number, number];
+  viewerRole?: 'TOURIST' | 'DRIVER' | 'ADMIN';
   onClose?: () => void;
 }
 
@@ -27,141 +53,365 @@ export function UberLiveTracker({
   tripId,
   pickupLocation = 'Westlands, Nairobi',
   dropoffLocation = 'Maasai Mara National Reserve',
+  pickupCoords = [-1.2650, 36.8050],
+  dropoffCoords = [-1.3200, 36.7100],
+  viewerRole = 'TOURIST',
   onClose,
 }: UberLiveTrackerProps) {
-  const [progress, setProgress] = useState(35); // 0 to 100%
-  const [speed, setSpeed] = useState(64);
-  const [trackerMode, setTrackerMode] = useState<'realtime_gps' | 'kenya_gps' | 'uber_vector' | 'video_motion'>('realtime_gps');
+  const effectiveTripId = tripId || bookingRef;
 
-  // Simulate live movement fallback for progress bar
+  // Uber-style Role Selection & GPS state
+  const [myRole, setMyRole] = useState<'TOURIST' | 'DRIVER' | 'ADMIN'>(viewerRole);
+  const [isGpsEnabled, setIsGpsEnabled] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+
+  // Live coordinates
+  const [travelerCoords, setTravelerCoords] = useState<[number, number] | null>(null);
+  const [driverCoords, setDriverCoords] = useState<[number, number] | null>(null);
+  const [driverSpeed, setDriverSpeed] = useState<number>(58);
+  const [driverHeading, setDriverHeading] = useState<number>(45);
+
+  // Simulation mode for testing drive without moving physically
+  const [isSimulatingDrive, setIsSimulatingDrive] = useState(false);
+  const simulationStepRef = useRef(0);
+
+  // Trip progress indicator
+  const [progress, setProgress] = useState(35);
+
+  // Geolocation watch ID
+  const watchIdRef = useRef<number | null>(null);
+
+  // 1. Check local storage on mount for existing broadcasted coordinates for this trip
   useEffect(() => {
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          setSpeed(0);
-          return 100;
+    try {
+      const savedTraveler = localStorage.getItem(`mt_gps_traveler_${effectiveTripId}`);
+      if (savedTraveler) {
+        const parsed = JSON.parse(savedTraveler);
+        if (parsed?.lat && parsed?.lng) {
+          setTravelerCoords([parsed.lat, parsed.lng]);
         }
-        const next = prev + 1.5;
-        setSpeed(Math.floor(58 + Math.random() * 18));
-        return next;
-      });
-    }, 2000);
+      }
+
+      const savedDriver = localStorage.getItem(`mt_gps_driver_${effectiveTripId}`);
+      if (savedDriver) {
+        const parsed = JSON.parse(savedDriver);
+        if (parsed?.lat && parsed?.lng) {
+          setDriverCoords([parsed.lat, parsed.lng]);
+          if (parsed.speed) setDriverSpeed(parsed.speed);
+          if (parsed.heading) setDriverHeading(parsed.heading);
+        }
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }, [effectiveTripId]);
+
+  // 2. Listen for cross-tab or cross-component GPS broadcast events
+  useEffect(() => {
+    const handleBroadcast = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const data = customEvent.detail;
+      if (!data || data.tripId !== effectiveTripId) return;
+
+      if (data.type === 'TOURIST' && data.lat && data.lng) {
+        setTravelerCoords([data.lat, data.lng]);
+      } else if (data.type === 'DRIVER' && data.lat && data.lng) {
+        setDriverCoords([data.lat, data.lng]);
+        if (data.speed !== undefined) setDriverSpeed(data.speed);
+        if (data.heading !== undefined) setDriverHeading(data.heading);
+      }
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === `mt_gps_traveler_${effectiveTripId}` && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed?.lat && parsed?.lng) setTravelerCoords([parsed.lat, parsed.lng]);
+        } catch { /* empty */ }
+      }
+      if (e.key === `mt_gps_driver_${effectiveTripId}` && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed?.lat && parsed?.lng) {
+            setDriverCoords([parsed.lat, parsed.lng]);
+            if (parsed.speed) setDriverSpeed(parsed.speed);
+            if (parsed.heading) setDriverHeading(parsed.heading);
+          }
+        } catch { /* empty */ }
+      }
+    };
+
+    window.addEventListener('mt_live_gps_broadcast', handleBroadcast);
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener('mt_live_gps_broadcast', handleBroadcast);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [effectiveTripId]);
+
+  // 3. Handle device GPS Toggle (Uber style)
+  useEffect(() => {
+    if (!isGpsEnabled) {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+      return;
+    }
+
+    if (!('geolocation' in navigator)) {
+      setGpsError('Geolocation is not supported by your browser.');
+      setIsGpsEnabled(false);
+      return;
+    }
+
+    setGpsError(null);
+
+    // Start watching position
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const speedKmh = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : (myRole === 'DRIVER' ? 45 : 0);
+        const headingDeg = pos.coords.heading || 0;
+
+        if (myRole === 'TOURIST') {
+          setTravelerCoords([lat, lng]);
+          const payload = { lat, lng, timestamp: Date.now() };
+          try {
+            localStorage.setItem(`mt_gps_traveler_${effectiveTripId}`, JSON.stringify(payload));
+          } catch { /* empty */ }
+          window.dispatchEvent(new CustomEvent('mt_live_gps_broadcast', {
+            detail: { tripId: effectiveTripId, type: 'TOURIST', lat, lng }
+          }));
+        } else if (myRole === 'DRIVER') {
+          setDriverCoords([lat, lng]);
+          setDriverSpeed(speedKmh);
+          setDriverHeading(headingDeg);
+          const payload = { lat, lng, speed: speedKmh, heading: headingDeg, timestamp: Date.now() };
+          try {
+            localStorage.setItem(`mt_gps_driver_${effectiveTripId}`, JSON.stringify(payload));
+          } catch { /* empty */ }
+          window.dispatchEvent(new CustomEvent('mt_live_gps_broadcast', {
+            detail: { tripId: effectiveTripId, type: 'DRIVER', lat, lng, speed: speedKmh, heading: headingDeg }
+          }));
+        }
+      },
+      (err) => {
+        setGpsError(err.message || 'Unable to retrieve your location. Check browser permissions.');
+        setIsGpsEnabled(false);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 12000,
+      }
+    );
+
+    watchIdRef.current = watchId;
+
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+    };
+  }, [isGpsEnabled, myRole, effectiveTripId]);
+
+  // 4. Drive Simulation for testing without moving physically
+  useEffect(() => {
+    if (!isSimulatingDrive) return;
+
+    const start = pickupCoords;
+    const end = dropoffCoords;
+
+    const interval = setInterval(() => {
+      simulationStepRef.current += 0.02;
+      if (simulationStepRef.current > 1) {
+        simulationStepRef.current = 0; // loop
+      }
+
+      const fraction = simulationStepRef.current;
+      const curLat = start[0] + (end[0] - start[0]) * fraction;
+      const curLng = start[1] + (end[1] - start[1]) * fraction;
+      const calcSpeed = Math.floor(55 + Math.random() * 15);
+      const calcHeading = Math.floor(fraction * 360);
+
+      setDriverCoords([curLat, curLng]);
+      setDriverSpeed(calcSpeed);
+      setDriverHeading(calcHeading);
+      setProgress(Math.round(fraction * 100));
+
+      const payload = { lat: curLat, lng: curLng, speed: calcSpeed, heading: calcHeading, timestamp: Date.now() };
+      try {
+        localStorage.setItem(`mt_gps_driver_${effectiveTripId}`, JSON.stringify(payload));
+      } catch { /* empty */ }
+      window.dispatchEvent(new CustomEvent('mt_live_gps_broadcast', {
+        detail: { tripId: effectiveTripId, type: 'DRIVER', lat: curLat, lng: curLng, speed: calcSpeed, heading: calcHeading }
+      }));
+    }, 1800);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isSimulatingDrive, pickupCoords, dropoffCoords, effectiveTripId]);
 
-  const driverName = `${vehicle.owner.firstName} ${vehicle.owner.lastName}`;
-  const driverPhone = vehicle.owner.phone || '+254 712 345 678';
-  const plateNumber = vehicle.plateNumber || `KDA ${Math.floor(100 + Math.random() * 899)}X`;
-  const effectiveTripId = tripId || bookingRef;
+  const driverName = (vehicle?.owner?.firstName || vehicle?.owner?.lastName)
+    ? `${vehicle.owner?.firstName || ''} ${vehicle.owner?.lastName || ''}`.trim()
+    : (vehicle?.driverName || 'Safari Host');
+  const driverPhone = vehicle?.owner?.phone || '+254 712 345 678';
+  const plateNumber = vehicle?.plateNumber || `KDA ${Math.floor(100 + Math.random() * 899)}X`;
 
   return (
     <div className="glass-card-3d overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
       {/* HEADER */}
       <div className="sticky top-0 z-30 bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-teal via-emerald-500 to-marigold shadow-glow">
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-teal via-emerald-500 to-amber-500 shadow-glow">
             <Car className="h-5 w-5 text-white animate-bounce" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-display font-bold text-slate-900 text-base">Uber-Style Live Ride Monitor</span>
+              <span className="font-display font-bold text-slate-900 text-base">Uber-Style Live Ride GPS Monitor</span>
               <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-mono text-emerald-600 border border-emerald-500/30 font-bold animate-pulse">
-                ● Live GPS Kenya
+                ● Live Kenya GPS
               </span>
             </div>
-            <p className="text-xs text-slate-500">Booking #{bookingRef}</p>
+            <p className="text-xs text-slate-500">Booking #{bookingRef} · Vehicle: {vehicle.make} {vehicle.model} ({plateNumber})</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* TRACKING MODE SWITCHER (REAL-TIME SUPABASE GPS / NAVIGABLE KENYA GPS MAP / UBER VECTOR / 3D VIDEO) */}
-          <div className="flex items-center gap-1 rounded-xl bg-slate-200/70 p-1 border border-slate-300 text-xs font-semibold">
-            <button
-              onClick={() => setTrackerMode('realtime_gps')}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 transition ${
-                trackerMode === 'realtime_gps' ? 'bg-emerald-600 text-white shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Radio className="h-3.5 w-3.5" /> Real-time GPS
-            </button>
-            <button
-              onClick={() => setTrackerMode('kenya_gps')}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 transition ${
-                trackerMode === 'kenya_gps' ? 'bg-slate-900 text-white shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Compass className="h-3.5 w-3.5" /> Scenic Map
-            </button>
-            <button
-              onClick={() => setTrackerMode('uber_vector')}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 transition ${
-                trackerMode === 'uber_vector' ? 'bg-amber-500 text-white shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Map className="h-3.5 w-3.5" /> Vector Route
-            </button>
-            <button
-              onClick={() => setTrackerMode('video_motion')}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 transition ${
-                trackerMode === 'video_motion' ? 'bg-teal-600 text-white shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Video className="h-3.5 w-3.5" /> 3D Drive
-            </button>
-          </div>
-
           {onClose && (
-            <button onClick={onClose} className="p-1.5 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-200 transition">
+            <button
+              onClick={onClose}
+              className="p-1.5 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-200 transition"
+              title="Close Tracker"
+            >
               <X className="h-5 w-5" />
             </button>
           )}
         </div>
       </div>
 
-      {/* TOP LIVE TRACKING DISPLAY (TRAVELLER LIVE MAP / NAVIGABLE KENYA LEAFLET MAP / UBER MAP / 3D VIDEO) */}
-      <div className="p-4 pb-0">
-        {trackerMode === 'realtime_gps' ? (
-          <TravellerLiveMap
-            tripId={effectiveTripId}
-            vehicleModel={`${vehicle.make} ${vehicle.model}`}
-            plateNumber={plateNumber}
-            driverName={driverName}
-            vehicleType={vehicle.type}
-            pickupLocation={pickupLocation}
-            dropoffLocation={dropoffLocation}
-            height="400px"
-          />
-        ) : trackerMode === 'kenya_gps' ? (
-          <NavigableKenyaUberMap
-            plateNumber={plateNumber}
-            vehicleModel={`${vehicle.make} ${vehicle.model}`}
-            speed={speed}
-            progress={progress}
-            pickupLocation={pickupLocation}
-            dropoffLocation={dropoffLocation}
-            driverName={driverName}
-            height="380px"
-          />
-        ) : trackerMode === 'uber_vector' ? (
-          <UberStreetLiveMap
-            plateNumber={plateNumber}
-            vehicleModel={`${vehicle.make} ${vehicle.model}`}
-            speed={speed}
-            progress={progress}
-            pickupLocation={pickupLocation}
-            dropoffLocation={dropoffLocation}
-            etaMinutes={3}
-          />
-        ) : (
-          <LiveVehicleTrackingVideo
-            vehicleModel={`${vehicle.make} ${vehicle.model}`}
-            plateNumber={plateNumber}
-            speed={speed}
-            progress={progress}
-            driverName={driverName}
-          />
+      {/* UBER GPS CONTROLS BAR: TURN ON GPS AS USER, DRIVER, OR ADMIN MONITOR */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-4 border-b border-slate-700">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          {/* Identity Switcher */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Device Role:</span>
+            <div className="flex items-center bg-slate-800 rounded-xl p-1 border border-slate-700 text-xs">
+              <button
+                type="button"
+                onClick={() => setMyRole('TOURIST')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition ${
+                  myRole === 'TOURIST' ? 'bg-teal text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                👤 Traveler / Passenger
+              </button>
+              <button
+                type="button"
+                onClick={() => setMyRole('DRIVER')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition ${
+                  myRole === 'DRIVER' ? 'bg-amber-500 text-slate-950 font-bold shadow-sm' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                🚗 Driver / Host
+              </button>
+              <button
+                type="button"
+                onClick={() => setMyRole('ADMIN')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition ${
+                  myRole === 'ADMIN' ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                🛡️ Admin Radar
+              </button>
+            </div>
+          </div>
+
+          {/* GPS Toggle & Drive Simulator */}
+          <div className="flex items-center gap-2">
+            {myRole !== 'ADMIN' && (
+              <button
+                type="button"
+                onClick={() => setIsGpsEnabled(!isGpsEnabled)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition shadow-md ${
+                  isGpsEnabled
+                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white animate-pulse'
+                    : 'bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600'
+                }`}
+              >
+                <Locate className="h-4 w-4" />
+                {isGpsEnabled ? '● Your GPS is ON (Broadcasting Live)' : 'Turn On My GPS Location'}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setIsSimulatingDrive(!isSimulatingDrive)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border ${
+                isSimulatingDrive
+                  ? 'bg-amber-500/20 border-amber-500 text-amber-300'
+                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+              }`}
+              title="Test vehicle movement along road without real driving"
+            >
+              {isSimulatingDrive ? <Pause className="h-3.5 w-3.5 text-amber-400" /> : <Play className="h-3.5 w-3.5" />}
+              {isSimulatingDrive ? 'Simulating Drive...' : 'Simulate Drive'}
+            </button>
+          </div>
+        </div>
+
+        {/* Status Indicators row */}
+        <div className="mt-3 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <span className={`h-2 w-2 rounded-full ${travelerCoords ? 'bg-blue-400 animate-ping' : 'bg-slate-500'}`} />
+              <span className="text-slate-300">
+                Traveler GPS: {travelerCoords ? <strong className="text-blue-400 font-mono">Live ({travelerCoords[0].toFixed(4)}, {travelerCoords[1].toFixed(4)})</strong> : 'Waiting for location'}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className={`h-2 w-2 rounded-full ${driverCoords ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'}`} />
+              <span className="text-slate-300">
+                Driver GPS: {driverCoords ? <strong className="text-emerald-400 font-mono">Live ({driverCoords[0].toFixed(4)}, {driverCoords[1].toFixed(4)}) · {driverSpeed} km/h</strong> : 'Stationary / En Route'}
+              </span>
+            </div>
+          </div>
+
+          <div className="text-[11px] text-slate-400 flex items-center gap-1">
+            <Radio className="h-3 w-3 text-teal" />
+            <span>Encrypted M-TRAVEL Uber Telemetry Active</span>
+          </div>
+        </div>
+
+        {gpsError && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-red-300 bg-red-950/50 border border-red-800 rounded-lg p-2">
+            <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
+            <span>{gpsError}</span>
+          </div>
         )}
+      </div>
+
+      {/* MODIFIED UBER REAL-TIME LEAFLET GPS MAP (ONLY MODIFIED GPS MAP) */}
+      <div className="p-4 pb-0">
+        <TravellerLiveMap
+          tripId={effectiveTripId}
+          vehicleModel={`${vehicle.make} ${vehicle.model}`}
+          plateNumber={plateNumber}
+          driverName={driverName}
+          vehicleType={vehicle.type}
+          pickupLocation={pickupLocation}
+          dropoffLocation={dropoffLocation}
+          pickupCoords={pickupCoords}
+          dropoffCoords={dropoffCoords}
+          userCoords={travelerCoords}
+          driverLiveCoords={driverCoords}
+          driverSpeed={driverSpeed}
+          driverHeading={driverHeading}
+          height="420px"
+        />
       </div>
 
       {/* TRIP STATUS PROGRESS BAR */}
@@ -187,7 +437,7 @@ export function UberLiveTracker({
         {/* DRIVER & VEHICLE DETAILS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-marigold to-coral p-0.5">
+            <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-amber-400 to-teal p-0.5">
               <div className="h-full w-full rounded-full bg-slate-900 flex items-center justify-center font-bold text-amber-400 text-lg">
                 {driverName.charAt(0)}
               </div>
@@ -199,7 +449,7 @@ export function UberLiveTracker({
                   <Star className="h-3 w-3 fill-amber-500" /> 4.9
                 </span>
                 <span>• 340 Trips</span>
-                <span className="rounded bg-teal/20 px-1.5 py-0.5 text-[10px] font-mono text-teal font-semibold">Verified</span>
+                <span className="rounded bg-teal/20 px-1.5 py-0.5 text-[10px] font-mono text-teal font-semibold">Verified Driver</span>
               </div>
             </div>
           </div>
@@ -258,9 +508,9 @@ export function UberLiveTracker({
         />
 
         {/* SAFETY & SOS */}
-        <div className="flex items-center justify-between rounded-xl border border-coral/30 bg-coral/10 p-3 text-xs text-coral">
+        <div className="flex items-center justify-between rounded-xl border border-red-500/30 bg-red-50 p-3 text-xs text-red-700">
           <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 shrink-0" />
+            <Shield className="h-4 w-4 shrink-0 text-red-600" />
             <span>24/7 M-TRAVEL Emergency Roadside & Trip Safety active</span>
           </div>
           <button

@@ -240,7 +240,7 @@ export const MpesaStkPushModal: React.FC<MpesaStkPushModalProps> = ({
             </div>
 
             <p className="text-xs text-amber-400 font-mono">
-              Redirecting to Live Uber/OpenCV Car View...
+              Redirecting to Live Uber GPS Tracking...
             </p>
           </div>
         )}

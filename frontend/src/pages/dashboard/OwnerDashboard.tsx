@@ -5,7 +5,7 @@ import type { RootState } from '@/store';
 import { supabase, insertVehicleImages } from '@/lib/supabaseClient';
 import {
   Car, PlusCircle, Activity, DollarSign, TrendingUp,
-  RefreshCw, CheckCircle, Clock, XCircle, Bell, Image as ImageIcon, Video, ShieldCheck,
+  RefreshCw, CheckCircle, Clock, XCircle, Bell, Image as ImageIcon, ShieldCheck,
   Banknote, BarChart3, Star, Calendar, Smartphone, Upload, Wallet, Sparkles,
   Radio, Gauge, Compass, Battery, Navigation, Shield, AlertTriangle
 } from 'lucide-react';
@@ -22,7 +22,7 @@ import {
   type StoredBooking, type StoredVehicle
 } from '@/lib/bookingStore';
 import { withdrawFromWallet } from '@/lib/paymentService';
-import { OpenCvVehicleTracker } from '@/components/tracking/OpenCvVehicleTracker';
+import { UberLiveTracker } from '@/components/tracking/UberLiveTracker';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
 
 const STATUS_CFG: Record<string, { color: string; icon: any; label: string }> = {
@@ -469,14 +469,46 @@ export default function OwnerDashboard() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6 font-display text-slate-900">
-      {/* OPENCV LIVE TRACKER MODAL */}
+      {/* UBER LIVE GPS TRACKER MODAL */}
       {showOpenCvTracker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
-          <div className="w-full max-w-4xl">
-            <OpenCvVehicleTracker
-              vehicleName={selectedBookingForTrack ? `${selectedBookingForTrack.vehicleMake} ${selectedBookingForTrack.vehicleModel}` : 'Toyota Land Cruiser 4x4'}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md overflow-y-auto">
+          <div className="w-full max-w-4xl my-8">
+            <UberLiveTracker
+              vehicle={{
+                id: selectedBookingForTrack?.vehicleId || 'vh-host',
+                hostId: user?.id || 'host-1',
+                make: selectedBookingForTrack?.vehicleMake || 'Toyota',
+                model: selectedBookingForTrack?.vehicleModel || 'Land Cruiser',
+                year: 2024,
+                type: 'SUV' as any,
+                seatingCapacity: 7,
+                fuelType: 'DIESEL' as any,
+                transmission: 'AUTOMATIC' as any,
+                dailyRate: 150,
+                isAvailable: true,
+                images: selectedBookingForTrack?.vehicleImage ? [selectedBookingForTrack.vehicleImage] : [],
+                features: [],
+                rating: 4.9,
+                tripsCount: 142,
+                plateNumber: 'KDA 782P',
+                owner: {
+                  id: user?.id || 'owner-1',
+                  firstName: user?.firstName || 'Samuel',
+                  lastName: user?.lastName || 'Omondi',
+                  email: user?.email || 'owner@mtravel.co.ke',
+                  phone: user?.phone || '+254 712 345 678',
+                  avatarUrl: user?.avatarUrl || '',
+                  rating: 4.9,
+                  tripsCount: 142,
+                }
+              }}
               bookingRef={selectedBookingForTrack?.bookingRef || 'MT-884920'}
-              driverName={`${user?.firstName ?? 'Samuel'} ${user?.lastName ?? 'Omondi'} (Certified Driver)`}
+              tripId={selectedBookingForTrack?.id || selectedBookingForTrack?.bookingRef || 'MT-884920'}
+              startDate={selectedBookingForTrack?.startDate}
+              endDate={selectedBookingForTrack?.endDate}
+              pickupLocation={selectedBookingForTrack?.pickupLocation || 'Westlands, Nairobi'}
+              dropoffLocation={selectedBookingForTrack?.dropoffLocation || 'Maasai Mara National Reserve'}
+              viewerRole="DRIVER"
               onClose={() => setShowOpenCvTracker(false)}
             />
           </div>
@@ -895,7 +927,7 @@ export default function OwnerDashboard() {
                           }}
                           className="btn-secondary !py-1 !px-2.5 text-[11px] flex items-center gap-1 text-slate-800 border-slate-200 hover:text-slate-950 font-bold"
                         >
-                          <Video className="h-3.5 w-3.5 text-amber-600" /> Live Feed
+                          <Navigation className="h-3.5 w-3.5 text-emerald-600" /> Track (Uber GPS)
                         </button>
                       </div>
                     </div>
@@ -1026,9 +1058,9 @@ export default function OwnerDashboard() {
                           setSelectedBookingForTrack(b);
                           setShowOpenCvTracker(true);
                         }}
-                        className="flex-1 rounded-xl border border-amber-300 bg-amber-50 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100 transition flex items-center justify-center gap-1.5"
+                        className="flex-1 rounded-xl border border-emerald-300 bg-emerald-50 py-2 text-xs font-bold text-emerald-900 hover:bg-emerald-100 transition flex items-center justify-center gap-1.5 shadow-sm"
                       >
-                        <Video className="h-3.5 w-3.5 text-amber-700" /> Live Track
+                        <Navigation className="h-3.5 w-3.5 text-emerald-600" /> Track Ride (Uber GPS)
                       </button>
                     )}
                   </div>

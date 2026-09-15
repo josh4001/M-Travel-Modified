@@ -14,7 +14,7 @@ import {
   getStoredBookings, updateBookingStatus,
   type StoredBooking
 } from '@/lib/bookingStore';
-import { OpenCvVehicleTracker } from '@/components/tracking/OpenCvVehicleTracker';
+import { UberLiveTracker } from '@/components/tracking/UberLiveTracker';
 import { MpesaStkPushModal } from '@/components/ui/MpesaStkPushModal';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
 
@@ -587,28 +587,44 @@ export default function TouristDashboard() {
         />
       )}
 
-      {/* ── OPENCV LIVE TRACKER MODAL ──────────────────────────── */}
+      {/* ── UBER LIVE GPS TRACKER MODAL ──────────────────────────── */}
       {showTracker && trackBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-4xl rounded-2xl bg-white shadow-2xl space-y-4 p-6 text-slate-800">
-            <div className="flex items-center justify-between">
-              <h3 className="font-serif text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Video className="h-5 w-5 text-teal animate-pulse" />
-                Live Tracking — {trackBooking.vehicleName}
-              </h3>
-              <button
-                onClick={() => { setShowTracker(false); setTrackBooking(null); }}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 transition"
-              >
-                ✕ Close
-              </button>
-            </div>
-            <OpenCvVehicleTracker
-              bookingId={trackBooking.id}
-              vehicleName={trackBooking.vehicleName}
-              touristName={trackBooking.touristName}
-              driverName={trackBooking.driverName}
-              role="tourist"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 overflow-y-auto">
+          <div className="w-full max-w-4xl rounded-2xl bg-white shadow-2xl text-slate-800 my-8">
+            <UberLiveTracker
+              vehicle={{
+                id: trackBooking.vehicleId || 'v-live',
+                type: 'SUV',
+                make: trackBooking.vehicleName ? trackBooking.vehicleName.split(' ')[0] : 'Toyota',
+                model: trackBooking.vehicleName ? trackBooking.vehicleName.split(' ').slice(1).join(' ') : 'Land Cruiser',
+                year: 2024,
+                seats: 7,
+                fuelType: 'DIESEL',
+                transmission: 'AUTOMATIC',
+                pricePerDay: '150',
+                hasInsurance: true,
+                latitude: -1.2650,
+                longitude: 36.8050,
+                ratingAverage: 4.9,
+                ratingCount: 142,
+                images: trackBooking.vehicleImage ? [{ id: 'img-1', url: trackBooking.vehicleImage, isPrimary: true }] : [],
+                plateNumber: 'KDA 782P',
+                owner: {
+                  id: 'owner-1',
+                  firstName: trackBooking.driverName ? trackBooking.driverName.split(' ')[0] : 'James',
+                  lastName: trackBooking.driverName ? (trackBooking.driverName.split(' ')[1] || 'Mwangi') : 'Mwangi',
+                  phone: '+254 712 345 678',
+                  avatarUrl: '',
+                },
+              }}
+              bookingRef={trackBooking.bookingRef || trackBooking.id.slice(0, 8)}
+              tripId={trackBooking.id}
+              startDate={trackBooking.startDate}
+              endDate={trackBooking.endDate}
+              pickupLocation={trackBooking.pickupLocation || 'Westlands, Nairobi'}
+              dropoffLocation={trackBooking.dropoffLocation || 'Maasai Mara National Reserve'}
+              viewerRole="TOURIST"
+              onClose={() => { setShowTracker(false); setTrackBooking(null); }}
             />
           </div>
         </div>

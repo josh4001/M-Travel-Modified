@@ -22,6 +22,8 @@ export interface StoredBooking {
   paymentStatus: 'PAID' | 'PENDING' | 'FAILED';
   mpesaReceipt?: string;
   status: 'PENDING' | 'PAID' | 'CONFIRMED' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'IN_PROGRESS' | 'COMPLETED';
+  pickupLocation?: string;
+  dropoffLocation?: string;
   createdAt: string;
 }
 

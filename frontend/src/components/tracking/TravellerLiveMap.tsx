@@ -19,6 +19,10 @@ interface TravellerLiveMapProps {
   pickupCoords?: [number, number];
   dropoffCoords?: [number, number];
   height?: string;
+  userCoords?: [number, number] | null;
+  driverLiveCoords?: [number, number] | null;
+  driverSpeed?: number;
+  driverHeading?: number;
 }
 
 export const TravellerLiveMap: React.FC<TravellerLiveMapProps> = ({
@@ -32,10 +36,15 @@ export const TravellerLiveMap: React.FC<TravellerLiveMapProps> = ({
   pickupCoords = [-1.2650, 36.8050],
   dropoffCoords = [-1.3200, 36.7100],
   height = '420px',
+  userCoords = null,
+  driverLiveCoords = null,
+  driverSpeed,
+  driverHeading,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const vehicleMarkerRef = useRef<any>(null);
+  const userMarkerRef = useRef<any>(null);
   const routePolylineRef = useRef<any>(null);
   const routePolylineBorderRef = useRef<any>(null);
   const leafletModuleRef = useRef<typeof import('leaflet') | null>(null);
@@ -51,11 +60,11 @@ export const TravellerLiveMap: React.FC<TravellerLiveMapProps> = ({
     staleThresholdSeconds: 40,
   });
 
-  // Current effective vehicle coordinates
-  const currentLat = location?.latitude ?? pickupCoords[0];
-  const currentLng = location?.longitude ?? pickupCoords[1];
-  const currentHeading = location?.heading ?? 0;
-  const currentSpeed = location?.speed ?? 0;
+  // Current effective vehicle coordinates (driver live GPS takes priority over fallback)
+  const currentLat = driverLiveCoords ? driverLiveCoords[0] : (location?.latitude ?? pickupCoords[0]);
+  const currentLng = driverLiveCoords ? driverLiveCoords[1] : (location?.longitude ?? pickupCoords[1]);
+  const currentHeading = driverHeading !== undefined ? driverHeading : (location?.heading ?? 0);
+  const currentSpeed = driverSpeed !== undefined ? driverSpeed : (location?.speed ?? 0);
 
   // 1. Ensure Leaflet CSS is present in head
   useEffect(() => {
@@ -185,6 +194,41 @@ export const TravellerLiveMap: React.FC<TravellerLiveMapProps> = ({
     }
   }, [currentLat, currentLng, currentHeading, currentSpeed, isStale, followVehicle, isMapReady, vehicleType, plateNumber]);
 
+  // 3.1 Update User (Traveler) Live Location Marker Pin
+  useEffect(() => {
+    if (!isMapReady || !mapInstanceRef.current || !leafletModuleRef.current) return;
+    const L = leafletModuleRef.current;
+    const map = mapInstanceRef.current;
+
+    if (userCoords && userCoords.length === 2 && !isNaN(userCoords[0]) && !isNaN(userCoords[1])) {
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setLatLng(userCoords);
+      } else {
+        const userIcon = L.divIcon({
+          className: 'user-live-pin',
+          html: `
+            <div style="position:relative; width:34px; height:34px; display:flex; align-items:center; justify-content:center;">
+              <div style="position:absolute; inset:0; border-radius:50%; background:rgba(37,99,235,0.3); animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;"></div>
+              <div style="width:20px; height:20px; border-radius:50%; background:#2563eb; border:3px solid #ffffff; box-shadow:0 3px 10px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center;">
+                <div style="width:6px; height:6px; background:#ffffff; border-radius:50%;"></div>
+              </div>
+            </div>
+          `,
+          iconSize: [34, 34],
+          iconAnchor: [17, 17],
+        });
+
+        const uMarker = L.marker(userCoords, { icon: userIcon, zIndexOffset: 1200 })
+          .addTo(map)
+          .bindPopup(`<b>You (Traveler / Passenger)</b><br/><span style="color:#2563eb;font-weight:bold;">● Live GPS Active</span>`);
+        userMarkerRef.current = uMarker;
+      }
+    } else if (userMarkerRef.current) {
+      map.removeLayer(userMarkerRef.current);
+      userMarkerRef.current = null;
+    }
+  }, [userCoords, isMapReady]);
+
   // 4. Calculate Road ETA & Polyline via OSRM
   useEffect(() => {
     let isCancelled = false;
@@ -280,6 +324,17 @@ export const TravellerLiveMap: React.FC<TravellerLiveMapProps> = ({
             </div>
           </div>
         </div>
+
+        {/* User GPS Active Badge */}
+        {userCoords && (
+          <div className="flex items-center gap-1.5 pointer-events-auto bg-blue-600/95 backdrop-blur-md px-3 py-1.5 rounded-xl text-white shadow-xl border border-blue-400/40 text-xs font-bold">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-200 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+            </span>
+            <span>Your GPS Live (Uber Mode)</span>
+          </div>
+        )}
 
         {/* Right Badge: Live Road ETA & Distance */}
         {eta && (
