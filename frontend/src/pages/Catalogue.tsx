@@ -10,7 +10,7 @@ import {
 import { useCurrency } from '@/context/CurrencyContext';
 import { MpesaStkPushModal } from '@/components/ui/MpesaStkPushModal';
 import {
-  saveBooking, getStoredVehicles, getVehicleHireStatus, toggleVehicleLiveStatus,
+  saveBooking, getStoredVehicles, syncVehiclesFromSupabase, getVehicleHireStatus, toggleVehicleLiveStatus,
   type StoredVehicle
 } from '@/lib/bookingStore';
 import { supabase } from '@/lib/supabaseClient';
@@ -255,6 +255,7 @@ export default function Catalogue() {
 
   useEffect(() => {
     refreshVehicles();
+    syncVehiclesFromSupabase().then(() => refreshVehicles()).catch(() => {});
 
     const handleUpdate = () => refreshVehicles();
     window.addEventListener('mt_vehicle_updated', handleUpdate);
@@ -280,12 +281,18 @@ export default function Catalogue() {
     const cat = searchParams.get('category') as TabType;
     if (cat && ['vehicles', 'buses', 'tours', 'homes'].includes(cat)) {
       setActiveTab(cat);
+      if (cat === 'vehicles') {
+        syncVehiclesFromSupabase().then(() => refreshVehicles()).catch(() => {});
+      }
     }
   }, [searchParams]);
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
     setSearchParams({ category: tab });
+    if (tab === 'vehicles') {
+      syncVehiclesFromSupabase().then(() => refreshVehicles()).catch(() => {});
+    }
   };
 
   const TABS: { id: TabType; label: string; icon: any; desc: string }[] = [

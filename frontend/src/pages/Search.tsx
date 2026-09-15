@@ -4,11 +4,12 @@ import {
   Star, Users, Fuel, Gauge, SlidersHorizontal, LayoutGrid, Box, Sparkles,
   MapPin, Search as SearchIcon, Car, Wifi, Bus, Truck, Compass,
 } from 'lucide-react';
-import { api } from '@/lib/api';
 import type { Vehicle } from '@/types';
 import { Card3D } from '@/components/ui/Card3D';
 import { MOCK_VEHICLES } from '@/data/mockVehicles';
 import { useCurrency } from '@/context/CurrencyContext';
+import { fetchVehicles } from '@/lib/supabaseClient';
+import { getStoredVehicles, syncVehiclesFromSupabase } from '@/lib/bookingStore';
 
 const TYPES = ['CAR', 'SUV', 'VAN', 'PICKUP'];
 
@@ -35,34 +36,116 @@ export default function Search() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch with mock-data fallback
   useEffect(() => {
+    let isMounted = true;
     setIsLoading(true);
-    api
-      .get<Vehicle[]>('/vehicles', {
-        params: Object.fromEntries(
-          Object.entries({ type, maxPrice }).filter(([, v]) => v)
-        ),
-      })
-      .then(({ data }) => {
-        setVehicles(data);
-      })
-      .catch(() => {
-        // Backend unavailable — fallback to rich mock data
+
+    const loadVehicles = async () => {
+      try {
+        // Sync latest vehicles from Supabase in background
+        await syncVehiclesFromSupabase().catch(() => {});
+
+        // 1. Fetch from Supabase
+        const sbVehicles = await fetchVehicles({
+          type: type || undefined,
+          maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        });
+
+        // 2. Read stored vehicles (synced from host registrations)
+        const stored = getStoredVehicles()
+          .filter((v) => v.status === 'APPROVED' && v.isLive !== false)
+          .map(
+            (v) =>
+              ({
+                id: v.id,
+                type: v.type,
+                make: v.make,
+                model: v.model,
+                year: v.year,
+                seats: v.seats,
+                fuelType: v.fuelType,
+                transmission: v.transmission,
+                pricePerDay: String(v.pricePerDay),
+                hasInsurance: v.hasInsurance,
+                latitude: v.latitude ?? -1.2921,
+                longitude: v.longitude ?? 36.8219,
+                address: v.address,
+                ratingAverage: v.ratingAverage,
+                ratingCount: v.ratingCount,
+                images: (v.images || []).map((url, i) => ({ id: `img-${i}`, url, isPrimary: i === 0 })),
+                owner: {
+                  id: v.ownerId,
+                  firstName: v.ownerName.split(' ')[0] || 'Fleet',
+                  lastName: v.ownerName.split(' ').slice(1).join(' ') || 'Host',
+                  email: v.ownerEmail,
+                },
+                plateNumber: v.plateNumber,
+              } as Vehicle)
+          );
+
+        // Merge Supabase vehicles with stored vehicles (Supabase takes precedence by ID)
+        const map = new Map<string, Vehicle>();
+        for (const v of stored) {
+          map.set(v.id, v);
+        }
+        for (const v of sbVehicles) {
+          map.set(v.id, v);
+        }
+
+        // Add mock vehicles if not already in map
+        for (const mv of MOCK_VEHICLES) {
+          if (!map.has(mv.id)) {
+            map.set(mv.id, mv);
+          }
+        }
+
+        let combined = Array.from(map.values());
+
+        // Apply filters
+        if (type) {
+          combined = combined.filter((v) => v.type?.toUpperCase() === type.toUpperCase());
+        }
+        if (maxPrice) {
+          combined = combined.filter((v) => Number(v.pricePerDay) <= Number(maxPrice));
+        }
+
+        if (isMounted) {
+          setVehicles(combined);
+        }
+      } catch (err) {
+        console.warn('Error loading search vehicles:', err);
         let filtered = MOCK_VEHICLES;
         if (type) filtered = filtered.filter((v) => v.type === type);
         if (maxPrice) filtered = filtered.filter((v) => Number(v.pricePerDay) <= Number(maxPrice));
-        setVehicles(filtered);
-      })
-      .finally(() => setIsLoading(false));
+        if (isMounted) setVehicles(filtered);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    loadVehicles();
+
+    const handleUpdate = () => {
+      loadVehicles();
+    };
+    window.addEventListener('mt_vehicle_updated', handleUpdate);
+    window.addEventListener('mt_vehicle_approved', handleUpdate);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('mt_vehicle_updated', handleUpdate);
+      window.removeEventListener('mt_vehicle_approved', handleUpdate);
+    };
   }, [type, maxPrice]);
 
-  // Client-side location filter on mock data
+  // Client-side search and location filter
   const displayed = location
     ? vehicles.filter(
         (v) =>
           v.address?.toLowerCase().includes(location.toLowerCase()) ||
-          v.owner.firstName.toLowerCase().includes(location.toLowerCase())
+          v.owner?.firstName?.toLowerCase().includes(location.toLowerCase()) ||
+          v.owner?.lastName?.toLowerCase().includes(location.toLowerCase()) ||
+          `${v.make} ${v.model}`.toLowerCase().includes(location.toLowerCase())
       )
     : vehicles;
 

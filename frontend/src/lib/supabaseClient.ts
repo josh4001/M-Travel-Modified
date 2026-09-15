@@ -30,47 +30,155 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 // Typed helpers for common queries
 // ---------------------------------------------------------------------------
 
+export function getVehicleFallbackImage(make: string = '', model: string = '', type: string = ''): string {
+  const text = `${make} ${model} ${type}`.toLowerCase();
+  if (text.includes('g-wagon') || text.includes('gwagon') || text.includes('mercedes')) {
+    return 'https://images.unsplash.com/photo-1520031441872-265e4ff70366?auto=format&fit=crop&w=800&q=80';
+  }
+  if (text.includes('coaster') || text.includes('coach') || text.includes('bus')) {
+    return 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=800&q=80';
+  }
+  if (text.includes('hiace') || text.includes('safari van')) {
+    return 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80';
+  }
+  if (text.includes('rav4') || text.includes('rav-4')) {
+    return 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80';
+  }
+  if (text.includes('alphard')) {
+    return 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80';
+  }
+  if (text.includes('premio') || text.includes('sedan') || text.includes('car')) {
+    return 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80';
+  }
+  return 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80';
+}
+
+export function formatDbVehicle(v: any): any {
+  const images: { id: string; url: string; isPrimary: boolean }[] =
+    Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0
+      ? v.vehicle_images.map((img: any, idx: number) => ({
+          id: img.id || `img-${idx}`,
+          url: img.url,
+          isPrimary: Boolean(img.is_primary || idx === 0),
+        }))
+      : [
+          {
+            id: `img-default-${v.id}`,
+            url: getVehicleFallbackImage(v.make, v.model, v.type),
+            isPrimary: true,
+          },
+        ];
+
+  const owner = v.users || {};
+  const firstName = owner.first_name || 'Fleet';
+  const lastName = owner.last_name || 'Host';
+
+  return {
+    id: v.id,
+    type: (v.type || 'SUV').toUpperCase(),
+    make: (v.make || 'Toyota').trim(),
+    model: (v.model || 'Cruiser').trim(),
+    year: v.year || 2024,
+    seats: v.seats || 7,
+    fuelType: v.fuel_type || 'DIESEL',
+    transmission: v.transmission || 'AUTOMATIC',
+    pricePerDay: String(v.price_per_day || 15000),
+    hasInsurance: v.has_insurance !== false,
+    latitude: v.latitude ?? -1.2921,
+    longitude: v.longitude ?? 36.8219,
+    address: v.address || 'Nairobi, Kenya',
+    ratingAverage: Number(v.rating_average || 4.9),
+    ratingCount: Number(v.rating_count || 12),
+    images,
+    owner: {
+      id: owner.id || v.owner_id || 'owner-host',
+      firstName,
+      lastName,
+      avatarUrl: owner.avatar_url,
+      phone: owner.phone,
+      email: owner.email,
+    },
+    plateNumber: v.plate_number,
+    isAvailable: v.is_available !== false,
+    isApproved: v.is_approved !== false,
+  };
+}
+
 /** Fetch all available vehicles with their primary image */
 export async function fetchVehicles(filters?: {
   type?: string;
   maxPrice?: number;
   minSeats?: number;
 }) {
-  let query = supabase
-    .from('vehicles')
-    .select(
-      `
-      *,
-      vehicle_images!inner(url, is_primary)
-    `,
-    )
-    .eq('is_available', true)
-    .eq('vehicle_images.is_primary', true);
+  try {
+    let query = supabase
+      .from('vehicles')
+      .select(
+        `
+        *,
+        vehicle_images(id, url, is_primary),
+        users:owner_id(id, first_name, last_name, email, phone, avatar_url)
+      `,
+      )
+      .eq('is_available', true);
 
-  if (filters?.type) query = query.eq('type', filters.type.toUpperCase());
-  if (filters?.maxPrice) query = query.lte('price_per_day', filters.maxPrice);
-  if (filters?.minSeats) query = query.gte('seats', filters.minSeats);
+    if (filters?.type) query = query.eq('type', filters.type.toUpperCase());
+    if (filters?.maxPrice) query = query.lte('price_per_day', filters.maxPrice);
+    if (filters?.minSeats) query = query.gte('seats', filters.minSeats);
 
-  const { data, error } = await query.order('rating_average', { ascending: false });
-  if (error) throw error;
-  return data ?? [];
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) {
+      console.warn('fetchVehicles error:', error);
+      return [];
+    }
+    return (data ?? []).map(formatDbVehicle);
+  } catch (err) {
+    console.warn('fetchVehicles caught error:', err);
+    return [];
+  }
 }
 
 /** Fetch a single vehicle by ID with all images */
 export async function fetchVehicleById(id: string) {
-  const { data, error } = await supabase
-    .from('vehicles')
-    .select(
-      `
-      *,
-      vehicle_images(url, is_primary),
-      users!vehicles_owner_id_fkey(first_name, last_name, phone, avatar_url)
-    `,
-    )
-    .eq('id', id)
-    .single();
-  if (error) throw error;
-  return data;
+  if (!id) return null;
+  try {
+    const { data, error } = await supabase
+      .from('vehicles')
+      .select(
+        `
+        *,
+        vehicle_images(id, url, is_primary),
+        users:owner_id(id, first_name, last_name, email, phone, avatar_url)
+      `,
+      )
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('fetchVehicleById error:', error);
+      return null;
+    }
+    if (!data) return null;
+    return formatDbVehicle(data);
+  } catch (err) {
+    console.warn('fetchVehicleById caught error:', err);
+    return null;
+  }
+}
+
+/** Insert images for a vehicle into Supabase */
+export async function insertVehicleImages(vehicleId: string, imageUrls: string[]) {
+  if (!vehicleId || !imageUrls?.length) return;
+  try {
+    const rows = imageUrls.filter(Boolean).map((url, index) => ({
+      vehicle_id: vehicleId,
+      url,
+      is_primary: index === 0,
+    }));
+    await supabase.from('vehicle_images').insert(rows);
+  } catch (err) {
+    console.warn('insertVehicleImages caught error:', err);
+  }
 }
 
 /** Fetch bookings for a user */

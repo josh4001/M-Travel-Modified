@@ -1,3 +1,5 @@
+import { supabase, getVehicleFallbackImage } from './supabaseClient';
+
 // Centralized persistent store for M-TRAVEL bookings, vehicle registration, and notifications
 export interface StoredBooking {
   id: string;
@@ -58,12 +60,12 @@ const DEFAULT_BOOKINGS: StoredBooking[] = [
   {
     id: 'b-101',
     bookingRef: 'MT-884920',
-    vehicleId: 'v-safari-1',
+    vehicleId: '00000000-0000-0000-0000-000000000001',
     vehicleMake: 'Toyota',
-    vehicleModel: 'Land Cruiser 4x4 V8',
-    vehicleName: 'Toyota Land Cruiser 4x4 V8',
+    vehicleModel: 'Land Cruiser Prado',
+    vehicleName: 'Toyota Land Cruiser Prado',
     vehicleImage: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80',
-    ownerId: 'owner-1',
+    ownerId: 'a0000000-0000-0000-0000-000000000002',
     driverName: 'Samuel Omondi',
     touristId: 'user-tourist-1',
     touristName: 'Sarah Ochieng',
@@ -71,7 +73,7 @@ const DEFAULT_BOOKINGS: StoredBooking[] = [
     touristEmail: 'sarah.ochieng@gmail.com',
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-    totalAmount: 45000,
+    totalAmount: 42000,
     paymentStatus: 'PAID',
     mpesaReceipt: 'QK89X201',
     status: 'CONFIRMED',
@@ -100,6 +102,182 @@ const DEFAULT_BOOKINGS: StoredBooking[] = [
 ];
 
 const DEFAULT_VEHICLES: StoredVehicle[] = [
+  {
+    id: 'ab0dd85b-15bc-45d9-8fb8-1b3f7908b904',
+    make: 'Mercedes-Benz',
+    model: 'G-Wagon AMG',
+    year: 2024,
+    type: 'SUV',
+    pricePerDay: 35000,
+    seats: 5,
+    fuelType: 'Petrol',
+    transmission: 'Automatic',
+    address: 'Westlands / Karen, Nairobi',
+    ownerId: 'a0000000-0000-0000-0000-000000000002',
+    ownerName: 'James Mwangi',
+    ownerEmail: 'james.mwangi@mtravel.co.ke',
+    images: ['https://images.unsplash.com/photo-1520031441872-265e4ff70366?auto=format&fit=crop&w=800&q=80'],
+    status: 'APPROVED',
+    isLive: true,
+    ratingAverage: 5.0,
+    ratingCount: 18,
+    hasInsurance: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '35d3ca61-971e-434c-ae2f-cb6601fd7376',
+    make: 'Mercedes-Benz',
+    model: 'G-Wagon G63',
+    year: 2024,
+    type: 'SUV',
+    pricePerDay: 20000,
+    seats: 5,
+    fuelType: 'Diesel',
+    transmission: 'Automatic',
+    address: 'Kilimani, Nairobi',
+    ownerId: 'a0000000-0000-0000-0000-000000000002',
+    ownerName: 'James Mwangi',
+    ownerEmail: 'james.mwangi@mtravel.co.ke',
+    images: ['https://images.unsplash.com/photo-1520031441872-265e4ff70366?auto=format&fit=crop&w=800&q=80'],
+    status: 'APPROVED',
+    isLive: true,
+    ratingAverage: 4.95,
+    ratingCount: 14,
+    hasInsurance: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'c53e7096-a526-4101-8c8c-10838d828545',
+    make: 'Mercedes-Benz',
+    model: 'G-Wagon V8',
+    year: 2025,
+    type: 'SUV',
+    pricePerDay: 30000,
+    seats: 5,
+    fuelType: 'Petrol',
+    transmission: 'Automatic',
+    address: 'Lavington, Nairobi',
+    ownerId: '6267558e-796a-46fa-bb68-53df294fdbed',
+    ownerName: 'Martha Kane',
+    ownerEmail: 'martha@gmail.com',
+    images: ['https://images.unsplash.com/photo-1520031441872-265e4ff70366?auto=format&fit=crop&w=800&q=80'],
+    status: 'APPROVED',
+    isLive: true,
+    ratingAverage: 4.9,
+    ratingCount: 9,
+    hasInsurance: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '00000000-0000-0000-0000-000000000001',
+    make: 'Toyota',
+    model: 'Land Cruiser Prado TX',
+    year: 2022,
+    type: 'SUV',
+    pricePerDay: 14000,
+    seats: 7,
+    fuelType: 'Diesel',
+    transmission: 'Automatic',
+    address: 'Nairobi JKIA / Westlands',
+    ownerId: 'a0000000-0000-0000-0000-000000000002',
+    ownerName: 'James Mwangi',
+    ownerEmail: 'james.mwangi@mtravel.co.ke',
+    images: ['https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80'],
+    status: 'APPROVED',
+    isLive: true,
+    ratingAverage: 4.9,
+    ratingCount: 36,
+    hasInsurance: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'e3aedb74-5c0a-4932-b33b-94430fe5edf1',
+    make: 'Toyota',
+    model: 'Coaster VIP Bus',
+    year: 2020,
+    type: 'VAN',
+    pricePerDay: 9500,
+    seats: 25,
+    fuelType: 'Diesel',
+    transmission: 'Manual',
+    address: 'CBD / Wilson Airport, Nairobi',
+    ownerId: 'a0000000-0000-0000-0000-000000000002',
+    ownerName: 'James Mwangi',
+    ownerEmail: 'james.mwangi@mtravel.co.ke',
+    images: ['https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=800&q=80'],
+    status: 'APPROVED',
+    isLive: true,
+    ratingAverage: 4.8,
+    ratingCount: 22,
+    hasInsurance: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '00000000-0000-0000-0000-000000000002',
+    make: 'Toyota',
+    model: 'RAV4 AWD',
+    year: 2023,
+    type: 'SUV',
+    pricePerDay: 9500,
+    seats: 5,
+    fuelType: 'Petrol',
+    transmission: 'Automatic',
+    address: 'Nairobi Central',
+    ownerId: 'a0000000-0000-0000-0000-000000000002',
+    ownerName: 'James Mwangi',
+    ownerEmail: 'james.mwangi@mtravel.co.ke',
+    images: ['https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80'],
+    status: 'APPROVED',
+    isLive: true,
+    ratingAverage: 4.85,
+    ratingCount: 19,
+    hasInsurance: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '00000000-0000-0000-0000-000000000003',
+    make: 'Toyota',
+    model: 'Hiace Safari Van 4WD',
+    year: 2021,
+    type: 'VAN',
+    pricePerDay: 11500,
+    seats: 9,
+    fuelType: 'Diesel',
+    transmission: 'Manual',
+    address: 'Nairobi & National Parks',
+    ownerId: 'a0000000-0000-0000-0000-000000000002',
+    ownerName: 'James Mwangi',
+    ownerEmail: 'james.mwangi@mtravel.co.ke',
+    images: ['https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80'],
+    status: 'APPROVED',
+    isLive: true,
+    ratingAverage: 4.75,
+    ratingCount: 27,
+    hasInsurance: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '00000000-0000-0000-0000-000000000004',
+    make: 'Toyota',
+    model: 'Premio Executive',
+    year: 2022,
+    type: 'CAR',
+    pricePerDay: 5500,
+    seats: 5,
+    fuelType: 'Petrol',
+    transmission: 'Automatic',
+    address: 'Mombasa / Diani Beach',
+    ownerId: 'a0000000-0000-0000-0000-000000000002',
+    ownerName: 'James Mwangi',
+    ownerEmail: 'james.mwangi@mtravel.co.ke',
+    images: ['https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80'],
+    status: 'APPROVED',
+    isLive: true,
+    ratingAverage: 4.8,
+    ratingCount: 15,
+    hasInsurance: true,
+    createdAt: new Date().toISOString(),
+  },
   {
     id: 'v-safari-1',
     make: 'Toyota',
@@ -142,26 +320,6 @@ const DEFAULT_VEHICLES: StoredVehicle[] = [
     hasInsurance: true,
     createdAt: new Date().toISOString(),
   },
-  {
-    id: 'v-prado-3',
-    make: 'Toyota',
-    model: 'Prado VX 4.0L',
-    year: 2023,
-    type: 'SUV',
-    pricePerDay: 14000,
-    seats: 7,
-    fuelType: 'Diesel',
-    transmission: 'Automatic',
-    address: 'Naivasha / Nakuru',
-    ownerId: 'owner-1',
-    ownerName: 'Samuel Omondi',
-    images: ['https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80'],
-    status: 'PENDING_APPROVAL',
-    ratingAverage: 5.0,
-    ratingCount: 1,
-    hasInsurance: true,
-    createdAt: new Date().toISOString(),
-  },
 ];
 
 // Helper Functions
@@ -199,11 +357,111 @@ export const getStoredVehicles = (): StoredVehicle[] => {
       localStorage.setItem(VEHICLES_KEY, JSON.stringify(DEFAULT_VEHICLES));
       return DEFAULT_VEHICLES;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      localStorage.setItem(VEHICLES_KEY, JSON.stringify(DEFAULT_VEHICLES));
+      return DEFAULT_VEHICLES;
+    }
+    return parsed;
   } catch {
     return DEFAULT_VEHICLES;
   }
 };
+
+/** Synchronize all vehicles registered by hosts from Supabase into localStorage */
+export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('vehicles')
+      .select(`
+        *,
+        vehicle_images(id, url, is_primary),
+        users:owner_id(id, first_name, last_name, email, phone)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('syncVehiclesFromSupabase error:', error);
+      return getStoredVehicles();
+    }
+
+    if (!data || data.length === 0) {
+      return getStoredVehicles();
+    }
+
+    const currentLocal = getStoredVehicles();
+    const localMap = new Map<string, StoredVehicle>();
+    for (const v of currentLocal) {
+      localMap.set(v.id, v);
+    }
+
+    // Map each Supabase vehicle into a StoredVehicle
+    const mappedSupabase: StoredVehicle[] = data.map((v: any) => {
+      const existing = localMap.get(v.id);
+      const owner = v.users || {};
+      const ownerName = [owner.first_name, owner.last_name].filter(Boolean).join(' ') || existing?.ownerName || 'Fleet Host';
+
+      const images: string[] = (Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0)
+        ? v.vehicle_images.map((img: any) => img.url).filter(Boolean)
+        : (existing?.images && existing.images.length > 0)
+          ? existing.images
+          : [getVehicleFallbackImage(v.make, v.model, v.type)];
+
+      return {
+        id: v.id,
+        make: (v.make || 'Toyota').trim(),
+        model: (v.model || 'Cruiser').trim(),
+        year: v.year || 2024,
+        type: (v.type || 'SUV').toUpperCase(),
+        pricePerDay: Number(v.price_per_day || 15000),
+        seats: Number(v.seats || 7),
+        fuelType: v.fuel_type || 'Diesel',
+        transmission: v.transmission || 'Automatic',
+        address: v.address || existing?.address || 'Nairobi, Kenya',
+        ownerId: v.owner_id || existing?.ownerId || 'owner-host',
+        ownerName,
+        ownerEmail: owner.email || existing?.ownerEmail,
+        images,
+        status: (v.is_approved !== false ? 'APPROVED' : (existing?.status || 'PENDING_APPROVAL')) as any,
+        isLive: v.is_available !== false,
+        ratingAverage: Number(v.rating_average || 4.9),
+        ratingCount: Number(v.rating_count || 12),
+        hasInsurance: v.has_insurance !== false,
+        plateNumber: v.plate_number || existing?.plateNumber,
+        latitude: v.latitude ?? -1.2921,
+        longitude: v.longitude ?? 36.8219,
+        createdAt: v.created_at || existing?.createdAt || new Date().toISOString(),
+      };
+    });
+
+    // Merge: Supabase vehicles take precedence, preserve local-only additions
+    const sbIds = new Set(mappedSupabase.map(v => v.id));
+    const merged: StoredVehicle[] = [...mappedSupabase];
+    for (const lv of currentLocal) {
+      if (!sbIds.has(lv.id)) {
+        merged.push(lv);
+      }
+    }
+
+    try {
+      localStorage.setItem(VEHICLES_KEY, JSON.stringify(merged));
+    } catch (e) {
+      console.warn('LocalStorage quota warning in syncVehiclesFromSupabase:', e);
+    }
+    window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: merged }));
+    return merged;
+  } catch (err) {
+    console.warn('syncVehiclesFromSupabase caught exception:', err);
+    return getStoredVehicles();
+  }
+};
+
+// Automatic initial sync in browser environment
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    syncVehiclesFromSupabase().catch(() => {});
+  }, 100);
+}
 
 export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'ratingAverage' | 'ratingCount' | 'status'>): StoredVehicle => {
   const existing = getStoredVehicles();

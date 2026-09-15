@@ -10,7 +10,7 @@ import { api } from '@/lib/api';
 import type { Vehicle } from '@/types';
 import { MOCK_VEHICLES } from '@/data/mockVehicles';
 import { UberLiveTracker } from '@/components/tracking/UberLiveTracker';
-import { createBooking, fetchVehicleBookedDates } from '@/lib/supabaseClient';
+import { createBooking, fetchVehicleBookedDates, fetchVehicleById } from '@/lib/supabaseClient';
 import { payForBooking } from '@/lib/paymentService';
 import { selectUser } from '@/store/slices/authSlice';
 import { useCurrency } from '@/context/CurrencyContext';
@@ -50,13 +50,20 @@ export default function VehicleDetail() {
   const isLive = storedMatch ? storedMatch.isLive !== false : true;
   const isAvailableForHire = isLive && !hireStatus.isHired;
 
-  // Query with mock fallback and stored vehicle support
+  // Query with Supabase direct fetch, stored vehicle support, and mock fallback
   const { data: vehicle } = useQuery<Vehicle>({
     queryKey: ['vehicle', id],
     queryFn: async () => {
       try {
         return (await api.get<Vehicle>(`/vehicles/${id}`)).data;
       } catch {
+        // 1. Fetch directly from Supabase
+        if (id) {
+          const sbVehicle = await fetchVehicleById(id);
+          if (sbVehicle) return sbVehicle;
+        }
+
+        // 2. Fall back to local store match
         if (storedMatch) {
           return {
             id: storedMatch.id,
@@ -64,16 +71,22 @@ export default function VehicleDetail() {
             model: storedMatch.model,
             year: storedMatch.year,
             type: storedMatch.type as any,
-            pricePerDay: storedMatch.pricePerDay,
+            pricePerDay: String(storedMatch.pricePerDay),
             seats: storedMatch.seats,
             fuelType: storedMatch.fuelType as any,
             transmission: storedMatch.transmission as any,
             location: storedMatch.address,
-            images: storedMatch.images,
+            images: (storedMatch.images || []).map((url, idx) => ({ id: `img-${idx}`, url, isPrimary: idx === 0 })),
             isAvailable: storedMatch.isLive !== false && !hireStatus.isHired,
             ratingAverage: storedMatch.ratingAverage,
             ratingCount: storedMatch.ratingCount,
             hasInsurance: storedMatch.hasInsurance,
+            owner: {
+              id: storedMatch.ownerId,
+              firstName: storedMatch.ownerName?.split(' ')[0] || 'Fleet',
+              lastName: storedMatch.ownerName?.split(' ').slice(1).join(' ') || 'Host',
+              email: storedMatch.ownerEmail,
+            },
             ownerId: storedMatch.ownerId,
             ownerName: storedMatch.ownerName,
           } as any;

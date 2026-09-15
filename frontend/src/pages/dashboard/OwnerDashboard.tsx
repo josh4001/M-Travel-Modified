@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, insertVehicleImages } from '@/lib/supabaseClient';
 import {
   Car, PlusCircle, Activity, DollarSign, TrendingUp,
   RefreshCw, CheckCircle, Clock, XCircle, Bell, Image as ImageIcon, Video, ShieldCheck,
@@ -16,7 +16,7 @@ import type { TrackingStatus } from '@/types/tracking';
 import { useCurrency } from '@/context/CurrencyContext';
 import { fetchNotifications, sendNotification, type AppNotification } from '@/lib/notificationService';
 import {
-  getStoredBookings, getStoredVehicles, saveVehicle, updateBookingStatus,
+  getStoredBookings, getStoredVehicles, syncVehiclesFromSupabase, saveVehicle, updateBookingStatus,
   claimDemoFleetForHost, generateSampleBookingForVehicle,
   getVehicleHireStatus,
   type StoredBooking, type StoredVehicle
@@ -192,6 +192,7 @@ export default function OwnerDashboard() {
 
   const fetchData = async () => {
     setLoading(true);
+    await syncVehiclesFromSupabase().catch(() => {});
     const allVehicles = getStoredVehicles();
     const allBookings = getStoredBookings();
 
@@ -275,6 +276,7 @@ export default function OwnerDashboard() {
 
     try {
       const vehiclePhotos = [frontPhoto, backPhoto, ...extraPhotos].filter(Boolean);
+      const chosenPhotos = vehiclePhotos.length > 0 ? vehiclePhotos : ['https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80'];
 
       saveVehicle({
         make: newV.make,
@@ -289,22 +291,30 @@ export default function OwnerDashboard() {
         ownerId: user.id,
         ownerName: `${user.firstName ?? 'Fleet Host'} ${user.lastName ?? ''}`.trim(),
         ownerEmail: user.email,
-        images: vehiclePhotos.length > 0 ? vehiclePhotos : ['https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80'],
+        images: chosenPhotos,
         hasInsurance: true,
       });
 
       try {
-        await supabase.from('vehicles').insert({
+        const { data: inserted } = await supabase.from('vehicles').insert({
           owner_id: user?.id,
           make: newV.make, model: newV.model, year: Number(newV.year),
           type: newV.type, price_per_day: Number(newV.price_per_day),
           seats: Number(newV.seats), fuel_type: 'DIESEL', transmission: 'AUTOMATIC',
           latitude: -1.2921, longitude: 36.8219,
           address: newV.address || 'Nairobi, Kenya',
-          is_available: true, has_insurance: true,
+          is_available: true, has_insurance: true, is_approved: true,
           rating_average: 5, rating_count: 1,
-        });
-      } catch {}
+        }).select();
+
+        if (inserted && inserted.length > 0 && chosenPhotos.length > 0) {
+          const vId = inserted[0].id;
+          await insertVehicleImages(vId, chosenPhotos);
+        }
+        await syncVehiclesFromSupabase();
+      } catch (sbErr) {
+        console.warn('Supabase vehicle insert warning:', sbErr);
+      }
 
       sendNotification({
         role: 'ADMIN',

@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useCurrency } from '@/context/CurrencyContext';
 import { sendNotification } from '@/lib/notificationService';
 import {
-  getStoredBookings, getStoredVehicles,
+  getStoredBookings, getStoredVehicles, syncVehiclesFromSupabase,
   approveVehicle as approveVehicleInStore, updateBookingStatus,
   toggleVehicleLiveStatus, getVehicleHireStatus, deleteVehicle,
   type StoredBooking, type StoredVehicle
@@ -56,6 +56,7 @@ export default function AdminDashboard() {
 
   const fetchAll = async () => {
     setLoading(true);
+    await syncVehiclesFromSupabase().catch(() => {});
     const storeVehicles = getStoredVehicles();
     const storeBookings = getStoredBookings();
 
