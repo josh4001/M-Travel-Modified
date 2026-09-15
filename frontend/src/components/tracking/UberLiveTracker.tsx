@@ -6,7 +6,7 @@ import {
 import type { Vehicle } from '@/types';
 import { TourTimeline } from '@/components/tracking/TourTimeline';
 import { TravellerLiveMap } from '@/components/tracking/TravellerLiveMap';
-import { calculateRoadEta, interpolateAlongRoute, calculateHaversineDistanceKm } from '@/lib/etaService';
+import { calculateRoadEta, interpolateAlongRoute } from '@/lib/etaService';
 
 export interface TrackingVehicle {
   id?: string;
@@ -80,6 +80,7 @@ export function UberLiveTracker({
   const simRafIdRef = useRef<number | null>(null);
   const simLastTimeRef = useRef(0);
   const simLastBroadcastRef = useRef(0);
+  const smoothedHeadingRef = useRef(0);
 
   // Fetch full turn-by-turn road route
   useEffect(() => {
@@ -136,6 +137,7 @@ export function UberLiveTracker({
       if (data.type === 'TOURIST' && data.lat && data.lng) {
         setTravelerCoords([data.lat, data.lng]);
       } else if (data.type === 'DRIVER' && data.lat && data.lng) {
+        if (isSimulatingDrive) return; // Prevent local simulation feedback loop
         setDriverCoords([data.lat, data.lng]);
         if (data.speed !== undefined) setDriverSpeed(data.speed);
         if (data.heading !== undefined) setDriverHeading(data.heading);
@@ -150,6 +152,7 @@ export function UberLiveTracker({
         } catch { /* empty */ }
       }
       if (e.key === `mt_gps_driver_${effectiveTripId}` && e.newValue) {
+        if (isSimulatingDrive) return; // Prevent local simulation feedback loop
         try {
           const parsed = JSON.parse(e.newValue);
           if (parsed?.lat && parsed?.lng) {
@@ -239,6 +242,13 @@ export function UberLiveTracker({
     };
   }, [isGpsEnabled, myRole, effectiveTripId]);
 
+function smoothAngle(current: number, target: number, factor = 0.2): number {
+  let diff = (target - current) % 360;
+  if (diff > 180) diff -= 360;
+  if (diff < -180) diff += 360;
+  return (current + diff * factor + 360) % 360;
+}
+
   // 4. Smooth 60 FPS Road-Tracking Drive Simulation
   useEffect(() => {
     if (!isSimulatingDrive) {
@@ -253,15 +263,9 @@ export function UberLiveTracker({
       ? routeCoords
       : [pickupCoords, dropoffCoords];
 
-    // Total distance of route in km
-    let totalDistKm = 0;
-    for (let i = 0; i < points.length - 1; i++) {
-      totalDistKm += calculateHaversineDistanceKm(
-        points[i][0], points[i][1],
-        points[i + 1][0], points[i + 1][1]
-      );
+    if (smoothedHeadingRef.current === 0 && points.length > 1) {
+      smoothedHeadingRef.current = interpolateAlongRoute(points, 0).heading;
     }
-    if (totalDistKm <= 0) totalDistKm = 15;
 
     simLastTimeRef.current = performance.now();
     simLastBroadcastRef.current = performance.now();
@@ -270,15 +274,10 @@ export function UberLiveTracker({
       const deltaSec = Math.min((now - simLastTimeRef.current) / 1000, 0.05); // cap delta to 50ms
       simLastTimeRef.current = now;
 
-      // Sample current position along route to check for curve slowdown
-      const currentPos = interpolateAlongRoute(points, simFractionRef.current);
-      // Realistic speed: 38 km/h on curves, 68 km/h on straightaways
-      const baseSpeed = currentPos.isCurving ? 38 : 68;
-      const speedKmh = baseSpeed * simMultiplier;
-
-      // Advance fraction by distance travelled
-      const distTravelledKm = (speedKmh / 3600) * deltaSec;
-      simFractionRef.current += (distTravelledKm / totalDistKm);
+      // Realistic preview pacing:
+      // ~36 seconds for the entire route at 1x, ~18 seconds at 2x, ~9 seconds at 4x
+      const targetDurationSec = 36 / (simMultiplier || 2);
+      simFractionRef.current += (deltaSec / targetDurationSec);
 
       if (simFractionRef.current >= 1) {
         simFractionRef.current = 0; // seamless loop
@@ -287,10 +286,17 @@ export function UberLiveTracker({
       const fraction = simFractionRef.current;
       const interp = interpolateAlongRoute(points, fraction);
 
+      // Smooth heading with shortest-arc slerp to eliminate any micro-segment twitch
+      smoothedHeadingRef.current = smoothAngle(smoothedHeadingRef.current, interp.heading, 0.22);
+      const finalHeading = Math.round(smoothedHeadingRef.current);
+      const displaySpeed = interp.isCurving ? 42 : 68;
+
       setDriverCoords([interp.lat, interp.lng]);
-      setDriverHeading(Math.round(interp.heading));
-      setDriverSpeed(Math.round(baseSpeed));
-      setProgress(Math.round(fraction * 100));
+      setDriverHeading(finalHeading);
+      setDriverSpeed(displaySpeed);
+
+      const newProgress = Math.round(fraction * 100);
+      setProgress((prev) => (prev !== newProgress ? newProgress : prev));
 
       // Throttled cross-tab broadcast (every 400ms)
       if (now - simLastBroadcastRef.current > 400) {
@@ -298,8 +304,8 @@ export function UberLiveTracker({
         const payload = {
           lat: interp.lat,
           lng: interp.lng,
-          speed: Math.round(baseSpeed),
-          heading: Math.round(interp.heading),
+          speed: displaySpeed,
+          heading: finalHeading,
           timestamp: Date.now(),
         };
         try {
@@ -311,8 +317,8 @@ export function UberLiveTracker({
             type: 'DRIVER',
             lat: interp.lat,
             lng: interp.lng,
-            speed: Math.round(baseSpeed),
-            heading: Math.round(interp.heading),
+            speed: displaySpeed,
+            heading: finalHeading,
           }
         }));
       }
@@ -333,9 +339,11 @@ export function UberLiveTracker({
   const handleRestartSim = () => {
     simFractionRef.current = 0;
     setProgress(0);
-    if (routeCoords.length > 0) {
-      setDriverCoords([routeCoords[0][0], routeCoords[0][1]]);
-      const initialInterp = interpolateAlongRoute(routeCoords, 0);
+    const points = routeCoords.length > 1 ? routeCoords : [pickupCoords, dropoffCoords];
+    if (points.length > 0) {
+      setDriverCoords([points[0][0], points[0][1]]);
+      const initialInterp = interpolateAlongRoute(points, 0);
+      smoothedHeadingRef.current = initialInterp.heading;
       setDriverHeading(Math.round(initialInterp.heading));
     }
   };

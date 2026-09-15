@@ -97,7 +97,7 @@ export function createAssignedVehicleIcon(
       <!-- Rotatable Vehicle Silhouette -->
       <div class="vehicle-heading-rotator" style="
         transform: rotate(${heading}deg);
-        transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1);
+        transition: transform 0.08s ease-out;
         width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
       ">
         ${getVehicleSvg(vehicleType)}

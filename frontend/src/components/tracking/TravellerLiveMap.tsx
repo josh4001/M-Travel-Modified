@@ -210,9 +210,12 @@ export const TravellerLiveMap: React.FC<TravellerLiveMapProps> = ({
       marker.setIcon(updatedIcon);
     }
 
-    // Follow camera smoothly if enabled
-    if (followVehicle) {
-      map.panTo([currentLat, currentLng], { animate: false });
+    // Smooth camera tracking: only re-center if vehicle approaches viewport edge
+    if (followVehicle && mapInstanceRef.current) {
+      const bounds = map.getBounds();
+      if (!bounds.pad(-0.12).contains([currentLat, currentLng])) {
+        map.panTo([currentLat, currentLng], { animate: true, duration: 0.8 });
+      }
     }
   }, [currentLat, currentLng, currentHeading, currentSpeed, isStale, followVehicle, isMapReady, vehicleType, plateNumber]);
 
