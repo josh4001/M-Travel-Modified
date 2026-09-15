@@ -78,10 +78,8 @@ export const NavigableKenyaUberMap: React.FC<NavigableKenyaUberMapProps> = ({
         scrollWheelZoom: true,
       });
 
-      // CartoDB Voyager / OpenStreetMap Clean Tiles
-      const tileUrl = mapTheme === 'streets'
-        ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      // OpenStreetMap Clean Tiles (No watermark)
+      const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
       L.tileLayer(tileUrl, {
         attribution: '© OpenStreetMap contributors | M-TRAVEL GPS Kenya',

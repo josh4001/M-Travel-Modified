@@ -23,6 +23,8 @@ interface TravellerLiveMapProps {
   driverLiveCoords?: [number, number] | null;
   driverSpeed?: number;
   driverHeading?: number;
+  routeCoordinates?: [number, number][];
+  onRouteCalculated?: (coords: [number, number][], eta: EtaEstimate) => void;
 }
 
 export const TravellerLiveMap: React.FC<TravellerLiveMapProps> = ({
@@ -40,6 +42,8 @@ export const TravellerLiveMap: React.FC<TravellerLiveMapProps> = ({
   driverLiveCoords = null,
   driverSpeed,
   driverHeading,
+  routeCoordinates,
+  onRouteCalculated,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -102,9 +106,10 @@ export const TravellerLiveMap: React.FC<TravellerLiveMapProps> = ({
         attributionControl: false,
       });
 
-      // CartoDB Voyager luxury clean tiles
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      // OpenStreetMap standard clean tiles (no watermark)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(map);
 
       // Pickup Marker Pin (Green Dot)
@@ -175,22 +180,39 @@ export const TravellerLiveMap: React.FC<TravellerLiveMapProps> = ({
     const marker = vehicleMarkerRef.current;
     const map = mapInstanceRef.current;
 
-    // Update position
+    // Smooth position update
     marker.setLatLng([currentLat, currentLng]);
 
-    // Update icon with new heading, speed, and stale state
-    const updatedIcon = createAssignedVehicleIcon(L, {
-      heading: currentHeading,
-      speed: currentSpeed,
-      vehicleType,
-      isStale,
-      plateNumber,
-    });
-    marker.setIcon(updatedIcon);
+    // In-place DOM update without recreating marker or resetting animation
+    const markerEl = marker.getElement();
+    if (markerEl) {
+      const rotator = markerEl.querySelector('.vehicle-heading-rotator') as HTMLElement;
+      if (rotator) {
+        rotator.style.transform = `rotate(${Math.round(currentHeading)}deg)`;
+      }
+      const speedBadge = markerEl.querySelector('.vehicle-speed-badge') as HTMLElement;
+      if (speedBadge) {
+        if (currentSpeed > 0 && !isStale) {
+          speedBadge.style.display = 'block';
+          speedBadge.textContent = `${Math.round(currentSpeed)} km/h`;
+        } else {
+          speedBadge.style.display = 'none';
+        }
+      }
+    } else {
+      const updatedIcon = createAssignedVehicleIcon(L, {
+        heading: currentHeading,
+        speed: currentSpeed,
+        vehicleType,
+        isStale,
+        plateNumber,
+      });
+      marker.setIcon(updatedIcon);
+    }
 
-    // Follow camera if enabled
+    // Follow camera smoothly if enabled
     if (followVehicle) {
-      map.panTo([currentLat, currentLng], { animate: true, duration: 1.0 });
+      map.panTo([currentLat, currentLng], { animate: false });
     }
   }, [currentLat, currentLng, currentHeading, currentSpeed, isStale, followVehicle, isMapReady, vehicleType, plateNumber]);
 
@@ -229,58 +251,75 @@ export const TravellerLiveMap: React.FC<TravellerLiveMapProps> = ({
     }
   }, [userCoords, isMapReady]);
 
-  // 4. Calculate Road ETA & Polyline via OSRM
+  // 4. Calculate & Render Stable Road Route Polyline (calculated once per route pair)
   useEffect(() => {
+    if (!isMapReady || !mapInstanceRef.current || !leafletModuleRef.current) return;
     let isCancelled = false;
 
-    const targetDestination = location?.status === 'DRIVING_TO_PICKUP'
-      ? { lat: pickupCoords[0], lng: pickupCoords[1] }
-      : { lat: dropoffCoords[0], lng: dropoffCoords[1] };
+    const L = leafletModuleRef.current;
+    const map = mapInstanceRef.current;
 
-    calculateRoadEta(
-      { lat: currentLat, lng: currentLng },
-      targetDestination,
-      currentSpeed
-    ).then((result) => {
-      if (isCancelled) return;
-      setEta(result);
-
-      // Render or update polyline on map
-      if (mapInstanceRef.current && leafletModuleRef.current) {
-        const L = leafletModuleRef.current;
-        const map = mapInstanceRef.current;
-
-        // Remove old lines if exist
-        if (routePolylineBorderRef.current) {
-          map.removeLayer(routePolylineBorderRef.current);
-        }
-        if (routePolylineRef.current) {
-          map.removeLayer(routePolylineRef.current);
-        }
-
-        // Dark navy border line
-        routePolylineBorderRef.current = L.polyline(result.routeCoordinates, {
-          color: '#0f172a',
-          weight: 7,
-          opacity: 0.85,
-          lineCap: 'round',
-          lineJoin: 'round',
-        }).addTo(map);
-
-        // Vibrant emerald route core line
-        routePolylineRef.current = L.polyline(result.routeCoordinates, {
-          color: '#10b981',
-          weight: 4,
-          opacity: 1.0,
-          lineCap: 'round',
-        }).addTo(map);
+    const renderPolyline = (coords: [number, number][], routeEta: EtaEstimate) => {
+      setEta(routeEta);
+      if (onRouteCalculated) {
+        onRouteCalculated(coords, routeEta);
       }
-    });
+
+      // Remove old lines if exist
+      if (routePolylineBorderRef.current) {
+        map.removeLayer(routePolylineBorderRef.current);
+      }
+      if (routePolylineRef.current) {
+        map.removeLayer(routePolylineRef.current);
+      }
+
+      // Dark navy border line
+      routePolylineBorderRef.current = L.polyline(coords, {
+        color: '#0f172a',
+        weight: 7,
+        opacity: 0.85,
+        lineCap: 'round',
+        lineJoin: 'round',
+      }).addTo(map);
+
+      // Vibrant emerald route core line
+      routePolylineRef.current = L.polyline(coords, {
+        color: '#10b981',
+        weight: 4,
+        opacity: 1.0,
+        lineCap: 'round',
+      }).addTo(map);
+
+      // Fit bounds initially to display the full journey nicely
+      try {
+        const bounds = L.latLngBounds(coords);
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      } catch { /* empty */ }
+    };
+
+    if (routeCoordinates && routeCoordinates.length > 1) {
+      const mockEta: EtaEstimate = {
+        distanceKm: +(routeCoordinates.length * 0.035).toFixed(1),
+        durationMinutes: Math.max(1, Math.round(routeCoordinates.length * 0.05)),
+        routeCoordinates,
+        source: 'osrm',
+        lastCalculatedAt: Date.now(),
+      };
+      renderPolyline(routeCoordinates, mockEta);
+    } else {
+      calculateRoadEta(
+        { lat: pickupCoords[0], lng: pickupCoords[1] },
+        { lat: dropoffCoords[0], lng: dropoffCoords[1] }
+      ).then((result) => {
+        if (isCancelled) return;
+        renderPolyline(result.routeCoordinates, result);
+      });
+    }
 
     return () => {
       isCancelled = true;
     };
-  }, [currentLat, currentLng, pickupCoords, dropoffCoords, location?.status, isMapReady]);
+  }, [isMapReady, pickupCoords[0], pickupCoords[1], dropoffCoords[0], dropoffCoords[1], routeCoordinates]);
 
   // Map control helpers
   const handleRecenter = () => {

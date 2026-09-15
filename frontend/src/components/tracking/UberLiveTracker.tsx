@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Car, MapPin, Phone, MessageSquare, Shield, Navigation,
-  CheckCircle2, Star, X, Radio, Locate, Play, Pause, AlertCircle
+  CheckCircle2, Star, X, Radio, Locate, Play, Pause, AlertCircle, RotateCcw
 } from 'lucide-react';
 import type { Vehicle } from '@/types';
 import { TourTimeline } from '@/components/tracking/TourTimeline';
 import { TravellerLiveMap } from '@/components/tracking/TravellerLiveMap';
+import { calculateRoadEta, interpolateAlongRoute, calculateHaversineDistanceKm } from '@/lib/etaService';
 
 export interface TrackingVehicle {
   id?: string;
@@ -73,7 +74,26 @@ export function UberLiveTracker({
 
   // Simulation mode for testing drive without moving physically
   const [isSimulatingDrive, setIsSimulatingDrive] = useState(false);
-  const simulationStepRef = useRef(0);
+  const [simMultiplier, setSimMultiplier] = useState<number>(2);
+  const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
+  const simFractionRef = useRef(0);
+  const simRafIdRef = useRef<number | null>(null);
+  const simLastTimeRef = useRef(0);
+  const simLastBroadcastRef = useRef(0);
+
+  // Fetch full turn-by-turn road route
+  useEffect(() => {
+    let isMounted = true;
+    calculateRoadEta(
+      { lat: pickupCoords[0], lng: pickupCoords[1] },
+      { lat: dropoffCoords[0], lng: dropoffCoords[1] }
+    ).then((res) => {
+      if (isMounted && res.routeCoordinates?.length > 1) {
+        setRouteCoords(res.routeCoordinates);
+      }
+    });
+    return () => { isMounted = false; };
+  }, [pickupCoords[0], pickupCoords[1], dropoffCoords[0], dropoffCoords[1]]);
 
   // Trip progress indicator
   const [progress, setProgress] = useState(35);
@@ -219,41 +239,106 @@ export function UberLiveTracker({
     };
   }, [isGpsEnabled, myRole, effectiveTripId]);
 
-  // 4. Drive Simulation for testing without moving physically
+  // 4. Smooth 60 FPS Road-Tracking Drive Simulation
   useEffect(() => {
-    if (!isSimulatingDrive) return;
+    if (!isSimulatingDrive) {
+      if (simRafIdRef.current !== null) {
+        cancelAnimationFrame(simRafIdRef.current);
+        simRafIdRef.current = null;
+      }
+      return;
+    }
 
-    const start = pickupCoords;
-    const end = dropoffCoords;
+    const points = routeCoords.length > 1
+      ? routeCoords
+      : [pickupCoords, dropoffCoords];
 
-    const interval = setInterval(() => {
-      simulationStepRef.current += 0.02;
-      if (simulationStepRef.current > 1) {
-        simulationStepRef.current = 0; // loop
+    // Total distance of route in km
+    let totalDistKm = 0;
+    for (let i = 0; i < points.length - 1; i++) {
+      totalDistKm += calculateHaversineDistanceKm(
+        points[i][0], points[i][1],
+        points[i + 1][0], points[i + 1][1]
+      );
+    }
+    if (totalDistKm <= 0) totalDistKm = 15;
+
+    simLastTimeRef.current = performance.now();
+    simLastBroadcastRef.current = performance.now();
+
+    const animate = (now: number) => {
+      const deltaSec = Math.min((now - simLastTimeRef.current) / 1000, 0.05); // cap delta to 50ms
+      simLastTimeRef.current = now;
+
+      // Sample current position along route to check for curve slowdown
+      const currentPos = interpolateAlongRoute(points, simFractionRef.current);
+      // Realistic speed: 38 km/h on curves, 68 km/h on straightaways
+      const baseSpeed = currentPos.isCurving ? 38 : 68;
+      const speedKmh = baseSpeed * simMultiplier;
+
+      // Advance fraction by distance travelled
+      const distTravelledKm = (speedKmh / 3600) * deltaSec;
+      simFractionRef.current += (distTravelledKm / totalDistKm);
+
+      if (simFractionRef.current >= 1) {
+        simFractionRef.current = 0; // seamless loop
       }
 
-      const fraction = simulationStepRef.current;
-      const curLat = start[0] + (end[0] - start[0]) * fraction;
-      const curLng = start[1] + (end[1] - start[1]) * fraction;
-      const calcSpeed = Math.floor(55 + Math.random() * 15);
-      const calcHeading = Math.floor(fraction * 360);
+      const fraction = simFractionRef.current;
+      const interp = interpolateAlongRoute(points, fraction);
 
-      setDriverCoords([curLat, curLng]);
-      setDriverSpeed(calcSpeed);
-      setDriverHeading(calcHeading);
+      setDriverCoords([interp.lat, interp.lng]);
+      setDriverHeading(Math.round(interp.heading));
+      setDriverSpeed(Math.round(baseSpeed));
       setProgress(Math.round(fraction * 100));
 
-      const payload = { lat: curLat, lng: curLng, speed: calcSpeed, heading: calcHeading, timestamp: Date.now() };
-      try {
-        localStorage.setItem(`mt_gps_driver_${effectiveTripId}`, JSON.stringify(payload));
-      } catch { /* empty */ }
-      window.dispatchEvent(new CustomEvent('mt_live_gps_broadcast', {
-        detail: { tripId: effectiveTripId, type: 'DRIVER', lat: curLat, lng: curLng, speed: calcSpeed, heading: calcHeading }
-      }));
-    }, 1800);
+      // Throttled cross-tab broadcast (every 400ms)
+      if (now - simLastBroadcastRef.current > 400) {
+        simLastBroadcastRef.current = now;
+        const payload = {
+          lat: interp.lat,
+          lng: interp.lng,
+          speed: Math.round(baseSpeed),
+          heading: Math.round(interp.heading),
+          timestamp: Date.now(),
+        };
+        try {
+          localStorage.setItem(`mt_gps_driver_${effectiveTripId}`, JSON.stringify(payload));
+        } catch { /* empty */ }
+        window.dispatchEvent(new CustomEvent('mt_live_gps_broadcast', {
+          detail: {
+            tripId: effectiveTripId,
+            type: 'DRIVER',
+            lat: interp.lat,
+            lng: interp.lng,
+            speed: Math.round(baseSpeed),
+            heading: Math.round(interp.heading),
+          }
+        }));
+      }
 
-    return () => clearInterval(interval);
-  }, [isSimulatingDrive, pickupCoords, dropoffCoords, effectiveTripId]);
+      simRafIdRef.current = requestAnimationFrame(animate);
+    };
+
+    simRafIdRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (simRafIdRef.current !== null) {
+        cancelAnimationFrame(simRafIdRef.current);
+        simRafIdRef.current = null;
+      }
+    };
+  }, [isSimulatingDrive, routeCoords, simMultiplier, effectiveTripId, pickupCoords, dropoffCoords]);
+
+  const handleRestartSim = () => {
+    simFractionRef.current = 0;
+    setProgress(0);
+    if (routeCoords.length > 0) {
+      setDriverCoords([routeCoords[0][0], routeCoords[0][1]]);
+      const initialInterp = interpolateAlongRoute(routeCoords, 0);
+      setDriverHeading(Math.round(initialInterp.heading));
+    }
+  };
 
   const driverName = (vehicle?.owner?.firstName || vehicle?.owner?.lastName)
     ? `${vehicle.owner?.firstName || ''} ${vehicle.owner?.lastName || ''}`.trim()
@@ -347,19 +432,53 @@ export function UberLiveTracker({
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={() => setIsSimulatingDrive(!isSimulatingDrive)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border ${
-                isSimulatingDrive
-                  ? 'bg-amber-500/20 border-amber-500 text-amber-300'
-                  : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
-              }`}
-              title="Test vehicle movement along road without real driving"
-            >
-              {isSimulatingDrive ? <Pause className="h-3.5 w-3.5 text-amber-400" /> : <Play className="h-3.5 w-3.5" />}
-              {isSimulatingDrive ? 'Simulating Drive...' : 'Simulate Drive'}
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setIsSimulatingDrive(!isSimulatingDrive)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border ${
+                  isSimulatingDrive
+                    ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-sm'
+                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                }`}
+                title="Test vehicle movement along road polyline"
+              >
+                {isSimulatingDrive ? <Pause className="h-3.5 w-3.5 text-amber-400" /> : <Play className="h-3.5 w-3.5" />}
+                {isSimulatingDrive ? 'Pause Drive' : 'Simulate Drive'}
+              </button>
+
+              {/* Speed Multiplier & Restart Controls */}
+              {isSimulatingDrive && (
+                <div className="flex items-center gap-1">
+                  <div className="flex items-center bg-slate-800 rounded-xl p-0.5 border border-slate-700 text-[11px] font-mono">
+                    {([1, 2, 4] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setSimMultiplier(m)}
+                        className={`px-2 py-0.5 rounded-lg transition ${
+                          simMultiplier === m
+                            ? 'bg-amber-500 text-slate-950 font-bold'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                        title={`${m}x Simulation Speed`}
+                      >
+                        {m}x
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleRestartSim}
+                    className="p-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition"
+                    title="Restart from Pick-up"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -398,10 +517,10 @@ export function UberLiveTracker({
       <div className="p-4 pb-0">
         <TravellerLiveMap
           tripId={effectiveTripId}
-          vehicleModel={`${vehicle.make} ${vehicle.model}`}
+          vehicleModel={`${vehicle?.make || 'Toyota'} ${vehicle?.model || 'Land Cruiser'}`}
           plateNumber={plateNumber}
           driverName={driverName}
-          vehicleType={vehicle.type}
+          vehicleType={vehicle?.type || 'SUV'}
           pickupLocation={pickupLocation}
           dropoffLocation={dropoffLocation}
           pickupCoords={pickupCoords}
@@ -410,6 +529,7 @@ export function UberLiveTracker({
           driverLiveCoords={driverCoords}
           driverSpeed={driverSpeed}
           driverHeading={driverHeading}
+          routeCoordinates={routeCoords}
           height="420px"
         />
       </div>

@@ -85,19 +85,19 @@ export function createAssignedVehicleIcon(
       <!-- Speed Badge -->
       ${
         speed > 0 && !isStale
-          ? `<div style="
+          ? `<div class="vehicle-speed-badge" style="
               position: absolute; bottom: -8px; background: #0f172a;
               color: #10b981; font-size: 9px; font-weight: 800; font-family: monospace;
               border-radius: 6px; padding: 1px 4px; border: 1px solid #10b981;
               box-shadow: 0 2px 6px rgba(0,0,0,0.4); z-index: 10; white-space: nowrap;
-            ">${speed} km/h</div>`
-          : ''
+            ">${Math.round(speed)} km/h</div>`
+          : '<div class="vehicle-speed-badge" style="display:none;"></div>'
       }
 
       <!-- Rotatable Vehicle Silhouette -->
       <div class="vehicle-heading-rotator" style="
         transform: rotate(${heading}deg);
-        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1);
         width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
       ">
         ${getVehicleSvg(vehicleType)}
