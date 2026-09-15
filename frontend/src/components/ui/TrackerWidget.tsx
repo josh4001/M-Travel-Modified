@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Search, MapPin, Car, Phone, ShieldCheck, CheckCircle2, Clock, Navigation } from 'lucide-react';
-import { MpesaLogo } from './MpesaLogo';
+import { Search, MapPin, Car, Phone, ShieldCheck, CheckCircle2, Clock, Navigation, Radio } from 'lucide-react';
 
 export const TrackerWidget: React.FC = () => {
   const [bookingRef, setBookingRef] = useState('');
@@ -23,8 +22,8 @@ export const TrackerWidget: React.FC = () => {
         destination: 'Maasai Mara Sopa Lodge',
         status: 'Confirmed & En Route',
         eta: '35 mins away',
-        paymentStatus: 'Paid via M-PESA Express',
-        paymentRef: 'QK89X201',
+        paymentStatus: 'Reservation Confirmed & Secured',
+        paymentRef: 'TRIP-89X201',
       });
       setLoading(false);
     }, 600);
@@ -42,7 +41,10 @@ export const TrackerWidget: React.FC = () => {
           </h3>
         </div>
 
-        <MpesaLogo variant="badge" />
+        <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-semibold bg-emerald-50 border border-emerald-200 px-3.5 py-1.5 rounded-full">
+          <Radio className="h-3.5 w-3.5 text-emerald-600 animate-pulse" />
+          <span>Verified Satellite Telemetry</span>
+        </div>
       </div>
 
       <form onSubmit={handleTrack} className="mt-5 flex flex-col sm:flex-row gap-3">
@@ -51,7 +53,7 @@ export const TrackerWidget: React.FC = () => {
           <input
             type="text"
             required
-            placeholder="Enter Booking Ref (e.g. MT-884920 or M-PESA Code)"
+            placeholder="Enter Booking Ref (e.g. MT-884920 or Trip ID)"
             value={bookingRef}
             onChange={(e) => setBookingRef(e.target.value)}
             className="input-field text-xs !py-3.5 !pl-11 font-mono uppercase tracking-wider bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400"

@@ -40,9 +40,9 @@ interface Message {
 const GENERAL_KNOWLEDGE: Record<string, string> = {
   greeting: "Jambo! I'm your M-TRAVEL AI Concierge — your expert guide to travel, safari planning, vehicle hire, and tour bookings across Kenya and East Africa. Ask me anything about destinations, costs, vehicles, best travel times, or how to plan your perfect trip!",
 
-  mtravel: "**M-TRAVEL** is Kenya's premier independent travel marketplace. We connect travelers with quality vehicles (cars, SUVs, vans, 4x4s), curated safari tours, holiday homes, and bus routes — all with M-Pesa payment built in. We are fully independent, so we partner with top local operators to give you unbiased, handpicked experiences.",
+  mtravel: "**M-TRAVEL** is Kenya's premier independent travel marketplace. We connect travelers with quality vehicles (custom 4x4 Land Cruisers, SUVs, executive vans), curated safari expeditions, holiday villas, and luxury bus routes — all supported by 24/7 dedicated concierge assistance. We partner with top local operators to give you unbiased, handpicked African journeys.",
 
-  mpesa: "We accept **M-Pesa, Visa/Mastercard, and wallet payments**. For M-Pesa bookings, you'll receive an STK push to confirm payment instantly. All transactions are secured and you get a booking QR code immediately after confirmation.",
+  mpesa: "We provide **seamless digital checkout, major cards, and instant reservation confirmation**. All bookings are encrypted and you receive your verified itinerary, driver details, and booking pass immediately after reservation.",
 
   visaKenya: "Most nationalities get a **Kenya e-Visa** online at evisa.go.ke. Cost is $51 USD for a single-entry 90-day visa. East African citizens enjoy free entry. Citizens of many African countries also get visa-on-arrival. Always check the latest requirements before travel.",
 

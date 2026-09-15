@@ -588,11 +588,11 @@ export default function VehicleDetail() {
               </button>
             </div>
 
-            {/* M-PESA FORM */}
+            {/* MOBILE CHECKOUT FORM */}
             {paymentMethod === 'mpesa' && (
               <div className="space-y-1.5 rounded-xl border border-emerald-300 bg-emerald-50/50 p-3">
                 <label className="block text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
-                  <PhoneIcon className="h-3.5 w-3.5" /> M-Pesa Express Phone Number
+                  <PhoneIcon className="h-3.5 w-3.5" /> Mobile Number for Reservation
                 </label>
                 <input
                   type="tel"
@@ -606,7 +606,7 @@ export default function VehicleDetail() {
                   }}
                 />
                 <p className="text-[10px] text-slate-600 font-medium">
-                  An STK Push prompt will be sent to your phone to authorize payment of {formatPrice(grandTotal)}
+                  A secure authorization prompt will be sent to your phone to confirm reservation of {formatPrice(grandTotal)}
                 </p>
               </div>
             )}
@@ -709,7 +709,7 @@ export default function VehicleDetail() {
             </div>
           ) : paymentMethod === 'mpesa' ? (
             <MpesaLogo
-              label={`Pay ${formatPrice(grandTotal)} with M-PESA`}
+              label={`Confirm & Secure Reservation (${formatPrice(grandTotal)})`}
               onClick={handleBooking}
               loading={paymentLoading}
             />

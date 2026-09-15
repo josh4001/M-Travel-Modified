@@ -818,7 +818,7 @@ export default function Catalogue() {
                           }}
                           className="btn-primary w-full font-bold !py-3 shadow-md text-sm flex items-center justify-center gap-2"
                         >
-                          <ShieldCheck className="h-5 w-5" /> Reserve via M-PESA
+                          <ShieldCheck className="h-5 w-5" /> Confirm Reservation
                         </button>
                       )}
                     </div>

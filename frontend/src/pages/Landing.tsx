@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
-  Car, Bus, Palmtree, Home, ShieldCheck, Wallet, Star, ArrowRight,
+  Car, Bus, Palmtree, Home, ShieldCheck, Star, ArrowRight,
   Bot, Compass, Crown, Search, CalendarCheck, Sparkles
 } from 'lucide-react';
 import { RouteGlobe } from '@/components/RouteGlobe';
@@ -13,10 +13,10 @@ import { OffersRewards } from '@/components/ui/OffersRewards';
 import { TrackerWidget } from '@/components/ui/TrackerWidget';
 
 const journey = [
-  { label: 'Search', desc: 'Browse vehicles, buses, tours, and homes near you.' },
-  { label: 'Book', desc: 'Pick your dates & pay instantly via M-Pesa STK.' },
-  { label: 'Ride', desc: 'Track your driver live and chat with concierge.' },
-  { label: 'Arrive', desc: 'Rate your trip & earn Privilege M-Pesa points.' },
+  { label: 'Explore', desc: 'Browse curated safari cruisers, luxury vans, and private villas.' },
+  { label: 'Reserve', desc: 'Select your travel dates & confirm your bespoke journey in seconds.' },
+  { label: 'Ride', desc: 'Track your professional chauffeur live with satellite GPS.' },
+  { label: 'Arrive', desc: 'Experience Kenya in comfort & earn Privilege Explorer points.' },
 ];
 
 const categories = [
@@ -56,7 +56,7 @@ export default function Landing() {
               </h1>
 
               <p className="mt-5 max-w-xl text-base md:text-lg text-slate-600 leading-relaxed">
-                Seamless 4x4 safari cruiser hire, executive chauffeurs, VIP intercity buses, and beachfront holiday villas — curated to world-class hospitality standards, paid instantly with M-PESA.
+                Seamless 4x4 safari cruiser hire, executive chauffeurs, VIP intercity coaches, and beachfront holiday villas — curated to world-class hospitality standards with white-glove concierge service.
               </p>
 
               <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -80,7 +80,7 @@ export default function Landing() {
                 </div>
                 <div>
                   <p className="font-mono text-2xl font-bold text-emerald-600">100%</p>
-                  <p className="text-[11px] text-slate-500 font-medium">Instant M-PESA</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Verified Fleet</p>
                 </div>
                 <div>
                   <p className="font-mono text-2xl font-bold text-amber-600">24/7</p>
@@ -212,7 +212,7 @@ export default function Landing() {
               Track Your Trip & Driver
             </h2>
             <p className="mt-2 text-xs md:text-sm text-slate-600">
-              Already booked? Enter your booking reference or M-PESA code below for real-time status.
+              Already booked? Enter your booking reference or trip ID below for real-time status.
             </p>
           </div>
 
@@ -228,10 +228,10 @@ export default function Landing() {
               <Bot className="h-4 w-4 text-amber-600" /> M-TRAVEL AI Travel Concierge
             </span>
             <h2 className="mt-3 font-serif text-3xl md:text-5xl font-bold text-slate-900">
-              Ask. Plan. Book with M-PESA.
+              Ask. Plan. Journey with M-TRAVEL.
             </h2>
             <p className="mt-2 text-slate-600 text-sm md:text-base">
-              Our AI concierge answers any travel question — destination guides, vehicle recommendations, cost breakdowns, visa info, packing lists, and live booking links.
+              Our AI concierge answers any travel question — destination guides, vehicle recommendations, cost breakdowns, visa info, packing lists, and live itinerary links.
             </p>
           </div>
 
@@ -244,7 +244,7 @@ export default function Landing() {
         <div className="mx-auto grid max-w-7xl gap-8 sm:grid-cols-3">
           {[
             { icon: ShieldCheck, title: 'Verified & Insured Fleet', desc: 'Every 4x4 cruiser and executive van undergoes rigorous mechanical inspection and carries comprehensive PSV insurance.' },
-            { icon: Wallet, title: 'Instant M-PESA STK Push', desc: 'Pay frictionlessly in Kenyan Shillings or convert to USD/EUR/GBP with zero hidden transaction surcharges.' },
+            { icon: Compass, title: 'Seamless Flexible Booking', desc: 'Reserve frictionlessly in Kenyan Shillings or international currencies with transparent, all-inclusive pricing.' },
             { icon: Star, title: 'Rated by Real Travelers', desc: 'Transparent traveler reviews and vetted safari guides ensure 5-star experiences from Nairobi to the Mara.' },
           ].map((f) => (
             <Card3D key={f.title} intensity={6} className="p-6">
@@ -270,7 +270,7 @@ export default function Landing() {
               Ready for your next Kenya adventure?
             </h2>
             <p className="mt-4 text-sm md:text-base text-slate-600 max-w-xl mx-auto">
-              Create your free M-TRAVEL account, unlock member-only rates, and book your next luxury travel experience in seconds with M-PESA.
+              Create your free M-TRAVEL account, unlock member-only rates, and reserve your next luxury travel experience in seconds with VIP concierge assistance.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <Link to="/register" className="btn-primary !px-8 !py-3.5 text-sm font-bold shadow-md hover:shadow-lg">

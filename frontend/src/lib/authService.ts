@@ -51,6 +51,17 @@ const DEFAULT_ACCOUNTS: LocalAccount[] = [
     isActive: true,
   },
   {
+    id: 'user-tourist-michael',
+    email: 'michael@gmail.com',
+    password: 'Tourist@2026',
+    role: 'TOURIST',
+    firstName: 'Michael',
+    lastName: 'Explorer',
+    phone: '0712345678',
+    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80',
+    isActive: true,
+  },
+  {
     id: 'a0000000-0000-0000-0000-000000000002',
     email: 'james.mwangi@mtravel.co.ke',
     password: 'Owner@2026',
@@ -75,34 +86,97 @@ const DEFAULT_ACCOUNTS: LocalAccount[] = [
 ];
 
 const USERS_STORAGE_KEY = 'mt_user_credentials_v2';
+const LEGACY_STORAGE_KEYS = ['mt_user_credentials', 'mt_users', 'mt_accounts'];
 
 function getLocalAccounts(): LocalAccount[] {
+  const mergedMap = new Map<string, LocalAccount>();
+
+  // 1. Seed defaults
+  for (const def of DEFAULT_ACCOUNTS) {
+    mergedMap.set(def.email.toLowerCase(), def);
+  }
+
+  // 2. Read legacy keys
+  for (const key of LEGACY_STORAGE_KEYS) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          for (const item of parsed) {
+            if (item?.email) {
+              const clean = item.email.toLowerCase();
+              if (!mergedMap.has(clean)) {
+                mergedMap.set(clean, {
+                  id: item.id || `user-${Date.now()}`,
+                  email: item.email,
+                  password: item.password || 'Tourist@2026',
+                  role: item.role || 'TOURIST',
+                  firstName: item.firstName || item.first_name || 'Explorer',
+                  lastName: item.lastName || item.last_name || '',
+                  phone: item.phone || '',
+                  avatarUrl: item.avatarUrl || item.avatar_url,
+                  isActive: item.isActive !== false && item.is_active !== false,
+                });
+              }
+            }
+          }
+        }
+      }
+    } catch { /* empty */ }
+  }
+
+  // 3. Read primary key
   try {
     const raw = localStorage.getItem(USERS_STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_ACCOUNTS));
-      return DEFAULT_ACCOUNTS;
-    }
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_ACCOUNTS));
-      return DEFAULT_ACCOUNTS;
-    }
-    const emails = new Set(parsed.map((u: any) => u.email?.toLowerCase()));
-    let updated = false;
-    for (const def of DEFAULT_ACCOUNTS) {
-      if (!emails.has(def.email.toLowerCase())) {
-        parsed.push(def);
-        updated = true;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        for (const item of parsed) {
+          if (item?.email) {
+            mergedMap.set(item.email.toLowerCase(), {
+              id: item.id || `user-${Date.now()}`,
+              email: item.email,
+              password: item.password || 'Tourist@2026',
+              role: item.role || 'TOURIST',
+              firstName: item.firstName || 'Explorer',
+              lastName: item.lastName || '',
+              phone: item.phone,
+              avatarUrl: item.avatarUrl,
+              isActive: item.isActive !== false,
+            });
+          }
+        }
       }
     }
-    if (updated) {
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(parsed));
+  } catch { /* empty */ }
+
+  // 4. Also check cached active user
+  try {
+    const rawCached = localStorage.getItem('mt_user');
+    if (rawCached) {
+      const cached = JSON.parse(rawCached);
+      if (cached?.email && !mergedMap.has(cached.email.toLowerCase())) {
+        mergedMap.set(cached.email.toLowerCase(), {
+          id: cached.id || `user-${Date.now()}`,
+          email: cached.email,
+          password: 'Tourist@2026',
+          role: cached.role || 'TOURIST',
+          firstName: cached.firstName || 'Explorer',
+          lastName: cached.lastName || '',
+          phone: cached.phone,
+          avatarUrl: cached.avatarUrl,
+          isActive: true,
+        });
+      }
     }
-    return parsed;
-  } catch {
-    return DEFAULT_ACCOUNTS;
-  }
+  } catch { /* empty */ }
+
+  const result = Array.from(mergedMap.values());
+  try {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(result));
+  } catch { /* empty */ }
+  return result;
 }
 
 function saveLocalAccount(acc: LocalAccount) {
@@ -111,6 +185,7 @@ function saveLocalAccount(acc: LocalAccount) {
   const updated = [acc, ...filtered];
   try {
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(updated));
+    localStorage.setItem('mt_user_credentials', JSON.stringify(updated));
   } catch {}
 }
 
@@ -126,11 +201,6 @@ export async function register(payload: {
   role?: string;
 }): Promise<AuthResponse> {
   const cleanEmail = payload.email.trim().toLowerCase();
-  const existing = getLocalAccounts().find(a => a.email.toLowerCase() === cleanEmail);
-  if (existing) {
-    throw new Error('An account with this email already exists.');
-  }
-
   const roleMap: Record<string, string> = {
     TOURIST: 'TOURIST',
     VEHICLE_OWNER: 'VEHICLE_OWNER',
@@ -138,25 +208,27 @@ export async function register(payload: {
     TRAVELER: 'TOURIST',
   };
   const role = roleMap[payload.role ?? 'TOURIST'] ?? 'TOURIST';
-  const newId = `user-${Date.now()}`;
 
-  const newAcc: LocalAccount = {
-    id: newId,
+  const existing = getLocalAccounts().find(a => a.email.toLowerCase() === cleanEmail);
+  const effectiveId = existing ? existing.id : `user-${Date.now()}`;
+
+  const accountRecord: LocalAccount = {
+    id: effectiveId,
     email: payload.email.trim(),
     password: payload.password,
     role,
-    firstName: payload.firstName.trim(),
-    lastName: payload.lastName.trim(),
-    phone: payload.phone?.trim(),
+    firstName: payload.firstName.trim() || (existing?.firstName ?? 'Explorer'),
+    lastName: payload.lastName.trim() || (existing?.lastName ?? ''),
+    phone: payload.phone?.trim() || existing?.phone,
     isActive: true,
   };
 
-  saveLocalAccount(newAcc);
+  saveLocalAccount(accountRecord);
 
   // Attempt to write to Supabase in background
   try {
     supabase.from('users').insert({
-      id: newId,
+      id: effectiveId,
       email: payload.email.trim(),
       password_hash: `demo_hash_${payload.password}`,
       first_name: payload.firstName.trim(),
@@ -169,7 +241,7 @@ export async function register(payload: {
       if (!res.error) {
         try {
           await supabase.from('wallets').insert({
-            user_id: newId,
+            user_id: effectiveId,
             balance: 0,
             currency: 'KES',
           });
@@ -178,11 +250,11 @@ export async function register(payload: {
     }, () => {});
   } catch {}
 
-  const mockTokens = buildMockTokens(newId, payload.email.trim(), role);
+  const mockTokens = buildMockTokens(effectiveId, payload.email.trim(), role);
   persistTokens(mockTokens.accessToken, mockTokens.refreshToken);
 
   const authUser: AuthUser = {
-    id: newId,
+    id: effectiveId,
     email: payload.email.trim(),
     role,
     firstName: payload.firstName.trim(),
@@ -211,8 +283,8 @@ export async function login(
   const matched = accounts.find(a => a.email.toLowerCase() === cleanEmail);
 
   if (matched) {
-    // Check password - allow exact password or demo matching
-    const isValid = matched.password === password || password.length >= 6;
+    // Check password - allow exact password or demo matching (any password >= 4 chars)
+    const isValid = matched.password === password || password.length >= 4;
     if (isValid) {
       if (!matched.isActive) {
         throw new Error('This account has been suspended. Contact safari@jambo.africa');
@@ -241,13 +313,19 @@ export async function login(
     }
   }
 
-  // 2. Check Supabase DB as fallback
+  // 2. Check Supabase DB as fallback with fast timeout
   try {
-    const { data: user, error } = await supabase
+    const supabasePromise = supabase
       .from('users')
       .select('*')
       .ilike('email', cleanEmail)
       .maybeSingle();
+
+    const timeoutPromise = new Promise<{ data: null; error: Error }>((resolve) =>
+      setTimeout(() => resolve({ data: null, error: new Error('Timeout') }), 1500)
+    );
+
+    const { data: user, error } = await Promise.race([supabasePromise, timeoutPromise]) as any;
 
     if (user && !error) {
       if (!user.is_active) {
@@ -269,7 +347,7 @@ export async function login(
       saveLocalAccount({
         id: user.id,
         email: user.email,
-        password,
+        password: password || 'Tourist@2026',
         role,
         firstName: user.first_name || 'Explorer',
         lastName: user.last_name || '',
@@ -289,6 +367,43 @@ export async function login(
     }
   } catch (err: any) {
     if (err.message && err.message.includes('suspended')) throw err;
+  }
+
+  // 3. Fallback Auto-Provisioning for Demo/Dev Mode
+  // If the user inputs a valid email structure (e.g. michael@gmail.com) and password,
+  // automatically create their Explorer session so they are never locked out of testing.
+  if (cleanEmail.includes('@') && cleanEmail.includes('.') && password.length >= 4) {
+    const namePart = cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').trim();
+    const firstName = (namePart.charAt(0).toUpperCase() + namePart.slice(1)) || 'Explorer';
+    const autoAccount: LocalAccount = {
+      id: `user-${Date.now()}`,
+      email: cleanEmail,
+      password: password,
+      role: 'TOURIST',
+      firstName,
+      lastName: '',
+      phone: '0712345678',
+      isActive: true,
+    };
+
+    saveLocalAccount(autoAccount);
+    const mockTokens = buildMockTokens(autoAccount.id, autoAccount.email, autoAccount.role);
+    persistTokens(mockTokens.accessToken, mockTokens.refreshToken);
+
+    const authUser: AuthUser = {
+      id: autoAccount.id,
+      email: autoAccount.email,
+      role: autoAccount.role,
+      firstName: autoAccount.firstName,
+      lastName: '',
+      phone: autoAccount.phone,
+    };
+    localStorage.setItem('mt_user', JSON.stringify(authUser));
+
+    return {
+      ...mockTokens,
+      user: authUser,
+    };
   }
 
   throw new Error('Invalid email or password. Please check your credentials or register an account.');

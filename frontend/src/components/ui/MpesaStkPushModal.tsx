@@ -104,8 +104,8 @@ export const MpesaStkPushModal: React.FC<MpesaStkPushModalProps> = ({
         <div className="flex items-center gap-3 border-b border-white/15 pb-4">
           <MpesaLogo variant="icon" size="lg" />
           <div>
-            <span className="text-[10px] uppercase font-mono font-bold text-emerald-400">Safaricom M-PESA STK Express</span>
-            <h3 className="font-serif text-lg font-bold text-white">Real-time Payment Gateway</h3>
+            <span className="text-[10px] uppercase font-mono font-bold text-emerald-400">Instant Mobile Checkout</span>
+            <h3 className="font-serif text-lg font-bold text-white">Secure Reservation Payment</h3>
           </div>
         </div>
 
@@ -129,7 +129,7 @@ export const MpesaStkPushModal: React.FC<MpesaStkPushModalProps> = ({
 
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                <Smartphone className="h-4 w-4" /> Enter Safaricom M-Pesa Phone Number
+                <Smartphone className="h-4 w-4" /> Enter Mobile Number for Confirmation
               </label>
               <input
                 type="tel"
@@ -140,23 +140,23 @@ export const MpesaStkPushModal: React.FC<MpesaStkPushModalProps> = ({
                 onChange={(e) => setPhone(e.target.value)}
               />
               <p className="text-[11px] text-slate-300 flex items-center gap-1">
-                <Radio className="h-3 w-3 text-emerald-400 animate-pulse" /> A real STK push notification prompt will pop up on this phone.
+                <Radio className="h-3 w-3 text-emerald-400 animate-pulse" /> A secure authorization prompt will appear on your mobile device.
               </p>
             </div>
 
             <MpesaLogo
               type="submit"
-              label={`Send M-PESA STK Push (KES ${amount.toLocaleString()})`}
+              label={`Authorize & Confirm Reservation (KES ${amount.toLocaleString()})`}
               loading={loading}
             />
           </form>
         )}
 
-        {/* STEP 2: REALISTIC PHONE SCREEN STK PROMPT POPUP */}
+        {/* STEP 2: REALISTIC PHONE SCREEN PROMPT POPUP */}
         {step === 'ENTER_PIN' && (
           <div className="mt-5 space-y-4 text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-400 border border-emerald-500/40">
-              <Radio className="h-3.5 w-3.5 animate-ping" /> STK Push Triggered on {phone}
+              <Radio className="h-3.5 w-3.5 animate-ping" /> Confirmation Prompt Sent to {phone}
             </div>
 
             {/* SIMULATED MOBILE PHONE STK OVERLAY BOX */}

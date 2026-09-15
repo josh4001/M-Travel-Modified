@@ -1,12 +1,11 @@
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MessageSquare, ShieldCheck, Crown } from 'lucide-react';
-import { MpesaLogo } from '@/components/ui/MpesaLogo';
+import { Mail, Phone, MessageSquare, ShieldCheck, Crown, Compass } from 'lucide-react';
 
 export function Footer() {
   return (
     <footer className="border-t border-slate-800 px-6 py-16 bg-slate-950 text-slate-300 font-display">
       <div className="mx-auto grid max-w-7xl gap-10 sm:grid-cols-4">
-        {/* BRAND & MPESA SEAL */}
+        {/* BRAND & EXPEDITION SEAL */}
         <div className="space-y-4">
           <Link to="/" className="flex items-center gap-2">
             <img src="/logo.png" alt="M-TRAVEL" className="h-12 w-auto object-contain brightness-110" />
@@ -15,9 +14,16 @@ export function Footer() {
             Your partner for luxurious 4x4 safari cruiser hire, executive chauffeurs, intercity VIP bus express & beachfront holiday villas across Kenya.
           </p>
 
-          {/* OFFICIAL MPESA ACCEPTANCE SEAL */}
+          {/* SIGNATURE CONCIERGE BADGE */}
           <div className="pt-2">
-            <MpesaLogo variant="card" />
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 text-xs text-slate-300 space-y-1.5 shadow-inner">
+              <div className="flex items-center gap-1.5 text-amber-400 font-semibold text-[11px] uppercase tracking-wider">
+                <Crown className="h-3.5 w-3.5" /> Signature Concierge
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Licensed luxury fleet & bespoke safari expeditions across East Africa.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -59,7 +65,7 @@ export function Footer() {
           </div>
         </div>
 
-        {/* ROLES & PAYMENT GUARANTEE */}
+        {/* ROLES & TRUST GUARANTEE */}
         <div>
           <p className="text-xs uppercase tracking-widest text-amber-400 font-bold flex items-center gap-1.5">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Trust & Compliance
@@ -70,7 +76,7 @@ export function Footer() {
             <Link to="/login" className="hover:text-white transition">Partner Dashboard Access</Link>
             <div className="pt-2 flex flex-col gap-1">
               <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1.5">
-                <ShieldCheck className="h-3.5 w-3.5" /> 100% Instant M-PESA STK Push
+                <ShieldCheck className="h-3.5 w-3.5" /> Certified PSV & Safari Insured
               </span>
               <span className="text-[11px] text-slate-500 font-mono">
                 KTB & PSV Insured Operator Network
@@ -82,8 +88,9 @@ export function Footer() {
 
       <div className="mx-auto mt-12 max-w-7xl border-t border-slate-800 pt-6 flex flex-wrap items-center justify-between text-xs text-slate-500 gap-4">
         <p>© {new Date().getFullYear()} M-TRAVEL East Africa Ltd. All rights reserved.</p>
-        <p className="font-mono text-[11px] text-amber-400/90 flex items-center gap-1">
-          <span>Powered by Safaricom M-PESA Express</span>
+        <p className="font-serif italic text-amber-400/80 flex items-center gap-1">
+          <Compass className="h-3.5 w-3.5" />
+          <span>Kenya's Signature Luxury Safari & Mobility Network</span>
         </p>
       </div>
     </footer>

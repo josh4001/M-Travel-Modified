@@ -1,6 +1,5 @@
 import React from 'react';
-import { Sparkles, Crown, ArrowRight, Tag, Star, Gift, Check } from 'lucide-react';
-import { MpesaLogo } from './MpesaLogo';
+import { Sparkles, Crown, ArrowRight, Tag, Star, Gift, Check, Compass } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -19,7 +18,7 @@ export const OffersRewards: React.FC = () => {
       originalPrice: 22000,
       rating: 4.9,
       reviews: 128,
-      mpesaCashback: 'Earn 925 M-PESA Points',
+      rewardBonus: 'Earn 925 Explorer Points',
     },
     {
       id: 'diani-coastal',
@@ -31,7 +30,7 @@ export const OffersRewards: React.FC = () => {
       originalPrice: 15000,
       rating: 4.85,
       reviews: 94,
-      mpesaCashback: 'Earn 600 M-PESA Points',
+      rewardBonus: 'Earn 600 Explorer Points',
     },
     {
       id: 'nairobi-chauffeur',
@@ -43,7 +42,7 @@ export const OffersRewards: React.FC = () => {
       originalPrice: 8000,
       rating: 4.95,
       reviews: 210,
-      mpesaCashback: 'Earn 325 M-PESA Points',
+      rewardBonus: 'Earn 325 Explorer Points',
     },
   ];
 
@@ -57,18 +56,16 @@ export const OffersRewards: React.FC = () => {
               <Crown className="h-4 w-4 text-amber-600" /> M-TRAVEL Privilege Club & Curated Offers
             </div>
             <h2 className="mt-3 font-serif text-3xl md:text-5xl font-bold text-slate-900 tracking-tight">
-              Fly, Drive & Earn with <span className="bg-gold-gradient bg-clip-text text-transparent">M-PESA</span>
+              Fly, Drive & Explore with <span className="bg-gold-gradient bg-clip-text text-transparent">M-TRAVEL</span>
             </h2>
             <p className="mt-2 text-slate-600 text-sm max-w-xl">
-              Enjoy curated luxury Kenyan travel packages inspired by global hospitality standards, with instant M-PESA payment rewards.
+              Enjoy curated luxury Kenyan travel packages inspired by global hospitality standards, with bespoke privileges and member rewards.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <MpesaLogo variant="badge" />
-            <span className="text-xs text-emerald-800 font-semibold bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-              100% Instant STK Confirmation
-            </span>
+          <div className="flex items-center gap-2 text-xs text-amber-900 font-semibold bg-amber-50 border border-amber-200 px-3.5 py-1.5 rounded-full shadow-sm">
+            <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+            <span>Guaranteed Safari Departures</span>
           </div>
         </div>
 
@@ -82,21 +79,21 @@ export const OffersRewards: React.FC = () => {
               Join the M-TRAVEL Privilege Club
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed">
-              Earn <span className="text-amber-700 font-bold">5 M-PESA Loyalty Points</span> for every KES 1,000 spent on car hire, safaris, and bus reservations. Redeem points instantly for M-PESA cashbacks or free vehicle upgrades.
+              Earn <span className="text-amber-700 font-bold">5 Explorer Loyalty Points</span> for every KES 1,000 spent on car hire, safaris, and luxury coaches. Redeem points for complimentary vehicle upgrades or private airport pickups.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-2">
               <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm text-slate-800 font-medium">
                 <Check className="h-4 w-4 text-emerald-600 shrink-0" />
-                <span>Instant M-PESA Cashbacks</span>
+                <span>Complimentary Upgrades</span>
               </div>
               <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm text-slate-800 font-medium">
                 <Check className="h-4 w-4 text-amber-600 shrink-0" />
-                <span>Complimentary Airport Pickup</span>
+                <span>VIP Airport Meet & Greet</span>
               </div>
               <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm text-slate-800 font-medium">
                 <Check className="h-4 w-4 text-teal-600 shrink-0" />
-                <span>Priority Safari Vehicle Booking</span>
+                <span>Priority 4x4 Cruiser Reservation</span>
               </div>
             </div>
           </div>
@@ -106,8 +103,8 @@ export const OffersRewards: React.FC = () => {
               <Gift className="h-6 w-6" />
             </div>
             <p className="text-xs uppercase font-bold tracking-widest text-amber-800">Welcome Bonus</p>
-            <p className="font-serif text-2xl font-bold text-slate-900">500 Bonus Points</p>
-            <p className="text-[11px] text-slate-500">Credited automatically on your first M-PESA booking</p>
+            <p className="font-serif text-2xl font-bold text-slate-900">500 Explorer Points</p>
+            <p className="text-[11px] text-slate-500">Credited automatically on your first journey reservation</p>
             <button
               onClick={() => navigate('/register')}
               className="btn-primary w-full text-xs !py-2.5 font-bold"
@@ -158,7 +155,7 @@ export const OffersRewards: React.FC = () => {
 
                   <div className="flex items-center gap-2 pt-3 text-[11px] text-emerald-700 font-semibold">
                     <Tag className="h-3.5 w-3.5 text-emerald-600" />
-                    <span>{offer.mpesaCashback}</span>
+                    <span>{offer.rewardBonus}</span>
                   </div>
                 </div>
               </div>
@@ -178,11 +175,11 @@ export const OffersRewards: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => navigate('/search')}
-                  className="btn-primary text-xs !px-4 !py-2.5 flex items-center gap-1.5 shadow-sm"
+                  onClick={() => navigate('/catalogue')}
+                  className="btn-primary text-xs !px-4 !py-2.5 flex items-center gap-1.5 shadow-sm font-bold"
                 >
-                  <MpesaLogo variant="icon" size="sm" />
-                  <span>Book Now</span>
+                  <Compass className="h-3.5 w-3.5" />
+                  <span>Explore Trip</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </button>
               </div>

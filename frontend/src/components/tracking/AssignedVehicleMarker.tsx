@@ -48,13 +48,14 @@ export function createAssignedVehicleIcon(
 
   const html = `
     <div class="assigned-vehicle-marker-wrapper" style="position: relative; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center;">
-      <!-- Glowing radar pulse if moving -->
+      <!-- Subtle radar aura when moving -->
       ${
         speed > 0 && !isStale
           ? `<div style="
-              position: absolute; inset: 0; border-radius: 9999px;
-              animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-              border: 2px solid rgba(16, 185, 129, 0.6);
+              position: absolute; inset: 4px; border-radius: 9999px;
+              background: rgba(16, 185, 129, 0.12);
+              border: 1.5px solid rgba(16, 185, 129, 0.5);
+              box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
             "></div>`
           : ''
       }
@@ -66,7 +67,7 @@ export function createAssignedVehicleIcon(
               position: absolute; top: -14px; background: #0f172a;
               color: #f59e0b; font-size: 8px; font-weight: 800; font-family: monospace;
               border-radius: 4px; padding: 1px 4px; border: 1px solid rgba(245, 158, 11, 0.4);
-              box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10; white-space: nowrap;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10; white-space: nowrap; pointer-events: none;
             ">${plateNumber}</div>`
           : ''
       }
@@ -77,7 +78,7 @@ export function createAssignedVehicleIcon(
           ? `<div style="
               position: absolute; top: -6px; right: -6px; background: #f59e0b;
               color: #ffffff; font-size: 9px; font-weight: bold; border-radius: 9999px;
-              padding: 2px 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10;
+              padding: 2px 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10; pointer-events: none;
             ">GPS Lost</div>`
           : ''
       }
@@ -89,16 +90,16 @@ export function createAssignedVehicleIcon(
               position: absolute; bottom: -8px; background: #0f172a;
               color: #10b981; font-size: 9px; font-weight: 800; font-family: monospace;
               border-radius: 6px; padding: 1px 4px; border: 1px solid #10b981;
-              box-shadow: 0 2px 6px rgba(0,0,0,0.4); z-index: 10; white-space: nowrap;
+              box-shadow: 0 2px 6px rgba(0,0,0,0.4); z-index: 10; white-space: nowrap; pointer-events: none;
             ">${Math.round(speed)} km/h</div>`
           : '<div class="vehicle-speed-badge" style="display:none;"></div>'
       }
 
-      <!-- Rotatable Vehicle Silhouette -->
+      <!-- Rotatable Vehicle Silhouette (Pure hardware rotation without CSS transition conflicts) -->
       <div class="vehicle-heading-rotator" style="
         transform: rotate(${heading}deg);
-        transition: transform 0.08s ease-out;
         width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+        will-change: transform;
       ">
         ${getVehicleSvg(vehicleType)}
       </div>

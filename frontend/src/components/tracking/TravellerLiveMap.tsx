@@ -70,7 +70,7 @@ export const TravellerLiveMap: React.FC<TravellerLiveMapProps> = ({
   const currentHeading = driverHeading !== undefined ? driverHeading : (location?.heading ?? 0);
   const currentSpeed = driverSpeed !== undefined ? driverSpeed : (location?.speed ?? 0);
 
-  // 1. Ensure Leaflet CSS is present in head
+  // 1. Ensure Leaflet CSS & Uber-smooth hardware-accelerated marker transition is present
   useEffect(() => {
     if (!document.getElementById('leaflet-css')) {
       const link = document.createElement('link');
@@ -78,6 +78,21 @@ export const TravellerLiveMap: React.FC<TravellerLiveMapProps> = ({
       link.rel = 'stylesheet';
       link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
       document.head.appendChild(link);
+    }
+    if (!document.getElementById('mtravel-marker-smooth-css')) {
+      const style = document.createElement('style');
+      style.id = 'mtravel-marker-smooth-css';
+      style.innerHTML = `
+        .m-travel-vehicle-marker {
+          transition: transform 0.08s linear !important;
+          will-change: transform;
+        }
+        .user-live-pin {
+          transition: transform 0.3s ease-out !important;
+          will-change: transform;
+        }
+      `;
+      document.head.appendChild(style);
     }
   }, []);
 

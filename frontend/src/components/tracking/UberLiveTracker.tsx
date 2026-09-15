@@ -74,11 +74,15 @@ export function UberLiveTracker({
 
   // Simulation mode for testing drive without moving physically
   const [isSimulatingDrive, setIsSimulatingDrive] = useState(false);
+  const isSimulatingDriveRef = useRef(isSimulatingDrive);
+  isSimulatingDriveRef.current = isSimulatingDrive;
+
   const [simMultiplier, setSimMultiplier] = useState<number>(2);
   const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
   const simFractionRef = useRef(0);
   const simRafIdRef = useRef<number | null>(null);
   const simLastTimeRef = useRef(0);
+  const simLastUiUpdateRef = useRef(0);
   const simLastBroadcastRef = useRef(0);
   const smoothedHeadingRef = useRef(0);
 
@@ -137,7 +141,7 @@ export function UberLiveTracker({
       if (data.type === 'TOURIST' && data.lat && data.lng) {
         setTravelerCoords([data.lat, data.lng]);
       } else if (data.type === 'DRIVER' && data.lat && data.lng) {
-        if (isSimulatingDrive) return; // Prevent local simulation feedback loop
+        if (isSimulatingDriveRef.current) return; // Prevent local simulation feedback loop
         setDriverCoords([data.lat, data.lng]);
         if (data.speed !== undefined) setDriverSpeed(data.speed);
         if (data.heading !== undefined) setDriverHeading(data.heading);
@@ -152,7 +156,7 @@ export function UberLiveTracker({
         } catch { /* empty */ }
       }
       if (e.key === `mt_gps_driver_${effectiveTripId}` && e.newValue) {
-        if (isSimulatingDrive) return; // Prevent local simulation feedback loop
+        if (isSimulatingDriveRef.current) return; // Prevent local simulation feedback loop
         try {
           const parsed = JSON.parse(e.newValue);
           if (parsed?.lat && parsed?.lng) {
@@ -194,6 +198,8 @@ export function UberLiveTracker({
     // Start watching position
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
+        if (isSimulatingDriveRef.current) return; // Do not override active simulated drive
+
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         const speedKmh = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : (myRole === 'DRIVER' ? 45 : 0);
@@ -249,7 +255,7 @@ function smoothAngle(current: number, target: number, factor = 0.2): number {
   return (current + diff * factor + 360) % 360;
 }
 
-  // 4. Smooth 60 FPS Road-Tracking Drive Simulation
+  // 4. Smooth 60 FPS Road-Tracking Drive Simulation with Throttled React Updates
   useEffect(() => {
     if (!isSimulatingDrive) {
       if (simRafIdRef.current !== null) {
@@ -268,15 +274,15 @@ function smoothAngle(current: number, target: number, factor = 0.2): number {
     }
 
     simLastTimeRef.current = performance.now();
+    simLastUiUpdateRef.current = performance.now();
     simLastBroadcastRef.current = performance.now();
 
     const animate = (now: number) => {
-      const deltaSec = Math.min((now - simLastTimeRef.current) / 1000, 0.05); // cap delta to 50ms
+      const deltaSec = Math.min((now - simLastTimeRef.current) / 1000, 0.05);
       simLastTimeRef.current = now;
 
-      // Realistic preview pacing:
-      // ~36 seconds for the entire route at 1x, ~18 seconds at 2x, ~9 seconds at 4x
-      const targetDurationSec = 36 / (simMultiplier || 2);
+      // Natural, crisp pacing: ~24s at 1x, ~12s at 2x, ~6s at 4x
+      const targetDurationSec = 24 / (simMultiplier || 2);
       simFractionRef.current += (deltaSec / targetDurationSec);
 
       if (simFractionRef.current >= 1) {
@@ -286,17 +292,21 @@ function smoothAngle(current: number, target: number, factor = 0.2): number {
       const fraction = simFractionRef.current;
       const interp = interpolateAlongRoute(points, fraction);
 
-      // Smooth heading with shortest-arc slerp to eliminate any micro-segment twitch
-      smoothedHeadingRef.current = smoothAngle(smoothedHeadingRef.current, interp.heading, 0.22);
+      // Smooth heading with shortest-arc slerp
+      smoothedHeadingRef.current = smoothAngle(smoothedHeadingRef.current, interp.heading, 0.25);
       const finalHeading = Math.round(smoothedHeadingRef.current);
       const displaySpeed = interp.isCurving ? 42 : 68;
 
-      setDriverCoords([interp.lat, interp.lng]);
-      setDriverHeading(finalHeading);
-      setDriverSpeed(displaySpeed);
-
-      const newProgress = Math.round(fraction * 100);
-      setProgress((prev) => (prev !== newProgress ? newProgress : prev));
+      // Throttle React state updates to ~30 FPS (every 33ms)
+      // This eliminates React render lag while Leaflet's CSS linear transition glides at 60 FPS
+      if (now - simLastUiUpdateRef.current >= 33) {
+        simLastUiUpdateRef.current = now;
+        setDriverCoords([interp.lat, interp.lng]);
+        setDriverHeading(finalHeading);
+        setDriverSpeed(displaySpeed);
+        const newProgress = Math.round(fraction * 100);
+        setProgress((prev) => (prev !== newProgress ? newProgress : prev));
+      }
 
       // Throttled cross-tab broadcast (every 400ms)
       if (now - simLastBroadcastRef.current > 400) {
@@ -443,7 +453,12 @@ function smoothAngle(current: number, target: number, factor = 0.2): number {
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setIsSimulatingDrive(!isSimulatingDrive)}
+                onClick={() => {
+                  if (!isSimulatingDrive && isGpsEnabled) {
+                    setIsGpsEnabled(false);
+                  }
+                  setIsSimulatingDrive(!isSimulatingDrive);
+                }}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border ${
                   isSimulatingDrive
                     ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-sm'

@@ -232,14 +232,14 @@ export const BookingSearch: React.FC = () => {
           ))}
         </div>
 
-        {/* SUBMIT BUTTON WITH MPESA BADGE */}
+        {/* SUBMIT BUTTON */}
         <button
           type="button"
           onClick={handleSearch}
           className="btn-primary !px-7 !py-3 text-sm flex items-center gap-2.5 shadow-md hover:shadow-lg transition-all"
         >
           <Sparkles className="h-4 w-4 fill-white" />
-          <span>Search & Book with M-PESA</span>
+          <span>Find Available Vehicles</span>
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </button>
       </div>

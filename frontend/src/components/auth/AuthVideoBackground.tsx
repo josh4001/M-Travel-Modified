@@ -249,9 +249,9 @@ export function AuthVideoBackground({ children, title, subtitle }: AuthVideoBack
               <span className="block text-[11px] text-slate-300 font-medium">Custom Cruisers</span>
             </div>
             <div className="rounded-2xl border border-white/15 bg-slate-950/60 p-3.5 text-left backdrop-blur-xl shadow-lg hover:border-amber-400/40 transition">
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Instant Pay</span>
-              <span className="font-serif text-2xl font-bold text-emerald-400">M-Pesa</span>
-              <span className="block text-[11px] text-slate-300 font-medium">Safaricom Direct</span>
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Concierge</span>
+              <span className="font-serif text-2xl font-bold text-emerald-400">24/7</span>
+              <span className="block text-[11px] text-slate-300 font-medium">Private Assistance</span>
             </div>
           </div>
         </div>
