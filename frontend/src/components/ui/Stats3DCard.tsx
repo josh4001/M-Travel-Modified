@@ -1,0 +1,49 @@
+import { ReactNode } from 'react';
+import { Card3D } from './Card3D';
+
+interface Stats3DCardProps {
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  icon: ReactNode;
+  trend?: string;
+  accentColor?: 'marigold' | 'teal' | 'coral';
+}
+
+export function Stats3DCard({
+  title,
+  value,
+  subtitle,
+  icon,
+  trend,
+  accentColor = 'marigold',
+}: Stats3DCardProps) {
+  const colorMap = {
+    marigold: 'text-marigold bg-marigold/10 border-marigold/30',
+    teal: 'text-teal bg-teal/10 border-teal/30',
+    coral: 'text-coral bg-coral/10 border-coral/30',
+  };
+
+  return (
+    <Card3D intensity={10} className="p-5">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wider text-bone/50">{title}</p>
+          <h3 className="mt-2 font-mono text-3xl font-semibold tracking-tight text-bone">{value}</h3>
+          {subtitle && <p className="mt-1 text-xs text-bone/60">{subtitle}</p>}
+        </div>
+
+        <div className={`rounded-xl border p-3 ${colorMap[accentColor]} shadow-3d-sm`}>
+          {icon}
+        </div>
+      </div>
+
+      {trend && (
+        <div className="mt-4 border-t border-white/10 pt-3 text-xs text-bone/60 flex items-center justify-between">
+          <span>Activity</span>
+          <span className="font-mono text-marigold">{trend}</span>
+        </div>
+      )}
+    </Card3D>
+  );
+}
