@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 
@@ -16,11 +16,13 @@ interface ProtectedRouteProps {
  */
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const user = useSelector((s: RootState) => s.auth.user);
+  const location = useLocation();
   const hasToken = Boolean(localStorage.getItem('mt_access_token'));
 
-  // Not logged in -> Redirect to login
+  // Not logged in -> Redirect to login with return path
   if (!user && !hasToken) {
-    return <Navigate to="/login" replace />;
+    const returnUrl = location.pathname + location.search;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(returnUrl)}`} replace />;
   }
 
   // If user object is loaded and role restrictions are set, enforce RBAC

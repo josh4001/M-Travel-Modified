@@ -782,6 +782,28 @@ export default function Catalogue() {
                         >
                           <Lock className="h-5 w-5 text-slate-400" /> Unavailable for Hire at the Moment
                         </button>
+                      ) : !user ? (
+                        <div className="space-y-2">
+                          <div className="rounded-xl border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-900 flex items-center gap-2">
+                            <Lock className="h-4 w-4 text-amber-700 shrink-0" />
+                            <span>Sign in or create an account to complete reservation</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const returnUrl = `/catalogue?category=${selectedItem.category}`;
+                              navigate(`/login?redirect=${encodeURIComponent(returnUrl)}&reason=booking`, {
+                                state: {
+                                  message: `Please sign in or create an account to reserve ${selectedItem.title}.`,
+                                  redirect: returnUrl,
+                                },
+                              });
+                            }}
+                            className="btn-primary w-full font-bold !py-3 shadow-md text-sm flex items-center justify-center gap-2"
+                          >
+                            <Lock className="h-5 w-5" /> Sign In / Create Account to Reserve
+                          </button>
+                        </div>
                       ) : (
                         <button
                           onClick={() => {

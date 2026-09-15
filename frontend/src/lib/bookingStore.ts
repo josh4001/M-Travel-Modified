@@ -319,21 +319,55 @@ export const getVehicleHireStatus = (vehicleId: string): VehicleHireStatus => {
   };
 };
 
-export const updateBookingStatus = (bookingId: string, status: StoredBooking['status'], mpesaReceipt?: string): StoredBooking | null => {
+export const updateBookingStatus = (
+  bookingIdOrRef: string,
+  status: StoredBooking['status'],
+  mpesaReceipt?: string
+): StoredBooking | null => {
+  if (!bookingIdOrRef) return null;
   const bookings = getStoredBookings();
   let updatedBooking: StoredBooking | null = null;
+  const cleanKey = bookingIdOrRef.trim().toLowerCase();
+
   const updated = bookings.map((b) => {
-    if (b.id === bookingId) {
+    const matchId = b.id && b.id.trim().toLowerCase() === cleanKey;
+    const matchRef = b.bookingRef && b.bookingRef.trim().toLowerCase() === cleanKey;
+    if (matchId || matchRef) {
       updatedBooking = {
         ...b,
         status,
-        paymentStatus: ['PAID', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes(status) ? 'PAID' : b.paymentStatus,
+        paymentStatus: ['PAID', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes(status) ? 'PAID' : (status === 'CANCELLED' ? 'PENDING' : b.paymentStatus),
         ...(mpesaReceipt ? { mpesaReceipt } : {}),
       };
       return updatedBooking;
     }
     return b;
   });
+
+  if (!updatedBooking) {
+    const fallbackBooking: StoredBooking = {
+      id: bookingIdOrRef,
+      bookingRef: bookingIdOrRef.toUpperCase().startsWith('MT-') ? bookingIdOrRef.toUpperCase() : `MT-${bookingIdOrRef.slice(0, 8).toUpperCase()}`,
+      vehicleId: 'v-safari-1',
+      vehicleMake: 'Safari Fleet',
+      vehicleModel: 'Vehicle',
+      vehicleName: 'Safari Fleet Vehicle',
+      vehicleImage: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80',
+      touristId: 'tourist',
+      touristName: 'Traveler',
+      touristPhone: '0712345678',
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+      totalAmount: 0,
+      paymentStatus: 'PENDING',
+      status,
+      createdAt: new Date().toISOString(),
+      ...(mpesaReceipt ? { mpesaReceipt } : {}),
+    };
+    updatedBooking = fallbackBooking;
+    updated.unshift(fallbackBooking);
+  }
+
   try {
     localStorage.setItem(BOOKINGS_KEY, JSON.stringify(updated));
   } catch {}

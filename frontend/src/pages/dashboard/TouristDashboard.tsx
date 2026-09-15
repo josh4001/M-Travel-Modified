@@ -7,7 +7,7 @@ import {
   Compass, Mountain, Trees, Waves, Sparkles, Bell
 } from 'lucide-react';
 import type { RootState } from '@/store';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, cancelBookingInSupabase } from '@/lib/supabaseClient';
 import { useCurrency } from '@/context/CurrencyContext';
 import { fetchNotifications, type AppNotification } from '@/lib/notificationService';
 import {
@@ -152,9 +152,12 @@ export default function TouristDashboard() {
   };
   const handleLiveTrack = (booking: StoredBooking) => { setTrackBooking(booking); setShowTracker(true); };
 
-  const handleCancelBooking = (bookingId: string) => {
+  const handleCancelBooking = async (bookingId: string) => {
     if (cancelConfirm === bookingId) {
       updateBookingStatus(bookingId, 'CANCELLED');
+      try {
+        await cancelBookingInSupabase(bookingId);
+      } catch {}
       setCancelConfirm(null);
       refreshData();
     } else {

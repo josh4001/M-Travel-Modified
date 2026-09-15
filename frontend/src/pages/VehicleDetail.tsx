@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import {
@@ -21,6 +21,7 @@ import { saveBooking, getStoredVehicles, getVehicleHireStatus } from '@/lib/book
 export default function VehicleDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useSelector(selectUser);
   const { formatPrice } = useCurrency();
 
@@ -130,7 +131,13 @@ export default function VehicleDetail() {
 
   const handleBooking = async () => {
     if (!user?.id) {
-      setPaymentError('Please log in to book a vehicle.');
+      const returnUrl = location.pathname + location.search;
+      navigate(`/login?redirect=${encodeURIComponent(returnUrl)}&reason=booking`, {
+        state: {
+          message: `Please sign in or create an account to book the ${targetVehicle.make} ${targetVehicle.model}.`,
+          redirect: returnUrl,
+        },
+      });
       return;
     }
 
@@ -661,6 +668,32 @@ export default function VehicleDetail() {
                 Vehicle Unavailable for Hire at the Moment
               </button>
             )
+          ) : !user ? (
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-amber-300 bg-amber-50/90 p-3.5 text-xs text-amber-950 space-y-1 shadow-sm">
+                <div className="flex items-center gap-2 font-bold text-amber-900">
+                  <Lock className="h-4 w-4 text-amber-700" />
+                  <span>Account Required to Book</span>
+                </div>
+                <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
+                  Please sign in or create an account to reserve this {targetVehicle.make} {targetVehicle.model}. You will return here immediately after signing in to finalize your booking.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const returnUrl = location.pathname + location.search;
+                  navigate(`/login?redirect=${encodeURIComponent(returnUrl)}&reason=booking`, {
+                    state: {
+                      message: `Please sign in or create an account to book the ${targetVehicle.make} ${targetVehicle.model}.`,
+                      redirect: returnUrl,
+                    },
+                  });
+                }}
+                className="btn-primary w-full text-sm !py-3.5 font-bold shadow-md flex items-center justify-center gap-2"
+              >
+                <Lock className="h-4 w-4" /> Sign In / Create Account to Book
+              </button>
+            </div>
           ) : paymentMethod === 'mpesa' ? (
             <MpesaLogo
               label={`Pay ${formatPrice(grandTotal)} with M-PESA`}

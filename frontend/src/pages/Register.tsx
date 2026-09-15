@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { ArrowRight, Mail, Lock, Phone, User, Car, Shield, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { register } from '@/lib/authService';
@@ -44,12 +44,22 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+
+  const redirectUrl = searchParams.get('redirect') || (location.state as any)?.redirect;
+  const reason = searchParams.get('reason');
+  const isBookingNotice = reason === 'booking' || Boolean(redirectUrl) || Boolean((location.state as any)?.message);
 
   function update<K extends keyof typeof form>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
   function redirectByRole(role: string) {
+    if (redirectUrl && (role === 'TOURIST' || role === 'CUSTOMER' || !role)) {
+      navigate(redirectUrl);
+      return;
+    }
     if (role === 'ADMIN' || role === 'SUPER_ADMIN') navigate('/dashboard/admin');
     else if (role === 'VEHICLE_OWNER') navigate('/dashboard/owner');
     else navigate('/dashboard/tourist');
@@ -88,6 +98,18 @@ export default function Register() {
 
         <div className="relative rounded-[28px] bg-slate-950/85 backdrop-blur-2xl border border-white/20 p-6 sm:p-8 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] ring-1 ring-amber-400/30">
           <form onSubmit={onSubmit} className="space-y-4">
+            {isBookingNotice && (
+              <div className="rounded-2xl bg-amber-500/15 border border-amber-400/40 p-4 text-xs text-amber-200 flex items-start gap-3 shadow-lg">
+                <Lock className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-bold text-amber-300 text-sm">Create Account to Complete Booking</h4>
+                  <p className="text-xs text-slate-200 mt-1 leading-relaxed">
+                    Fill out your profile details below to register. You will be returned right back to complete your vehicle booking immediately!
+                  </p>
+                </div>
+              </div>
+            )}
+
             {error && (
               <div className="rounded-xl bg-red-500/15 border border-red-400/30 px-4 py-3 text-xs text-red-200 flex items-start gap-2.5">
                 <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
@@ -247,7 +269,10 @@ export default function Register() {
             <div className="border-t border-white/10 pt-4 text-center">
               <p className="text-xs text-slate-300">
                 Already have an account?{' '}
-                <Link to="/login" className="font-bold text-amber-400 hover:text-amber-300 hover:underline">
+                <Link
+                  to={redirectUrl ? `/login?redirect=${encodeURIComponent(redirectUrl)}&reason=booking` : '/login'}
+                  className="font-bold text-amber-400 hover:text-amber-300 hover:underline"
+                >
                   Sign in
                 </Link>
               </p>

@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { ArrowRight, Lock, Mail, Eye, EyeOff, Crown, Sparkles, KeyRound, CheckCircle2, ShieldCheck, AlertCircle, Compass, Car } from 'lucide-react';
 import { login } from '@/lib/authService';
@@ -15,8 +15,19 @@ export default function Login() {
   const [selectedRole, setSelectedRole] = useState<'TOURIST' | 'OWNER' | 'ADMIN' | null>(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+
+  const redirectUrl = searchParams.get('redirect') || (location.state as any)?.redirect;
+  const reason = searchParams.get('reason');
+  const isBookingNotice = reason === 'booking' || Boolean(redirectUrl) || Boolean((location.state as any)?.message);
+  const bannerMessage = (location.state as any)?.message || 'Please sign in or create an account to complete your vehicle booking.';
 
   function redirectByRole(role: string) {
+    if (redirectUrl && (role === 'TOURIST' || role === 'CUSTOMER' || !role)) {
+      navigate(redirectUrl);
+      return;
+    }
     if (role === 'ADMIN' || role === 'SUPER_ADMIN') navigate('/dashboard/admin');
     else if (role === 'VEHICLE_OWNER') navigate('/dashboard/owner');
     else navigate('/dashboard/tourist');
@@ -73,6 +84,26 @@ export default function Login() {
               Sign in to your bespoke African safari itineraries, private fleet & reservations.
             </p>
           </div>
+
+          {/* BOOKING INTENT NOTICE BANNER */}
+          {isBookingNotice && (
+            <div className="my-4 rounded-2xl bg-amber-500/20 border border-amber-400/40 p-4 text-xs text-amber-200 flex items-start gap-3 shadow-lg">
+              <Lock className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-amber-300 text-sm">Account Required for Booking</h4>
+                <p className="text-xs text-slate-200 mt-1 leading-relaxed">
+                  {bannerMessage} Don't have an account yet?{' '}
+                  <Link
+                    to={redirectUrl ? `/register?redirect=${encodeURIComponent(redirectUrl)}&reason=booking` : '/register'}
+                    className="font-bold text-amber-400 hover:text-amber-300 underline"
+                  >
+                    Create Explorer Account
+                  </Link>{' '}
+                  to register in seconds and finish reserving your vehicle.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* VIP DEMONSTRATION QUICK-ACCESS PILLS */}
           <div className="py-4 border-b border-white/10">
@@ -242,7 +273,10 @@ export default function Login() {
             <div className="border-t border-white/10 pt-4 text-center space-y-3">
               <p className="text-xs text-slate-300">
                 New to M-TRAVEL?{' '}
-                <Link to="/register" className="font-bold text-amber-400 hover:text-amber-300 hover:underline">
+                <Link
+                  to={redirectUrl ? `/register?redirect=${encodeURIComponent(redirectUrl)}&reason=booking` : '/register'}
+                  className="font-bold text-amber-400 hover:text-amber-300 hover:underline"
+                >
                   Create Bespoke Explorer Account
                 </Link>
               </p>

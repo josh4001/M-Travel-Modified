@@ -9,7 +9,8 @@ import {
 import { useSelector } from 'react-redux';
 import { selectUser } from '@/store/slices/authSlice';
 import { useCurrency } from '@/context/CurrencyContext';
-import { fetchUserBookings, supabase } from '@/lib/supabaseClient';
+import { fetchUserBookings, cancelBookingInSupabase, supabase } from '@/lib/supabaseClient';
+import { sendNotification } from '@/lib/notificationService';
 import { api } from '@/lib/api';
 import { UberLiveTracker } from '@/components/tracking/UberLiveTracker';
 import { OfficialReceiptModal } from '@/components/ui/OfficialReceiptModal';
@@ -19,6 +20,7 @@ import {
   getStoredBookings,
   updateBookingStatus,
   deleteBooking,
+  type StoredBooking,
 } from '@/lib/bookingStore';
 
 export interface UnifiedBooking {
@@ -248,7 +250,7 @@ function BookingCard({
   b: UnifiedBooking;
   onTrack: (b: UnifiedBooking) => void;
   onPayNow: (b: UnifiedBooking) => void;
-  onCancel: (id: string) => void;
+  onCancel: (b: UnifiedBooking) => void | Promise<void>;
   onDelete: (b: UnifiedBooking) => void;
   formatPrice: (p: number) => string;
 }) {
@@ -271,18 +273,24 @@ function BookingCard({
   const [showReceipt, setShowReceipt] = useState(false);
   const [ratedScore, setRatedScore] = useState<number | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleCancelClick = () => {
+  const handleCancelClick = async () => {
     if (confirmCancel) {
-      onCancel(b.id);
-      setConfirmCancel(false);
-      if (confirmTimer.current) clearTimeout(confirmTimer.current);
+      setIsCancelling(true);
+      try {
+        await onCancel(b);
+      } finally {
+        setIsCancelling(false);
+        setConfirmCancel(false);
+        if (confirmTimer.current) clearTimeout(confirmTimer.current);
+      }
     } else {
       setConfirmCancel(true);
-      confirmTimer.current = setTimeout(() => setConfirmCancel(false), 3500);
+      confirmTimer.current = setTimeout(() => setConfirmCancel(false), 4500);
     }
   };
 
@@ -434,9 +442,31 @@ function BookingCard({
 
               {/* Cancel button — for active/pending bookings */}
               {isCancellable && (
-                <button onClick={handleCancelClick}
-                  className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition ${confirmCancel ? 'border-red-500 bg-red-100 text-red-700 animate-pulse' : 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100'}`}>
-                  {confirmCancel ? <><AlertTriangle className="h-3.5 w-3.5" /> Confirm Cancel?</> : <><X className="h-3.5 w-3.5" /> Cancel Booking</>}
+                <button
+                  onClick={handleCancelClick}
+                  disabled={isCancelling}
+                  className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold transition shadow-sm ${
+                    confirmCancel
+                      ? 'border-red-500 bg-red-600 text-white animate-pulse'
+                      : 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-400'
+                  }`}
+                >
+                  {isCancelling ? (
+                    <>
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      <span>Cancelling…</span>
+                    </>
+                  ) : confirmCancel ? (
+                    <>
+                      <AlertTriangle className="h-3.5 w-3.5 text-white" />
+                      <span>Confirm Cancel?</span>
+                    </>
+                  ) : (
+                    <>
+                      <X className="h-3.5 w-3.5 text-red-600" />
+                      <span>Cancel Booking</span>
+                    </>
+                  )}
                 </button>
               )}
 
@@ -631,9 +661,97 @@ export default function MyBookings() {
     };
   }, [loadAllBookings]);
 
-  const handleCancelBooking = (bookingId: string) => {
-    updateBookingStatus(bookingId, 'CANCELLED');
-    loadAllBookings();
+  const handleCancelBooking = async (b: UnifiedBooking) => {
+    // 1. Optimistic immediate UI update
+    setBookings((prev) =>
+      prev.map((item) =>
+        item.id === b.id || (b.bookingRef && item.bookingRef === b.bookingRef)
+          ? { ...item, status: 'CANCELLED' }
+          : item
+      )
+    );
+
+    // 2. Update local storage bookingStore by both ID and Ref
+    updateBookingStatus(b.id, 'CANCELLED');
+    if (b.bookingRef && b.bookingRef !== b.id) {
+      updateBookingStatus(b.bookingRef, 'CANCELLED');
+    }
+
+    // 3. Ensure this booking is saved with status 'CANCELLED' in mt_shared_bookings_v2
+    try {
+      const stored = getStoredBookings();
+      const matchIndex = stored.findIndex(
+        (item) =>
+          item.id === b.id ||
+          (b.bookingRef && item.bookingRef === b.bookingRef) ||
+          (item.bookingRef && item.bookingRef.toUpperCase() === (b.bookingRef || b.id).toUpperCase())
+      );
+      if (matchIndex >= 0) {
+        stored[matchIndex].status = 'CANCELLED';
+        localStorage.setItem('mt_shared_bookings_v2', JSON.stringify(stored));
+      } else {
+        const newEntry: StoredBooking = {
+          id: b.id,
+          bookingRef: b.bookingRef,
+          vehicleId: b.vehicleId,
+          vehicleMake: b.vehicleMake,
+          vehicleModel: b.vehicleModel,
+          vehicleName: b.vehicleName,
+          vehicleImage: b.vehicleImage,
+          ownerId: b.ownerId,
+          driverName: b.driverName,
+          touristId: b.touristId || user?.id || 'tourist',
+          touristName: b.touristName || user?.firstName || 'Traveler',
+          touristPhone: b.touristPhone || user?.phone || '0712345678',
+          touristEmail: b.touristEmail,
+          startDate: b.startDate,
+          endDate: b.endDate,
+          totalAmount: b.totalAmount,
+          paymentStatus: 'PENDING',
+          status: 'CANCELLED',
+          createdAt: b.createdAt,
+        };
+        stored.unshift(newEntry);
+        localStorage.setItem('mt_shared_bookings_v2', JSON.stringify(stored));
+      }
+    } catch {}
+
+    // 4. Update Supabase database
+    try {
+      if (b.id) await cancelBookingInSupabase(b.id);
+      if (b.bookingRef) await cancelBookingInSupabase(b.bookingRef);
+    } catch (err) {
+      console.warn('Supabase booking cancel error:', err);
+    }
+
+    // 5. Send notifications
+    try {
+      sendNotification({
+        recipientId: b.touristId || user?.id || 'tourist',
+        role: 'TOURIST',
+        type: 'BOOKING_CANCELLED_TOURIST',
+        title: `Booking Cancelled: ${b.vehicleName}`,
+        message: `Your reservation (Ref: ${b.bookingRef}) has been successfully cancelled.`,
+        link: '/dashboard/bookings',
+      });
+      if (b.ownerId) {
+        sendNotification({
+          recipientId: b.ownerId,
+          role: 'VEHICLE_OWNER',
+          type: 'BOOKING_CANCELLED_HOST',
+          title: `Booking Cancelled: ${b.vehicleName}`,
+          message: `Tourist cancelled booking Ref: ${b.bookingRef}. Vehicle has been freed.`,
+          link: '/dashboard/owner',
+        });
+      }
+    } catch {}
+
+    // 6. Broadcast event notifications
+    window.dispatchEvent(new CustomEvent('mt_booking_status_changed', { detail: { ...b, status: 'CANCELLED' } }));
+    window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: { ...b, status: 'CANCELLED' } }));
+
+    // 7. Re-sync from sources
+    await loadAllBookings();
   };
 
   const handleDeleteBooking = async (b: UnifiedBooking) => {

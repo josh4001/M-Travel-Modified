@@ -148,3 +148,24 @@ export async function fetchVehicleBookedDates(vehicleId: string): Promise<string
   }
   return dates;
 }
+
+/** Cancel a booking in Supabase by id or booking_ref */
+export async function cancelBookingInSupabase(idOrRef: string): Promise<boolean> {
+  if (!idOrRef) return false;
+  try {
+    const { error: errId } = await supabase
+      .from('bookings')
+      .update({ status: 'CANCELLED' })
+      .eq('id', idOrRef);
+
+    const { error: errRef } = await supabase
+      .from('bookings')
+      .update({ status: 'CANCELLED' })
+      .eq('booking_ref', idOrRef);
+
+    return !errId || !errRef;
+  } catch (err) {
+    console.warn('cancelBookingInSupabase caught error:', err);
+    return false;
+  }
+}
