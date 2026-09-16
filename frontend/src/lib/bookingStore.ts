@@ -56,6 +56,36 @@ export interface StoredVehicle {
 
 const BOOKINGS_KEY = 'mt_shared_bookings_v2';
 const VEHICLES_KEY = 'mt_shared_vehicles_v2';
+const LIVE_OVERRIDES_KEY = 'mt_vehicle_live_overrides';
+
+export const getVehicleLiveOverrides = (): Record<string, boolean> => {
+  try {
+    const raw = localStorage.getItem(LIVE_OVERRIDES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
+/**
+ * Checks if a vehicle is currently marked "Live" for tourist hire.
+ * Priority:
+ * 1. Admin override in `mt_vehicle_live_overrides` (covers all items including static catalogue items v-1, v-2, etc.)
+ * 2. `isLive` flag on `StoredVehicle`
+ * 3. Default `true` (live)
+ */
+export const isVehicleLive = (vehicleId: string): boolean => {
+  const overrides = getVehicleLiveOverrides();
+  if (overrides[vehicleId] !== undefined) {
+    return overrides[vehicleId];
+  }
+  const vehicles = getStoredVehicles();
+  const found = vehicles.find((v) => v.id === vehicleId);
+  if (found && found.isLive !== undefined) {
+    return found.isLive !== false;
+  }
+  return true;
+};
 
 // --- INITIAL DEFAULT SEED DATA ---
 const DEFAULT_BOOKINGS: StoredBooking[] = [
@@ -397,6 +427,8 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
       localMap.set(v.id, v);
     }
 
+    const overrides = getVehicleLiveOverrides();
+
     // Map each Supabase vehicle into a StoredVehicle
     const mappedSupabase: StoredVehicle[] = data.map((v: any) => {
       const existing = localMap.get(v.id);
@@ -408,6 +440,11 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
         : (existing?.images && existing.images.length > 0)
           ? existing.images
           : [getVehicleFallbackImage(v.make, v.model, v.type)];
+
+      const adminLiveOverride = overrides[v.id];
+      const isLive = adminLiveOverride !== undefined
+        ? adminLiveOverride
+        : (existing?.isLive !== undefined ? existing.isLive : v.is_available !== false);
 
       return {
         id: v.id,
@@ -425,7 +462,7 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
         ownerEmail: owner.email || existing?.ownerEmail,
         images,
         status: (v.is_approved !== false ? 'APPROVED' : (existing?.status || 'PENDING_APPROVAL')) as any,
-        isLive: v.is_available !== false,
+        isLive,
         ratingAverage: Number(v.rating_average || 4.9),
         ratingCount: Number(v.rating_count || 12),
         hasInsurance: v.has_insurance !== false,
@@ -527,23 +564,77 @@ export const approveVehicle = (vehicleId: string, pushLive = true): StoredVehicl
 /**
  * Toggles or explicitly sets whether an approved vehicle is "Live" on the marketplace for tourist hire.
  * Exclusively executed by Platform Admin upon host request or operational review.
+ * Persists to both live overrides map and stored vehicles, syncs to Supabase if applicable,
+ * and notifies all active components.
  */
 export const toggleVehicleLiveStatus = (vehicleId: string, forcedState?: boolean): StoredVehicle | null => {
+  const currentLive = isVehicleLive(vehicleId);
+  const nextLive = forcedState !== undefined ? forcedState : !currentLive;
+
+  // 1. Persist override for this vehicle ID (handles static v-1, v-2... AND registered host vehicles)
+  const overrides = getVehicleLiveOverrides();
+  overrides[vehicleId] = nextLive;
+  try {
+    localStorage.setItem(LIVE_OVERRIDES_KEY, JSON.stringify(overrides));
+  } catch {}
+
+  // 2. Update in stored vehicles list if present
   const vehicles = getStoredVehicles();
   let updatedVehicle: StoredVehicle | null = null;
   const updated = vehicles.map((v) => {
     if (v.id === vehicleId) {
-      const currentLive = v.isLive !== false;
-      const nextLive = forcedState !== undefined ? forcedState : !currentLive;
       updatedVehicle = { ...v, isLive: nextLive };
       return updatedVehicle;
     }
     return v;
   });
-  try {
-    localStorage.setItem(VEHICLES_KEY, JSON.stringify(updated));
-  } catch {}
-  window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: updatedVehicle }));
+
+  if (updatedVehicle) {
+    try {
+      localStorage.setItem(VEHICLES_KEY, JSON.stringify(updated));
+    } catch {}
+  } else {
+    // Synthetic vehicle representation so callers receive a valid StoredVehicle
+    updatedVehicle = {
+      id: vehicleId,
+      make: 'Vehicle',
+      model: vehicleId,
+      year: 2024,
+      type: 'SUV',
+      pricePerDay: 15000,
+      seats: 5,
+      fuelType: 'Diesel',
+      transmission: 'Automatic',
+      address: 'Nairobi',
+      ownerId: 'admin',
+      ownerName: 'Platform Host',
+      images: [],
+      status: 'APPROVED',
+      isLive: nextLive,
+      ratingAverage: 5.0,
+      ratingCount: 1,
+      hasInsurance: true,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  // 3. If it's a Supabase vehicle (UUID), asynchronously update Supabase is_available column
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(vehicleId)) {
+    (async () => {
+      try {
+        const { error } = await supabase
+          .from('vehicles')
+          .update({ is_available: nextLive })
+          .eq('id', vehicleId);
+        if (error) console.warn('Could not sync is_available to Supabase:', error.message);
+      } catch {}
+    })();
+  }
+
+  // 4. Dispatch events for instant reactivity
+  window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: { id: vehicleId, isLive: nextLive, vehicle: updatedVehicle } }));
+  window.dispatchEvent(new Event('storage'));
+
   return updatedVehicle;
 };
 

@@ -10,7 +10,7 @@ import { sendNotification } from '@/lib/notificationService';
 import {
   getStoredBookings, getStoredVehicles, syncVehiclesFromSupabase,
   approveVehicle as approveVehicleInStore, updateBookingStatus,
-  toggleVehicleLiveStatus, getVehicleHireStatus, deleteVehicle,
+  toggleVehicleLiveStatus, getVehicleHireStatus, deleteVehicle, isVehicleLive,
   type StoredBooking, type StoredVehicle
 } from '@/lib/bookingStore';
 import { UberLiveTracker } from '@/components/tracking/UberLiveTracker';
@@ -596,7 +596,7 @@ export default function AdminDashboard() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {vehicles.map(v => {
               const hireStatus = getVehicleHireStatus(v.id);
-              const isLive = v.isLive !== false;
+              const isLive = isVehicleLive(v.id);
 
               return (
                 <div key={v.id} className="rounded-2xl bg-white border border-slate-200/90 p-4 space-y-2.5 shadow-sm hover:shadow-md transition">

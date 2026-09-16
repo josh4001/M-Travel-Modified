@@ -10,7 +10,7 @@ import {
 import { useCurrency } from '@/context/CurrencyContext';
 import { MpesaStkPushModal } from '@/components/ui/MpesaStkPushModal';
 import {
-  saveBooking, getStoredVehicles, syncVehiclesFromSupabase, getVehicleHireStatus, toggleVehicleLiveStatus,
+  saveBooking, getStoredVehicles, syncVehiclesFromSupabase, getVehicleHireStatus, toggleVehicleLiveStatus, isVehicleLive,
   type StoredVehicle
 } from '@/lib/bookingStore';
 import { supabase } from '@/lib/supabaseClient';
@@ -248,9 +248,11 @@ export default function Catalogue() {
   const [searchTerm, setSearchTerm] = useState('');
   const [storedVehicles, setStoredVehicles] = useState<StoredVehicle[]>([]);
   const [adminNotice, setAdminNotice] = useState<string | null>(null);
+  const [liveTick, setLiveTick] = useState(0);
 
   const refreshVehicles = () => {
     setStoredVehicles(getStoredVehicles());
+    setLiveTick((t) => t + 1);
   };
 
   useEffect(() => {
@@ -320,7 +322,7 @@ export default function Catalogue() {
       reviews: v.ratingCount || 12,
       ownerId: v.ownerId,
       ownerName: v.ownerName,
-      isLive: v.isLive !== false,
+      isLive: isVehicleLive(v.id),
       details: {
         overview: `${v.year} ${v.make} ${v.model} registered by host ${v.ownerName}. Inspected and approved by M-TRAVEL Fleet Administration for tourist hire.`,
         highlights: [
@@ -334,7 +336,10 @@ export default function Catalogue() {
 
   const allCatalogueItems: CatalogueItem[] = [
     ...approvedHostVehicles,
-    ...CATALOGUE_ITEMS.filter((ci) => !approvedHostVehicles.some((hv) => hv.id === ci.id)),
+    ...CATALOGUE_ITEMS.filter((ci) => !approvedHostVehicles.some((hv) => hv.id === ci.id)).map((ci) => ({
+      ...ci,
+      isLive: ci.category === 'vehicles' ? isVehicleLive(ci.id) : true,
+    })),
   ];
 
   const filteredItems = allCatalogueItems.filter((item) => {
@@ -431,7 +436,7 @@ export default function Catalogue() {
       {/* CATALOGUE CARDS GRID */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={activeTab + searchTerm}
+          key={`${activeTab}-${searchTerm}-${liveTick}`}
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -15 }}
@@ -446,7 +451,7 @@ export default function Catalogue() {
             filteredItems.map((item) => {
               const isVehicle = item.category === 'vehicles';
               const hireStatus = isVehicle ? getVehicleHireStatus(item.id) : { isHired: false };
-              const isLive = isVehicle ? item.isLive !== false : true;
+              const isLive = isVehicle ? isVehicleLive(item.id) : true;
               const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 
               return (
@@ -517,9 +522,10 @@ export default function Catalogue() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              toggleVehicleLiveStatus(item.id);
+                              const updated = toggleVehicleLiveStatus(item.id);
+                              const nextLive = updated ? updated.isLive !== false : false;
                               refreshVehicles();
-                              setAdminNotice(`Admin toggled ${item.title} to ${!isLive ? 'LIVE' : 'OFFLINE'}.`);
+                              setAdminNotice(`Admin set "${item.title}" to ${nextLive ? 'LIVE' : 'OFFLINE'}.`);
                               setTimeout(() => setAdminNotice(null), 4000);
                             }}
                             className={`px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-sm transition flex items-center gap-1 shrink-0 ${
@@ -662,7 +668,7 @@ export default function Catalogue() {
               {(() => {
                 const isSelectedVehicle = selectedItem.category === 'vehicles';
                 const selectedHireStatus = isSelectedVehicle ? getVehicleHireStatus(selectedItem.id) : { isHired: false };
-                const selectedIsLive = isSelectedVehicle ? selectedItem.isLive !== false : true;
+                const selectedIsLive = isSelectedVehicle ? isVehicleLive(selectedItem.id) : true;
                 const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 
                 return (
@@ -683,10 +689,11 @@ export default function Catalogue() {
                           <button
                             type="button"
                             onClick={() => {
-                              toggleVehicleLiveStatus(selectedItem.id);
+                              const updated = toggleVehicleLiveStatus(selectedItem.id);
+                              const nextLive = updated ? updated.isLive !== false : false;
                               refreshVehicles();
-                              setSelectedItem((prev) => (prev ? { ...prev, isLive: !selectedIsLive } : null));
-                              setAdminNotice(`Admin toggled ${selectedItem.title} to ${!selectedIsLive ? 'LIVE' : 'OFFLINE'}.`);
+                              setSelectedItem((prev) => (prev ? { ...prev, isLive: nextLive } : null));
+                              setAdminNotice(`Admin set "${selectedItem.title}" to ${nextLive ? 'LIVE' : 'OFFLINE'}.`);
                               setTimeout(() => setAdminNotice(null), 4000);
                             }}
                             className={`px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5 ${

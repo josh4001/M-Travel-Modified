@@ -110,7 +110,7 @@ export const PinterestThemes: React.FC = () => {
             <Compass className="h-4 w-4 text-amber-600" /> Curated Tourist Mood Boards
           </span>
           <h2 className="mt-2 font-display text-3xl font-bold tracking-tight md:text-4xl text-slate-900">
-            Pinterest Tourism Vibe & Experiences
+            Tourism Vibe & Experiences
           </h2>
           <p className="mt-1 text-sm text-slate-600 font-medium">
             Get inspired for your next Kenyan journey. Save your favorite vibes and book matching vehicles.
@@ -124,7 +124,7 @@ export const PinterestThemes: React.FC = () => {
         </Link>
       </div>
 
-      {/* PINTEREST MASONRY GRID */}
+      {/* TOURISM VIBES MASONRY GRID */}
       <div className="columns-1 gap-6 sm:columns-2 lg:columns-3 space-y-6">
         {PINTEREST_PINS.map((pin, i) => (
           <motion.div
@@ -144,17 +144,17 @@ export const PinterestThemes: React.FC = () => {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/40 to-transparent opacity-90 group-hover:opacity-95 transition-opacity" />
 
-              {/* TOP PIN BUTTON */}
+              {/* TOP SAVE VIBE BUTTON */}
               <button
                 onClick={(e) => togglePin(pin.id, e)}
                 className={`absolute top-4 right-4 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold backdrop-blur-md transition shadow-md ${
                   savedPins[pin.id]
-                    ? 'bg-red-600 text-white'
-                    : 'bg-slate-900/80 text-white hover:bg-red-600 hover:text-white border border-white/30'
+                    ? 'bg-amber-500 text-slate-950 font-bold'
+                    : 'bg-slate-900/80 text-white hover:bg-amber-500 hover:text-slate-950 border border-white/30'
                 }`}
               >
-                <Bookmark className={`h-3.5 w-3.5 ${savedPins[pin.id] ? 'fill-white' : ''}`} />
-                {savedPins[pin.id] ? 'Pinned' : 'Pin'}
+                <Bookmark className={`h-3.5 w-3.5 ${savedPins[pin.id] ? 'fill-slate-950 text-slate-950' : 'text-white'}`} />
+                {savedPins[pin.id] ? 'Saved' : 'Save Vibe'}
               </button>
 
               {/* TOP TAG BADGE */}
@@ -201,3 +201,5 @@ export const PinterestThemes: React.FC = () => {
     </section>
   );
 };
+
+export const TourismVibes = PinterestThemes;

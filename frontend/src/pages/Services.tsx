@@ -75,7 +75,7 @@ export default function Services() {
       {/* INTERACTIVE CATALOGUE TABS */}
       <CatalogueTabs />
 
-      {/* PINTEREST TOURISM MOOD BOARDS */}
+      {/* TOURISM VIBES AND MOOD BOARDS */}
       <PinterestThemes />
 
       {/* CORE FEATURES GRID */}

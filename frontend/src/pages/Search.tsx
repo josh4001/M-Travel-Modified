@@ -9,7 +9,7 @@ import { Card3D } from '@/components/ui/Card3D';
 import { MOCK_VEHICLES } from '@/data/mockVehicles';
 import { useCurrency } from '@/context/CurrencyContext';
 import { fetchVehicles } from '@/lib/supabaseClient';
-import { getStoredVehicles, syncVehiclesFromSupabase } from '@/lib/bookingStore';
+import { getStoredVehicles, syncVehiclesFromSupabase, isVehicleLive } from '@/lib/bookingStore';
 
 const TYPES = ['CAR', 'SUV', 'VAN', 'PICKUP'];
 
@@ -99,7 +99,7 @@ export default function Search() {
           }
         }
 
-        let combined = Array.from(map.values());
+        let combined = Array.from(map.values()).filter((v) => isVehicleLive(v.id));
 
         // Apply filters
         if (type) {

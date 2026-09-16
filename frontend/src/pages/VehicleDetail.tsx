@@ -16,7 +16,7 @@ import { selectUser } from '@/store/slices/authSlice';
 import { useCurrency } from '@/context/CurrencyContext';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
 import { sendNotification } from '@/lib/notificationService';
-import { saveBooking, getStoredVehicles, getVehicleHireStatus } from '@/lib/bookingStore';
+import { saveBooking, getStoredVehicles, getVehicleHireStatus, isVehicleLive } from '@/lib/bookingStore';
 
 export default function VehicleDetail() {
   const { id } = useParams();
@@ -47,7 +47,7 @@ export default function VehicleDetail() {
   const storedVehicles = getStoredVehicles();
   const storedMatch = storedVehicles.find((v) => v.id === id);
   const hireStatus = getVehicleHireStatus(id ?? '');
-  const isLive = storedMatch ? storedMatch.isLive !== false : true;
+  const isLive = isVehicleLive(id ?? '');
   const isAvailableForHire = isLive && !hireStatus.isHired;
 
   // Query with Supabase direct fetch, stored vehicle support, and mock fallback
