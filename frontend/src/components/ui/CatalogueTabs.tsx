@@ -119,7 +119,7 @@ const CATALOGUE_ITEMS: CatalogueItem[] = [
     badge: 'Beach Cottage',
     priceKES: 22000,
     priceUnit: '/ night',
-    imageUrl: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=800&q=80',
     location: 'Galu Beach, Diani',
     specs: ['3 Bedrooms', 'Direct Ocean Access', 'Air-Conditioned', 'Housekeeping'],
   },
