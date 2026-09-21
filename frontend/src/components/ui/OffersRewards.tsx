@@ -10,8 +10,8 @@ export const OffersRewards: React.FC = () => {
   const offers = [
     {
       id: 'mara-safari',
-      title: 'Maasai Mara 3-Day Safari Cruiser Package',
-      subtitle: 'Includes Toyota Land Cruiser 4x4 + Professional Driver + Fuel',
+      title: 'Maasai Mara 3-Day Safari Experience Package',
+      subtitle: 'Includes Verified 4x4 Safari Vehicle + Professional Driver + Fuel',
       badge: 'Exclusive 15% Off',
       image: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=800&q=80',
       price: 18500,
@@ -23,7 +23,7 @@ export const OffersRewards: React.FC = () => {
     {
       id: 'diani-coastal',
       title: 'Diani Beach VIP Coastal Shuttle & Self-Drive',
-      subtitle: 'Luxury Alphard Executive Van or Prado SUV with Airport Pick-up',
+      subtitle: 'Luxury Executive Van or Premium SUV with Airport Pick-up',
       badge: 'Best Value',
       image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
       price: 12000,

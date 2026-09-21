@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
 import type { RootState } from '@/store';
 import { supabase } from '@/lib/supabaseClient';
 import { topUpWallet, withdrawFromWallet, getLocalWallet } from '@/lib/paymentService';
-import { ArrowDownLeft, ArrowUpRight, Wallet, TrendingUp, RefreshCw, Plus, Phone, Smartphone, Banknote, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Wallet, TrendingUp, RefreshCw, Plus, Phone, Smartphone, Banknote, CheckCircle2, AlertCircle, ShieldAlert, Navigation } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
 
@@ -33,12 +34,52 @@ const TYPE_ICONS: Record<string, { icon: any; label: string; color: string }> = 
 };
 
 export default function WalletPage() {
-  const user = useSelector((s: RootState) => s.auth.user);
+  const authUser = useSelector((s: RootState) => s.auth.user);
+  const user = authUser || (() => {
+    try {
+      const raw = localStorage.getItem('mt_user');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
   const { formatPrice } = useCurrency();
   const isCarOwner = user?.role === 'VEHICLE_OWNER';
 
-  const [wallet, setWallet]   = useState<WalletData | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Driver partners are compensated directly by the agency per contract
+  if (user?.role === 'DRIVER') {
+    return (
+      <div className="min-h-screen bg-slate-950 p-6 flex items-center justify-center">
+        <div className="max-w-md w-full rounded-[24px] bg-slate-900 border border-amber-500/30 p-6 sm:p-8 text-center shadow-2xl ring-1 ring-amber-400/20">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-400/30 text-amber-400 mb-4">
+            <ShieldAlert className="h-7 w-7" />
+          </div>
+          <h2 className="font-serif text-2xl font-bold text-white mb-2">
+            Agency Driver Compensation
+          </h2>
+          <p className="text-xs text-slate-300 leading-relaxed mb-6">
+            As an official M-TRAVEL driver partner, your compensation is paid directly by the tourism agency per your agency driver contract and verified trip manifests, not through the client wallet.
+          </p>
+          <Link
+            to="/dashboard/driver"
+            className="inline-flex items-center justify-center gap-2 w-full rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 px-5 py-3 text-xs font-bold uppercase tracking-wider text-slate-950 shadow-lg shadow-amber-500/25 hover:from-amber-300 hover:to-amber-500 transition"
+          >
+            <Navigation className="h-4 w-4 -rotate-45 text-slate-950" />
+            Return to Driver Console
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Pre-seed wallet immediately for instant 0ms load time
+  const [wallet, setWallet]   = useState<WalletData | null>(() => {
+    if (user?.id) {
+      return getLocalWallet(user.id, isCarOwner, user?.email);
+    }
+    return null;
+  });
+  const [loading, setLoading] = useState(false);
   const [topupAmt, setTopupAmt] = useState('');
   const [withdrawAmt, setWithdrawAmt] = useState('');
   const [topupPhone, setTopupPhone] = useState(user?.phone || '');
@@ -48,32 +89,49 @@ export default function WalletPage() {
 
   const fetchWallet = async () => {
     if (!user?.id) return;
-    setLoading(true);
+    // 1. Immediately ensure local wallet is active
+    const localW = getLocalWallet(user.id, isCarOwner, user?.email);
+    setWallet(localW);
+
+    // 2. Fetch Supabase remote wallet & transactions in background with 1.5s timeout
     try {
-      const { data: w } = await supabase
+      const timeoutPromise = new Promise<{ data: null }>((resolve) =>
+        setTimeout(() => resolve({ data: null }), 1500)
+      );
+
+      const walletQuery = supabase
         .from('wallets')
         .select('id, balance, currency')
         .eq('user_id', user.id)
         .maybeSingle();
 
+      const { data: w } = await Promise.race([walletQuery, timeoutPromise]) as any;
+
       if (w) {
-        const { data: txs } = await supabase
+        const txTimeoutPromise = new Promise<{ data: null }>((resolve) =>
+          setTimeout(() => resolve({ data: null }), 1500)
+        );
+        const txQuery = supabase
           .from('transactions')
           .select('*')
           .eq('wallet_id', w.id)
           .order('created_at', { ascending: false })
           .limit(30);
 
-        setWallet({ ...w, transactions: txs ?? [] });
-        setLoading(false);
-        return;
-      }
-    } catch {}
+        const { data: txs } = await Promise.race([txQuery, txTimeoutPromise]) as any;
 
-    // Fallback: use resilient local wallet store synced with host earnings
-    const localW = getLocalWallet(user.id, isCarOwner ? 38250 : 5000);
-    setWallet(localW);
-    setLoading(false);
+        setWallet({
+          id: w.id,
+          balance: isCarOwner ? localW.balance : Number(w.balance ?? localW.balance),
+          currency: w.currency ?? 'KES',
+          transactions: (txs && txs.length > 0) ? txs : localW.transactions,
+        });
+      }
+    } catch (err) {
+      console.warn('Supabase wallet fetch notice:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -144,13 +202,11 @@ export default function WalletPage() {
           </h1>
         </div>
         <button onClick={fetchWallet} className="btn-secondary !py-2 !px-4 text-xs flex items-center gap-2 font-bold text-slate-800 border-slate-200 hover:text-slate-950">
-          <RefreshCw className="h-4 w-4 text-amber-600" /> Refresh
+          <RefreshCw className={`h-4 w-4 text-amber-600 ${loading ? 'animate-spin' : ''}`} /> Refresh
         </button>
       </div>
 
-
-
-      {loading ? (
+      {loading && !wallet ? (
         <div className="rounded-2xl bg-white border border-slate-200 p-12 text-center shadow-sm">
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-amber-600 border-t-transparent" />
           <p className="mt-4 text-slate-600 font-medium">Loading wallet…</p>

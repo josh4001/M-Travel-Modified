@@ -64,7 +64,7 @@ const GENERAL_KNOWLEDGE: Record<string, string> = {
 
   vehicles: "**M-TRAVEL Fleet Standards**:\n• **4x4 Safari SUV (Prado/Land Cruiser)** — KES 12,000–18,000/day. Best for national parks, rough terrain, river crossings.\n• **Safari Van (Minibus)** — KES 8,000–12,000/day. Up to 7 passengers, pop-up roof, great for group safaris.\n• **Executive Sedan (Corolla/Premio)** — KES 5,000–7,000/day. Coastal trips, city drives, highway journeys.\n• **Pickup Truck** — KES 9,000–14,000/day. Heavy loads, rural roads, camping gear.",
 
-  packingList: "**Kenya Safari Packing Checklist**:\n• Sunscreen SPF 50+\n• Insect repellent (DEET)\n• Neutral earth-tone clothing (khaki, beige, olive)\n• Comfortable walking shoes / boots\n• Camera with optical zoom lens\n• Torch / headlamp\n• Anti-malaria medication (consult physician)\n• Hand sanitizer\n• Offline GPS maps\n• Reusable thermal water bottle",
+  packingList: "**Kenya Safari Packing Checklist**:\n• Sunscreen SPF 50+\n• Insect repellent (DEET)\n• Neutral earth-tone clothing (khaki, beige, olive)\n• Comfortable walking shoes / boots\n• Camera with optical zoom lens\n• Torch / headlamp\n• Anti-malaria medication (consult physician)\n• Hand sanitizer\n• Offline safari maps\n• Reusable thermal water bottle",
 
   malaria: "**Malaria in Kenya**: Risk is present in most of Kenya below 2,500m including coastal areas and most game parks. Start prophylaxis (Malarone, Doxycycline, or Mefloquine) before travel — consult your doctor. Use insect repellent, sleep under nets, wear long sleeves at dusk.",
 

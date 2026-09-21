@@ -41,8 +41,8 @@ const services = [
   },
   {
     icon: MapPinned,
-    title: 'Live maps & tracking',
-    desc: 'Google Maps-powered search, live directions, and nearby results for vehicles, homes, and tours.',
+    title: 'Interactive Maps & Search',
+    desc: 'Google Maps-powered search, directions, and location results for vehicles, homes, and tours.',
   },
   {
     icon: Headset,

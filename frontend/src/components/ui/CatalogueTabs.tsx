@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Car, Bus, Palmtree, Home, MapPin, ArrowRight } from 'lucide-react';
+import { Car, Bus, Palmtree, Home, MapPin, ArrowRight, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCurrency } from '@/context/CurrencyContext';
+import { getStoredVehicles, isVehicleLive } from '@/lib/bookingStore';
 
 type TabType = 'vehicles' | 'buses' | 'tours' | 'homes';
 
@@ -20,32 +21,6 @@ interface CatalogueItem {
 }
 
 const CATALOGUE_ITEMS: CatalogueItem[] = [
-  // VEHICLES
-  {
-    id: 'v-1',
-    category: 'vehicles',
-    title: 'Toyota Land Cruiser Prado V8',
-    subtitle: 'Full 4x4 Capability, Pop-up Safari Roof, Chauffeur Included',
-    badge: '4x4 Safari SUV',
-    priceKES: 14000,
-    priceUnit: '/ day',
-    imageUrl: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80',
-    location: 'Nairobi & National Parks',
-    specs: ['7 Seats', 'Diesel 4.5L', 'Automatic', 'Pop-Up Roof'],
-  },
-  {
-    id: 'v-2',
-    category: 'vehicles',
-    title: 'Toyota Hiace Custom Safari Van',
-    subtitle: 'Heavy-duty suspension, high-clearance 4WD for group game drives',
-    badge: 'Safari Van',
-    priceKES: 11500,
-    priceUnit: '/ day',
-    imageUrl: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80',
-    location: 'Westlands / Airport Pickup',
-    specs: ['9 Seats', 'Diesel 3.0L', 'Manual 4WD', 'Cooler Box'],
-  },
-
   // BUS RESERVATIONS
   {
     id: 'b-1',
@@ -136,7 +111,26 @@ export const CatalogueTabs: React.FC = () => {
     { id: 'homes',    label: 'Holiday Homes',     icon: Home,     desc: 'Villas, Cottages & Stays' },
   ];
 
-  const currentItems = CATALOGUE_ITEMS.filter((item) => item.category === activeTab);
+  const [storedVehicles] = useState(() => getStoredVehicles());
+
+  const approvedVehicles: CatalogueItem[] = storedVehicles
+    .filter((v) => v.status === 'APPROVED' && isVehicleLive(v.id))
+    .map((v) => ({
+      id: v.id,
+      category: 'vehicles' as TabType,
+      title: `${v.make} ${v.model}`,
+      subtitle: `${v.year} • ${v.seats} Seats • ${v.fuelType} • ${v.transmission}`,
+      badge: `${v.type} Vehicle`,
+      priceKES: v.pricePerDay,
+      priceUnit: '/ day',
+      imageUrl: v.images[0] || 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80',
+      location: v.address || 'Nairobi & National Parks',
+      specs: [`${v.seats} Seats`, v.fuelType, v.transmission, v.hasInsurance ? 'Verified' : 'Standard Insurance'],
+    }));
+
+  const currentItems = activeTab === 'vehicles'
+    ? approvedVehicles
+    : CATALOGUE_ITEMS.filter((item) => item.category === activeTab);
 
   return (
     <section className="py-10">
@@ -186,7 +180,22 @@ export const CatalogueTabs: React.FC = () => {
           transition={{ duration: 0.3 }}
           className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 items-stretch"
         >
-          {currentItems.map((item) => (
+          {currentItems.length === 0 ? (
+            <div className="col-span-full rounded-3xl bg-white border border-slate-200/90 p-12 text-center space-y-3 shadow-sm">
+              <div className="h-12 w-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto">
+                <Car className="h-6 w-6" />
+              </div>
+              <h3 className="font-serif text-lg font-bold text-slate-900">No vehicles available at the moment</h3>
+              <p className="text-xs text-slate-500 font-medium max-w-md mx-auto">
+                Fleet hosts have not yet listed any approved vehicles for hire. Check back soon or register as a host.
+              </p>
+              <div className="pt-2">
+                <Link to="/register" className="btn-primary !py-2 !px-4 text-xs font-bold text-white shadow-sm inline-flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4" /> Register as Fleet Host
+                </Link>
+              </div>
+            </div>
+          ) : currentItems.map((item) => (
             <div
               key={item.id}
               className="card-luxe overflow-hidden rounded-3xl border border-slate-200/90 shadow-card hover:shadow-card-hover transition-all duration-300 group flex flex-col md:flex-row hover:-translate-y-1 h-full"

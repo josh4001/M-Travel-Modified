@@ -4,12 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import {
   Star, ShieldCheck, Phone as PhoneIcon, Mail, Calendar, MapPin,
-  Car, CheckCircle2, CreditCard, Lock, Headset, AlertCircle
+  Car, CheckCircle2, CreditCard, Lock, Headset, AlertCircle,
+  MessageSquare, Sparkles
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Vehicle } from '@/types';
-import { MOCK_VEHICLES } from '@/data/mockVehicles';
-import { UberLiveTracker } from '@/components/tracking/UberLiveTracker';
 import { createBooking, fetchVehicleBookedDates, fetchVehicleById } from '@/lib/supabaseClient';
 import { payForBooking } from '@/lib/paymentService';
 import { selectUser } from '@/store/slices/authSlice';
@@ -17,6 +16,14 @@ import { useCurrency } from '@/context/CurrencyContext';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
 import { sendNotification } from '@/lib/notificationService';
 import { saveBooking, getStoredVehicles, getVehicleHireStatus, isVehicleLive } from '@/lib/bookingStore';
+import { VehicleStatusBadge } from '@/components/ui/LuxuryVehicleBadges';
+import {
+  sendTravelerBookingEmail,
+  openTravelerBookingWhatsApp,
+  getTravelerBookingWhatsAppUrl,
+  type DispatchedEmail
+} from '@/lib/communicationService';
+import { LuxuryEmailPreviewModal } from '@/components/ui/LuxuryEmailPreviewModal';
 
 export default function VehicleDetail() {
   const { id } = useParams();
@@ -33,8 +40,8 @@ export default function VehicleDetail() {
   const [endTime, setEndTime] = useState('18:00');
   const [pickupLocation, setPickupLocation] = useState('Nairobi CBD / Hotel');
   const [dropoffLocation, setDropoffLocation] = useState('Maasai Mara National Reserve');
-  const [withDriver, setWithDriver] = useState(true);
-  const [showTracker, setShowTracker] = useState(false);
+  const [pickupMethod] = useState<'SELF_COLLECT'>('SELF_COLLECT');
+  const [withDriver, setWithDriver] = useState(false);
   const [bookedRef, setBookedRef] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'mpesa' | 'card'>('mpesa');
@@ -42,6 +49,8 @@ export default function VehicleDetail() {
   const [cardDetails, setCardDetails] = useState({ number: '', expiry: '', cvc: '', name: '' });
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [lastEmailSent, setLastEmailSent] = useState<DispatchedEmail | null>(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   // Check stored vehicles & hire status in real-time
   const storedVehicles = getStoredVehicles();
@@ -51,7 +60,7 @@ export default function VehicleDetail() {
   const isAvailableForHire = isLive && !hireStatus.isHired;
 
   // Query with Supabase direct fetch, stored vehicle support, and mock fallback
-  const { data: vehicle } = useQuery<Vehicle>({
+  const { data: vehicle, isLoading } = useQuery<Vehicle>({
     queryKey: ['vehicle', id],
     queryFn: async () => {
       try {
@@ -91,8 +100,7 @@ export default function VehicleDetail() {
             ownerName: storedMatch.ownerName,
           } as any;
         }
-        const found = MOCK_VEHICLES.find((v) => v.id === id);
-        return found || MOCK_VEHICLES[0];
+        return null;
       }
     },
   });
@@ -108,14 +116,14 @@ export default function VehicleDetail() {
     fuelType: storedMatch.fuelType as any,
     transmission: storedMatch.transmission as any,
     location: storedMatch.address,
-    images: storedMatch.images,
+    images: (storedMatch.images || []).map((url, idx) => ({ id: `img-${idx}`, url, isPrimary: idx === 0 })),
     isAvailable: storedMatch.isLive !== false && !hireStatus.isHired,
     ratingAverage: storedMatch.ratingAverage,
     ratingCount: storedMatch.ratingCount,
     hasInsurance: storedMatch.hasInsurance,
     ownerId: storedMatch.ownerId,
     ownerName: storedMatch.ownerName,
-  } as any : (MOCK_VEHICLES.find((v) => v.id === id) || MOCK_VEHICLES[0]);
+  } as any : null;
 
   const targetVehicle = vehicle || fallbackVehicle;
 
@@ -125,10 +133,10 @@ export default function VehicleDetail() {
     Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24))
   );
 
-  const dailyPrice = Number(targetVehicle.pricePerDay);
+  const dailyPrice = Number(targetVehicle?.pricePerDay || 0);
   const vehicleTotal = days * dailyPrice;
   const driverCost = withDriver ? days * 2000 : 0;
-  const insuranceCost = targetVehicle.hasInsurance ? 0 : days * 500;
+  const insuranceCost = targetVehicle?.hasInsurance ? 0 : days * 500;
   const grandTotal = vehicleTotal + driverCost + insuranceCost;
 
   // Fetch booked dates for this vehicle from Supabase
@@ -170,6 +178,12 @@ export default function VehicleDetail() {
     // 1. Create booking in database
     let bookingId = targetVehicle.id;
     let finalRef = `MT-${Math.floor(100000 + Math.random() * 900000)}`;
+    const pickupLat = -1.2650;
+    const pickupLng = 36.8050;
+    const destLat = -1.3200;
+    const destLng = 36.7100;
+    const assignedDriverId = withDriver ? 'a0000000-0000-0000-0000-000000000004' : undefined;
+
     try {
       const booking = await createBooking({
         userId: user.id,
@@ -178,6 +192,12 @@ export default function VehicleDetail() {
         endDate: `${endDate}T${endTime}:00`,
         totalAmount: grandTotal,
         currency: 'KES',
+        driverId: assignedDriverId,
+        pickupMethod,
+        pickupLat,
+        pickupLng,
+        destinationLat: destLat,
+        destinationLng: destLng,
       });
       bookingId = booking.id;
       finalRef = booking.booking_ref;
@@ -202,15 +222,18 @@ export default function VehicleDetail() {
       setIsSuccess(true);
 
       // Save to centralized store for real-time dashboards
-      saveBooking({
+      const newBooking = saveBooking({
         bookingRef: finalRef,
+        bookingType: 'VEHICLE',
         vehicleId: targetVehicle.id,
         vehicleMake: targetVehicle.make,
         vehicleModel: targetVehicle.model,
         vehicleName: `${targetVehicle.make} ${targetVehicle.model}`,
         vehicleImage: targetVehicle.images?.[0]?.url || (targetVehicle as any).imageUrl || 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80',
         ownerId: targetVehicle.ownerId || targetVehicle.owner?.id || 'owner-1',
-        driverName: targetVehicle.owner?.firstName ? `${targetVehicle.owner.firstName} ${targetVehicle.owner.lastName || ''}`.trim() : 'Samuel Omondi',
+        driverId: undefined,
+        driverName: withDriver ? 'Verified Station Chauffeur' : undefined,
+        driverPhone: withDriver ? '+254 791 888 840' : undefined,
         touristId: user.id,
         touristEmail: user.email,
         touristName: `${user.firstName || 'Traveler'} ${user.lastName || ''}`.trim(),
@@ -221,7 +244,30 @@ export default function VehicleDetail() {
         paymentStatus: 'PAID',
         mpesaReceipt: `QK${Math.floor(100000 + Math.random() * 900000)}`,
         status: 'CONFIRMED',
+        pickupMethod: 'SELF_COLLECT',
+        pickupLocation,
+        dropoffLocation,
+        pickupLat,
+        pickupLng,
+        destinationLat: destLat,
+        destinationLng: destLng,
+        hasDriver: withDriver,
       });
+
+      // 1. Automated Traveler WhatsApp Booking Confirmation Voucher
+      try {
+        openTravelerBookingWhatsApp({
+          booking: newBooking,
+          isDestination: false,
+          targetPhone: mpesaPhone || user.phone,
+        });
+      } catch {}
+
+      // 2. Dispatch luxury email to traveler (backup)
+      sendTravelerBookingEmail({
+        booking: newBooking,
+        isDestination: false,
+      }).then(email => setLastEmailSent(email)).catch(() => {});
 
       // 3. SEND REAL-TIME NOTIFICATION ALERTS TO OWNER, TOURIST & ADMIN
       const ownerRecipientId = targetVehicle.ownerId || targetVehicle.owner?.id;
@@ -257,25 +303,39 @@ export default function VehicleDetail() {
     setPaymentLoading(false);
   };
 
+  if (isLoading && !targetVehicle) {
+    return (
+      <div className="mx-auto max-w-2xl px-6 py-24 text-center space-y-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-amber-600 border-t-transparent mx-auto" />
+        <p className="text-xs text-slate-500 font-medium">Loading vehicle details…</p>
+      </div>
+    );
+  }
+
+  if (!targetVehicle) {
+    return (
+      <div className="mx-auto max-w-2xl px-6 py-24 text-center space-y-4">
+        <div className="h-16 w-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mx-auto">
+          <Car className="h-8 w-8 stroke-[1.75]" />
+        </div>
+        <h1 className="font-serif text-2xl font-bold text-slate-900">Vehicle Not Available</h1>
+        <p className="text-sm text-slate-500 max-w-md mx-auto">
+          This vehicle is either no longer available in the fleet or has not yet been approved for hire.
+        </p>
+        <div className="pt-3">
+          <button
+            onClick={() => navigate('/catalogue?category=vehicles')}
+            className="btn-primary !px-5 !py-2.5 text-xs font-bold text-white shadow-sm inline-flex items-center gap-1.5"
+          >
+            Browse Available Fleet
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
-      {/* LIVE UBER TRACKER MODAL IF BOOKED */}
-      {showTracker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
-          <div className="w-full max-w-3xl">
-            <UberLiveTracker
-              vehicle={targetVehicle}
-              bookingRef={bookedRef || 'MT-884920'}
-              startDate={startDate}
-              endDate={endDate}
-              pickupLocation={pickupLocation}
-              dropoffLocation={dropoffLocation}
-              onClose={() => setShowTracker(false)}
-            />
-          </div>
-        </div>
-      )}
-
       {/* HEADER BREADCRUMB */}
       <div className="mb-6 flex items-center gap-2 text-xs text-slate-500 font-medium">
         <span className="cursor-pointer hover:text-amber-700 transition" onClick={() => navigate('/search')}>
@@ -376,19 +436,12 @@ export default function VehicleDetail() {
               </span>
               <span className="text-xs text-slate-500 font-semibold font-sans"> / day</span>
             </div>
-            {hireStatus.isHired ? (
-              <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-mono font-bold text-amber-800 border border-amber-300 animate-pulse">
-                🚗 In Use (Hired)
-              </span>
-            ) : !isLive ? (
-              <span className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-mono font-bold text-rose-800 border border-rose-300">
-                ⏸️ Offline
-              </span>
-            ) : (
-              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-mono font-bold text-emerald-700 border border-emerald-300">
-                🟢 Available Now
-              </span>
-            )}
+            <VehicleStatusBadge
+              isHired={hireStatus.isHired}
+              isLive={isLive}
+              variant="light"
+              labelOverride={hireStatus.isHired ? 'In Use (Hired)' : undefined}
+            />
           </div>
 
           {/* AVAILABILITY NOTICES */}
@@ -429,12 +482,57 @@ export default function VehicleDetail() {
                 Your payment has been processed. Notification sent to owner &amp; platform admin.
               </p>
 
-              <button
-                onClick={() => setShowTracker(true)}
-                className="btn-primary w-full text-xs !py-2.5 flex items-center justify-center gap-2 shadow-sm"
-              >
-                <Car className="h-4 w-4" /> Monitor Ride Live (Uber View)
-              </button>
+              <div className="flex flex-col gap-2 pt-1">
+                <button
+                  onClick={() => navigate('/dashboard/my-bookings')}
+                  className="btn-primary w-full text-xs !py-2.5 flex items-center justify-center gap-2 shadow-sm font-bold"
+                >
+                  <Car className="h-4 w-4" /> View Rental in My Bookings
+                </button>
+
+                <a
+                  href={getTravelerBookingWhatsAppUrl({
+                    booking: {
+                      id: bookedRef || 'MT-BOOKING',
+                      bookingRef: bookedRef || 'MT-BOOKING',
+                      vehicleId: targetVehicle.id,
+                      vehicleMake: targetVehicle.make,
+                      vehicleModel: targetVehicle.model,
+                      vehicleName: `${targetVehicle.make} ${targetVehicle.model}`,
+                      vehicleImage: targetVehicle.images?.[0]?.url || '',
+                      touristId: user?.id || 'tourist-1',
+                      touristName: `${user?.firstName || 'Traveler'} ${user?.lastName || ''}`.trim(),
+                      touristPhone: user?.phone || '0712345678',
+                      startDate: `${startDate}T${startTime}:00`,
+                      endDate: `${endDate}T${endTime}:00`,
+                      totalAmount: grandTotal,
+                      paymentStatus: 'PAID',
+                      status: 'CONFIRMED',
+                      hasDriver: withDriver,
+                      pickupLocation,
+                      createdAt: new Date().toISOString(),
+                    },
+                    isDestination: false,
+                    targetPhone: user?.phone,
+                  })}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white py-2.5 px-3 text-xs font-bold transition shadow-xs flex items-center justify-center gap-2"
+                >
+                  <MessageSquare className="h-4 w-4 fill-white" />
+                  Open WhatsApp Booking Voucher
+                </a>
+
+                {lastEmailSent && (
+                  <button
+                    onClick={() => setShowEmailModal(true)}
+                    className="rounded-xl border border-amber-400 bg-amber-50 py-2 px-3 text-xs font-bold text-amber-800 hover:bg-amber-100 transition flex items-center justify-center gap-1.5"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                    Preview Dispatched Email
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -516,19 +614,86 @@ export default function VehicleDetail() {
               />
             </div>
 
-            {/* WITH DRIVER CHECKBOX */}
-            <label className="flex items-center gap-2 cursor-pointer border border-slate-200 rounded-xl p-3 bg-slate-50/80 hover:bg-slate-100 transition shadow-sm">
-              <input
-                type="checkbox"
-                checked={withDriver}
-                onChange={(e) => setWithDriver(e.target.checked)}
-                className="accent-amber-600 h-4 w-4"
-              />
-              <div className="text-xs">
-                <span className="font-bold text-slate-900 block">Include Chauffeur Driver</span>
-                <span className="text-[10px] text-slate-500 font-semibold">{formatPrice(2000)} / day allowance</span>
+            {/* STEP 3: VEHICLE COLLECTION & CHAUFFEUR PREFERENCE */}
+            <div className="space-y-3 pt-2 border-t border-slate-100">
+              <div>
+                <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider font-display mb-1.5">
+                  Vehicle Collection Station
+                </label>
+                <div className="p-3.5 rounded-2xl border border-amber-300 bg-amber-50/70 flex items-start gap-3 shadow-xs">
+                  <div className="mt-0.5 h-8 w-8 rounded-xl bg-amber-500/20 border border-amber-400 text-amber-800 flex items-center justify-center shrink-0">
+                    <MapPin className="h-4 w-4 text-amber-700" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-xs text-slate-900">Collect at Vehicle Station / Hub</p>
+                    <p className="text-[11px] text-slate-700 mt-0.5">
+                      Station: <strong className="text-slate-900">{targetVehicle.location || targetVehicle.address || 'Westlands Fleet Hub, Nairobi'}</strong>
+                    </p>
+                    <p className="text-[10px] text-amber-800 font-medium mt-1">
+                      Travelers navigate directly to the vehicle's parked location for key collection and hand-off.
+                    </p>
+                  </div>
+                </div>
               </div>
-            </label>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider font-display mb-1.5">
+                  Driving Service Preference
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div
+                    onClick={() => setWithDriver(false)}
+                    className={`p-3 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3 ${
+                      !withDriver
+                        ? 'border-amber-500 bg-amber-50/70 shadow-xs'
+                        : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className={`mt-0.5 h-4 w-4 rounded-full border flex items-center justify-center ${
+                      !withDriver ? 'border-amber-600 bg-amber-600' : 'border-slate-300'
+                    }`}>
+                      {!withDriver && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                    </div>
+                    <div>
+                      <p className="font-bold text-xs text-slate-900">Self-Drive</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Collect keys at station and drive yourself</p>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setWithDriver(true)}
+                    className={`p-3 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3 ${
+                      withDriver
+                        ? 'border-amber-500 bg-amber-50/70 shadow-xs'
+                        : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className={`mt-0.5 h-4 w-4 rounded-full border flex items-center justify-center ${
+                      withDriver ? 'border-amber-600 bg-amber-600' : 'border-slate-300'
+                    }`}>
+                      {withDriver && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                    </div>
+                    <div>
+                      <p className="font-bold text-xs text-slate-900">With Chauffeur</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Stationed chauffeur meets you at the car to drive you</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* WITH CHAUFFEUR NOTICE */}
+              {withDriver && (
+                <div className="flex items-center justify-between border border-amber-300 bg-amber-50/90 rounded-xl p-3 text-xs text-amber-900 shadow-xs">
+                  <div>
+                    <span className="font-bold block">Certified Chauffeur Stationed with Vehicle</span>
+                    <span className="text-[11px] text-slate-600">{formatPrice(2000)} / day allowance · Meets you at pickup station</span>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase bg-amber-600 text-white px-2 py-0.5 rounded-md">
+                    Selected
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* COST SUMMARY */}
@@ -733,6 +898,14 @@ export default function VehicleDetail() {
           )}
         </div>
       </div>
+
+      {/* LUXURY EMAIL PREVIEW MODAL */}
+      {showEmailModal && lastEmailSent && (
+        <LuxuryEmailPreviewModal
+          email={lastEmailSent}
+          onClose={() => setShowEmailModal(false)}
+        />
+      )}
     </div>
   );
 }

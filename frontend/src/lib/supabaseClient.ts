@@ -205,21 +205,35 @@ export async function createBooking(payload: {
   endDate: string;
   totalAmount: number;
   currency?: string;
+  driverId?: string;
+  pickupMethod?: 'SELF_COLLECT' | string;
+  pickupLat?: number;
+  pickupLng?: number;
+  destinationLat?: number;
+  destinationLng?: number;
 }) {
   const ref = `MT-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  const insertPayload: any = {
+    booking_ref: ref,
+    user_id: payload.userId,
+    vehicle_id: payload.vehicleId,
+    bookable_type: 'VEHICLE',
+    start_date: payload.startDate,
+    end_date: payload.endDate,
+    total_amount: payload.totalAmount,
+    currency: payload.currency ?? 'KES',
+    status: 'PENDING',
+    pickup_method: payload.pickupMethod || 'SELF_COLLECT',
+  };
+  if (payload.driverId) insertPayload.driver_id = payload.driverId;
+  if (payload.pickupLat) insertPayload.pickup_lat = payload.pickupLat;
+  if (payload.pickupLng) insertPayload.pickup_lng = payload.pickupLng;
+  if (payload.destinationLat) insertPayload.destination_lat = payload.destinationLat;
+  if (payload.destinationLng) insertPayload.destination_lng = payload.destinationLng;
+
   const { data, error } = await supabase
     .from('bookings')
-    .insert({
-      booking_ref: ref,
-      user_id: payload.userId,
-      vehicle_id: payload.vehicleId,
-      bookable_type: 'VEHICLE',
-      start_date: payload.startDate,
-      end_date: payload.endDate,
-      total_amount: payload.totalAmount,
-      currency: payload.currency ?? 'KES',
-      status: 'PENDING',
-    })
+    .insert(insertPayload)
     .select()
     .single();
   if (error) throw error;

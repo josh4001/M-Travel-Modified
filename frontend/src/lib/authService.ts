@@ -26,7 +26,7 @@ export interface AuthResponse {
 // ---------------------------------------------------------------------------
 // Register
 // ---------------------------------------------------------------------------
-interface LocalAccount {
+export interface LocalAccount {
   id: string;
   email: string;
   password: string;
@@ -83,12 +83,34 @@ const DEFAULT_ACCOUNTS: LocalAccount[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
     isActive: true,
   },
+  {
+    id: 'admin-mtravel-1',
+    email: 'admin@mtravel.co.ke',
+    password: 'Admin@2026',
+    role: 'ADMIN',
+    firstName: 'Admin',
+    lastName: 'Desk',
+    phone: '+254 700 000 000',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
+    isActive: true,
+  },
+  {
+    id: 'admin-default-root',
+    email: 'admin@admin.com',
+    password: 'Admin@2026',
+    role: 'ADMIN',
+    firstName: 'System',
+    lastName: 'Admin',
+    phone: '+254 700 000 000',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
+    isActive: true,
+  },
 ];
 
 const USERS_STORAGE_KEY = 'mt_user_credentials_v2';
 const LEGACY_STORAGE_KEYS = ['mt_user_credentials', 'mt_users', 'mt_accounts'];
 
-function getLocalAccounts(): LocalAccount[] {
+export function getLocalAccounts(): LocalAccount[] {
   const mergedMap = new Map<string, LocalAccount>();
 
   // 1. Seed defaults
@@ -134,45 +156,37 @@ function getLocalAccounts(): LocalAccount[] {
       if (Array.isArray(parsed)) {
         for (const item of parsed) {
           if (item?.email) {
-            mergedMap.set(item.email.toLowerCase(), {
-              id: item.id || `user-${Date.now()}`,
-              email: item.email,
-              password: item.password || 'Tourist@2026',
-              role: item.role || 'TOURIST',
-              firstName: item.firstName || 'Explorer',
-              lastName: item.lastName || '',
-              phone: item.phone,
-              avatarUrl: item.avatarUrl,
-              isActive: item.isActive !== false,
-            });
+            const clean = item.email.toLowerCase();
+            // Do NOT overwrite official system accounts with stale data
+            const isSystemDef = DEFAULT_ACCOUNTS.some((d) => d.email.toLowerCase() === clean);
+            if (!isSystemDef) {
+              mergedMap.set(clean, {
+                id: item.id || `user-${Date.now()}`,
+                email: item.email,
+                password: item.password || 'Tourist@2026',
+                role: item.role || 'TOURIST',
+                firstName: item.firstName || 'Explorer',
+                lastName: item.lastName || '',
+                phone: item.phone,
+                avatarUrl: item.avatarUrl,
+                isActive: item.isActive !== false,
+              });
+            }
           }
         }
       }
     }
   } catch { /* empty */ }
 
-  // 4. Also check cached active user
-  try {
-    const rawCached = localStorage.getItem('mt_user');
-    if (rawCached) {
-      const cached = JSON.parse(rawCached);
-      if (cached?.email && !mergedMap.has(cached.email.toLowerCase())) {
-        mergedMap.set(cached.email.toLowerCase(), {
-          id: cached.id || `user-${Date.now()}`,
-          email: cached.email,
-          password: 'Tourist@2026',
-          role: cached.role || 'TOURIST',
-          firstName: cached.firstName || 'Explorer',
-          lastName: cached.lastName || '',
-          phone: cached.phone,
-          avatarUrl: cached.avatarUrl,
-          isActive: true,
-        });
-      }
-    }
-  } catch { /* empty */ }
+  // 4. Always re-assert default system accounts to guarantee correct roles
+  for (const def of DEFAULT_ACCOUNTS) {
+    mergedMap.set(def.email.toLowerCase(), def);
+  }
 
-  const result = Array.from(mergedMap.values());
+  // Actively purge any legacy driver accounts from memory and storage
+  const result = Array.from(mergedMap.values()).filter(
+    (a) => a.role !== 'DRIVER' && !a.email.toLowerCase().includes('driver@')
+  );
   try {
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(result));
   } catch { /* empty */ }
@@ -186,6 +200,31 @@ function saveLocalAccount(acc: LocalAccount) {
   try {
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(updated));
     localStorage.setItem('mt_user_credentials', JSON.stringify(updated));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('mt_accounts_updated'));
+    }
+  } catch {}
+}
+
+export function updateUserStatus(userIdOrEmail: string, isActive: boolean): void {
+  try {
+    const accounts = getLocalAccounts();
+    const target = accounts.find(
+      (a) => a.id === userIdOrEmail || a.email.toLowerCase() === userIdOrEmail.toLowerCase()
+    );
+    if (target) {
+      target.isActive = isActive;
+      const updated = accounts.map((a) =>
+        a.id === target.id || a.email.toLowerCase() === target.email.toLowerCase()
+          ? { ...a, isActive }
+          : a
+      );
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(updated));
+      localStorage.setItem('mt_user_credentials', JSON.stringify(updated));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('mt_accounts_updated'));
+      }
+    }
   } catch {}
 }
 
@@ -375,11 +414,16 @@ export async function login(
   if (cleanEmail.includes('@') && cleanEmail.includes('.') && password.length >= 4) {
     const namePart = cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').trim();
     const firstName = (namePart.charAt(0).toUpperCase() + namePart.slice(1)) || 'Explorer';
+    const determinedRole = cleanEmail.includes('admin')
+      ? 'ADMIN'
+      : cleanEmail.includes('owner') || cleanEmail.includes('host')
+      ? 'VEHICLE_OWNER'
+      : 'TOURIST';
     const autoAccount: LocalAccount = {
       id: `user-${Date.now()}`,
       email: cleanEmail,
       password: password,
-      role: 'TOURIST',
+      role: determinedRole,
       firstName,
       lastName: '',
       phone: '0712345678',

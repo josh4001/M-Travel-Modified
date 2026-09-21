@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { ArrowRight, Lock, Mail, Eye, EyeOff, Crown, Sparkles, KeyRound, CheckCircle2, ShieldCheck, AlertCircle, Compass, Car } from 'lucide-react';
 import { login } from '@/lib/authService';
@@ -13,7 +13,6 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'TOURIST' | 'OWNER' | 'ADMIN' | null>(null);
-  const navigate = useNavigate();
   const dispatch = useDispatch();
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -25,12 +24,13 @@ export default function Login() {
 
   function redirectByRole(role: string) {
     if (redirectUrl && (role === 'TOURIST' || role === 'CUSTOMER' || !role)) {
-      navigate(redirectUrl);
+      window.location.href = redirectUrl;
       return;
     }
-    if (role === 'ADMIN' || role === 'SUPER_ADMIN') navigate('/dashboard/admin');
-    else if (role === 'VEHICLE_OWNER') navigate('/dashboard/owner');
-    else navigate('/dashboard/tourist');
+    const r = role?.toUpperCase();
+    if (r === 'ADMIN' || r === 'SUPER_ADMIN') window.location.href = '/dashboard/admin';
+    else if (r === 'VEHICLE_OWNER' || r === 'OWNER' || r === 'HOST' || r === 'FLEET_HOST') window.location.href = '/dashboard/owner';
+    else window.location.href = '/dashboard/tourist';
   }
 
   async function onSubmit(e: FormEvent) {
@@ -39,6 +39,7 @@ export default function Login() {
     setLoading(true);
     try {
       const data = await login(email, password);
+      sessionStorage.setItem('mt_just_logged_in', 'true');
       dispatch(setUser(data.user));
       redirectByRole(data.user.role);
     } catch (err: unknown) {
@@ -118,7 +119,7 @@ export default function Login() {
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2.5">
               <button
                 type="button"
                 onClick={() => fillQuickCreds('sarah.ochieng@gmail.com', 'Tourist@2026', 'TOURIST')}

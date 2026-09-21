@@ -15,12 +15,12 @@ import { TrackerWidget } from '@/components/ui/TrackerWidget';
 const journey = [
   { label: 'Explore', desc: 'Browse curated safari cruisers, luxury vans, and private villas.' },
   { label: 'Reserve', desc: 'Select your travel dates & confirm your bespoke journey in seconds.' },
-  { label: 'Ride', desc: 'Track your professional chauffeur live with satellite GPS.' },
+  { label: 'Ride', desc: 'Enjoy full comprehensive insurance & 24/7 roadside concierge.' },
   { label: 'Arrive', desc: 'Experience Kenya in comfort & earn Privilege Explorer points.' },
 ];
 
 const categories = [
-  { icon: Car, title: 'Vehicles & Safaris', desc: '4x4 Cruisers, SUVs, Alphards, Trucks & boda bodas', count: '120+ available', to: '/search' },
+  { icon: Car, title: 'Vehicles & Safaris', desc: '4x4 Cruisers, Luxury SUVs, Executive Vans & Safari Shuttles', count: 'Verified Hosts', to: '/catalogue?category=vehicles' },
   { icon: Bus, title: 'Bus Reservations', desc: 'Cross-country luxury bus routes & seat selection', count: '45 routes daily', to: '/services' },
   { icon: Palmtree, title: 'Safari Tours', desc: 'Maasai Mara, Amboseli, Diani beach & hiking', count: '80+ packages', to: '/services' },
   { icon: Home, title: 'Holiday Stays', desc: 'Beachfront villas, cottages & luxury apartments', count: '200+ stays', to: '/search' },
@@ -206,10 +206,10 @@ export default function Landing() {
         <div className="mx-auto max-w-7xl">
           <div className="text-center max-w-xl mx-auto mb-8">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3.5 py-1 text-xs font-bold text-emerald-800">
-              <ShieldCheck className="h-4 w-4 text-emerald-600" /> Easy & Simple Live Tracking
+              <ShieldCheck className="h-4 w-4 text-emerald-600" /> Easy &amp; Verified Booking Lookup
             </span>
             <h2 className="mt-3 font-serif text-3xl font-bold text-slate-900">
-              Track Your Trip & Driver
+              Check Your Booking Status
             </h2>
             <p className="mt-2 text-xs md:text-sm text-slate-600">
               Already booked? Enter your booking reference or trip ID below for real-time status.

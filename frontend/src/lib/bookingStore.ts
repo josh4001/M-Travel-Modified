@@ -11,7 +11,9 @@ export interface StoredBooking {
   vehicleName: string;
   vehicleImage: string;
   ownerId?: string;
+  driverId?: string;
   driverName?: string;
+  driverPhone?: string;
   touristId: string;
   touristName: string;
   touristPhone: string;
@@ -21,10 +23,85 @@ export interface StoredBooking {
   totalAmount: number;
   paymentStatus: 'PAID' | 'PENDING' | 'FAILED';
   mpesaReceipt?: string;
-  status: 'PENDING' | 'PAID' | 'CONFIRMED' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'IN_PROGRESS' | 'COMPLETED';
+  status:
+    | 'PENDING'
+    | 'PAID'
+    | 'CONFIRMED'
+    | 'ACCEPTED'
+    | 'REJECTED'
+    | 'CANCELLED'
+    | 'IN_PROGRESS'
+    | 'COMPLETED'
+    | string;
+  pickupMethod?: 'SELF_COLLECT' | string;
   pickupLocation?: string;
   dropoffLocation?: string;
+  pickupLat?: number;
+  pickupLng?: number;
+  destinationLat?: number;
+  destinationLng?: number;
+  hasDriver?: boolean;
+  bookingType?: 'VEHICLE' | 'DESTINATION' | 'HOLIDAY' | 'TOUR' | 'BUS_SEAT' | string;
+  destinationCategory?: 'TOUR' | 'HOLIDAY_HOME' | 'DESTINATION' | string;
+  destinationTitle?: string;
+  destinationBadge?: string;
+  destinationLocation?: string;
+  destinationSpecs?: string[];
+  rating?: number;
+  reviewComment?: string;
+  reviewTags?: string[];
+  ratedAt?: string;
   createdAt: string;
+}
+
+/**
+ * Determines whether a booking is for a trip, tour, holiday stay, or destination package
+ * rather than a rented fleet vehicle.
+ */
+export const isTripBooking = (booking?: Partial<StoredBooking> | null | any): boolean => {
+  if (!booking) return false;
+  const type = String(booking.bookingType || booking.raw?.bookingType || '').toUpperCase();
+  if (['DESTINATION', 'HOLIDAY', 'TOUR', 'BUS_SEAT', 'TRIP', 'PACKAGE', 'STAY'].includes(type)) {
+    return true;
+  }
+  const bookableType = String(booking.raw?.bookable_type || booking.bookable_type || '').toUpperCase();
+  if (['TOUR', 'HOLIDAY_HOME', 'DESTINATION', 'STAY'].includes(bookableType)) {
+    return true;
+  }
+  if (booking.destinationCategory || booking.destinationTitle) {
+    return true;
+  }
+  const ref = String(booking.bookingRef || booking.ref || '');
+  if (ref.startsWith('MT-HOL-') || ref.startsWith('MT-TOUR-') || ref.startsWith('MT-DEST-') || ref.startsWith('MT-TRIP-')) {
+    return true;
+  }
+  const vId = String(booking.vehicleId || booking.vehicle_id || '');
+  if (vId.startsWith('dest-') || vId.startsWith('tour-') || vId.startsWith('trip-')) {
+    return true;
+  }
+  const bId = String(booking.id || '');
+  if (bId.startsWith('dest-') || bId.startsWith('tour-') || bId.startsWith('trip-')) {
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Determines whether a booking is specifically for a fleet vehicle rental.
+ */
+export const isVehicleBooking = (booking?: Partial<StoredBooking> | null | any): boolean => {
+  if (!booking) return false;
+  return !isTripBooking(booking);
+};
+
+export interface VehicleDocument {
+  id: string;
+  name: string;
+  type: 'LOGBOOK' | 'INSURANCE' | 'INSPECTION_CERT' | 'OTHER';
+  fileUrl: string;
+  fileName: string;
+  fileSize?: string;
+  uploadedAt: string;
 }
 
 export interface StoredVehicle {
@@ -41,6 +118,11 @@ export interface StoredVehicle {
   ownerId: string;
   ownerName: string;
   ownerEmail?: string;
+  driverId?: string;
+  driverName?: string;
+  driverPhone?: string;
+  isSelfDriveAvailable?: boolean;
+  isWithDriverAvailable?: boolean;
   images: string[];
   status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
   isLive?: boolean;
@@ -50,6 +132,10 @@ export interface StoredVehicle {
   plateNumber?: string;
   latitude?: number;
   longitude?: number;
+  documents?: VehicleDocument[];
+  rejectionReasons?: string[];
+  rejectionNotes?: string;
+  rejectedAt?: string;
   updatedAt?: string;
   createdAt: string;
 }
@@ -87,284 +173,81 @@ export const isVehicleLive = (vehicleId: string): boolean => {
   return true;
 };
 
-// --- INITIAL DEFAULT SEED DATA ---
-const DEFAULT_BOOKINGS: StoredBooking[] = [
-  {
-    id: 'b-101',
-    bookingRef: 'MT-884920',
-    vehicleId: '00000000-0000-0000-0000-000000000001',
-    vehicleMake: 'Toyota',
-    vehicleModel: 'Land Cruiser Prado',
-    vehicleName: 'Toyota Land Cruiser Prado',
-    vehicleImage: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80',
-    ownerId: 'a0000000-0000-0000-0000-000000000002',
-    driverName: 'Samuel Omondi',
-    touristId: 'user-tourist-1',
-    touristName: 'Sarah Ochieng',
-    touristPhone: '0712345678',
-    touristEmail: 'sarah.ochieng@gmail.com',
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-    totalAmount: 42000,
-    paymentStatus: 'PAID',
-    mpesaReceipt: 'QK89X201',
-    status: 'CONFIRMED',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'b-102',
-    bookingRef: 'MT-221045',
-    vehicleId: 'v-alphard-2',
-    vehicleMake: 'Toyota',
-    vehicleModel: 'Alphard Executive Lounge',
-    vehicleName: 'Toyota Alphard Executive Lounge',
-    vehicleImage: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
-    ownerId: 'owner-2',
-    driverName: 'Grace Mutua',
-    touristId: 'user-tourist-2',
-    touristName: 'John Kamau',
-    touristPhone: '0798765432',
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
-    totalAmount: 24000,
-    paymentStatus: 'PENDING',
-    status: 'PENDING',
-    createdAt: new Date().toISOString(),
-  },
-];
+// --- INITIAL DEFAULT SEED DATA (STRICTLY EMPTY: ONLY HOST-REGISTERED CARS ALLOWED) ---
+const DEMO_VEHICLE_IDS = new Set([
+  '00000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000002',
+  '00000000-0000-0000-0000-000000000003',
+  '00000000-0000-0000-0000-000000000004',
+  'ab0dd85b-15bc-45d9-8fb8-1b3f7908b904',
+  '35d3ca61-971e-434c-ae2f-cb6601fd7376',
+  'c53e7096-a526-4101-8c8c-10838d828545',
+  'e3aedb74-5c0a-4932-b33b-94430fe5edf1',
+  'v-safari-1',
+  'v-alphard-2',
+  'v-rav4-1',
+  'v-1',
+  'v-2',
+  'v-3',
+  'mv-001',
+  'mv-002',
+  'mv-003',
+  'mv-004',
+  'mv-005',
+]);
 
-const DEFAULT_VEHICLES: StoredVehicle[] = [
-  {
-    id: 'ab0dd85b-15bc-45d9-8fb8-1b3f7908b904',
-    make: 'Mercedes-Benz',
-    model: 'G-Wagon AMG',
-    year: 2024,
-    type: 'SUV',
-    pricePerDay: 35000,
-    seats: 5,
-    fuelType: 'Petrol',
-    transmission: 'Automatic',
-    address: 'Westlands / Karen, Nairobi',
-    ownerId: 'a0000000-0000-0000-0000-000000000002',
-    ownerName: 'James Mwangi',
-    ownerEmail: 'james.mwangi@mtravel.co.ke',
-    images: ['https://images.unsplash.com/photo-1520031441872-265e4ff70366?auto=format&fit=crop&w=800&q=80'],
-    status: 'APPROVED',
-    isLive: true,
-    ratingAverage: 5.0,
-    ratingCount: 18,
-    hasInsurance: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '35d3ca61-971e-434c-ae2f-cb6601fd7376',
-    make: 'Mercedes-Benz',
-    model: 'G-Wagon G63',
-    year: 2024,
-    type: 'SUV',
-    pricePerDay: 20000,
-    seats: 5,
-    fuelType: 'Diesel',
-    transmission: 'Automatic',
-    address: 'Kilimani, Nairobi',
-    ownerId: 'a0000000-0000-0000-0000-000000000002',
-    ownerName: 'James Mwangi',
-    ownerEmail: 'james.mwangi@mtravel.co.ke',
-    images: ['https://images.unsplash.com/photo-1520031441872-265e4ff70366?auto=format&fit=crop&w=800&q=80'],
-    status: 'APPROVED',
-    isLive: true,
-    ratingAverage: 4.95,
-    ratingCount: 14,
-    hasInsurance: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'c53e7096-a526-4101-8c8c-10838d828545',
-    make: 'Mercedes-Benz',
-    model: 'G-Wagon V8',
-    year: 2025,
-    type: 'SUV',
-    pricePerDay: 30000,
-    seats: 5,
-    fuelType: 'Petrol',
-    transmission: 'Automatic',
-    address: 'Lavington, Nairobi',
-    ownerId: '6267558e-796a-46fa-bb68-53df294fdbed',
-    ownerName: 'Martha Kane',
-    ownerEmail: 'martha@gmail.com',
-    images: ['https://images.unsplash.com/photo-1520031441872-265e4ff70366?auto=format&fit=crop&w=800&q=80'],
-    status: 'APPROVED',
-    isLive: true,
-    ratingAverage: 4.9,
-    ratingCount: 9,
-    hasInsurance: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '00000000-0000-0000-0000-000000000001',
-    make: 'Toyota',
-    model: 'Land Cruiser Prado TX',
-    year: 2022,
-    type: 'SUV',
-    pricePerDay: 14000,
-    seats: 7,
-    fuelType: 'Diesel',
-    transmission: 'Automatic',
-    address: 'Nairobi JKIA / Westlands',
-    ownerId: 'a0000000-0000-0000-0000-000000000002',
-    ownerName: 'James Mwangi',
-    ownerEmail: 'james.mwangi@mtravel.co.ke',
-    images: ['https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80'],
-    status: 'APPROVED',
-    isLive: true,
-    ratingAverage: 4.9,
-    ratingCount: 36,
-    hasInsurance: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'e3aedb74-5c0a-4932-b33b-94430fe5edf1',
-    make: 'Toyota',
-    model: 'Coaster VIP Bus',
-    year: 2020,
-    type: 'VAN',
-    pricePerDay: 9500,
-    seats: 25,
-    fuelType: 'Diesel',
-    transmission: 'Manual',
-    address: 'CBD / Wilson Airport, Nairobi',
-    ownerId: 'a0000000-0000-0000-0000-000000000002',
-    ownerName: 'James Mwangi',
-    ownerEmail: 'james.mwangi@mtravel.co.ke',
-    images: ['https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=800&q=80'],
-    status: 'APPROVED',
-    isLive: true,
-    ratingAverage: 4.8,
-    ratingCount: 22,
-    hasInsurance: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '00000000-0000-0000-0000-000000000002',
-    make: 'Toyota',
-    model: 'RAV4 AWD',
-    year: 2023,
-    type: 'SUV',
-    pricePerDay: 9500,
-    seats: 5,
-    fuelType: 'Petrol',
-    transmission: 'Automatic',
-    address: 'Nairobi Central',
-    ownerId: 'a0000000-0000-0000-0000-000000000002',
-    ownerName: 'James Mwangi',
-    ownerEmail: 'james.mwangi@mtravel.co.ke',
-    images: ['https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80'],
-    status: 'APPROVED',
-    isLive: true,
-    ratingAverage: 4.85,
-    ratingCount: 19,
-    hasInsurance: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '00000000-0000-0000-0000-000000000003',
-    make: 'Toyota',
-    model: 'Hiace Safari Van 4WD',
-    year: 2021,
-    type: 'VAN',
-    pricePerDay: 11500,
-    seats: 9,
-    fuelType: 'Diesel',
-    transmission: 'Manual',
-    address: 'Nairobi & National Parks',
-    ownerId: 'a0000000-0000-0000-0000-000000000002',
-    ownerName: 'James Mwangi',
-    ownerEmail: 'james.mwangi@mtravel.co.ke',
-    images: ['https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80'],
-    status: 'APPROVED',
-    isLive: true,
-    ratingAverage: 4.75,
-    ratingCount: 27,
-    hasInsurance: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '00000000-0000-0000-0000-000000000004',
-    make: 'Toyota',
-    model: 'Premio Executive',
-    year: 2022,
-    type: 'CAR',
-    pricePerDay: 5500,
-    seats: 5,
-    fuelType: 'Petrol',
-    transmission: 'Automatic',
-    address: 'Mombasa / Diani Beach',
-    ownerId: 'a0000000-0000-0000-0000-000000000002',
-    ownerName: 'James Mwangi',
-    ownerEmail: 'james.mwangi@mtravel.co.ke',
-    images: ['https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80'],
-    status: 'APPROVED',
-    isLive: true,
-    ratingAverage: 4.8,
-    ratingCount: 15,
-    hasInsurance: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'v-safari-1',
-    make: 'Toyota',
-    model: 'Land Cruiser 4x4 V8 Safari',
-    year: 2023,
-    type: '4x4',
-    pricePerDay: 15000,
-    seats: 7,
-    fuelType: 'Diesel',
-    transmission: 'Automatic',
-    address: 'Nairobi JKIA / Westlands',
-    ownerId: 'owner-1',
-    ownerName: 'Samuel Omondi',
-    images: ['https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80'],
-    status: 'APPROVED',
-    isLive: true,
-    ratingAverage: 4.9,
-    ratingCount: 42,
-    hasInsurance: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'v-alphard-2',
-    make: 'Toyota',
-    model: 'Alphard Executive Lounge',
-    year: 2022,
-    type: 'VAN',
-    pricePerDay: 12000,
-    seats: 7,
-    fuelType: 'Petrol',
-    transmission: 'Automatic',
-    address: 'Mombasa / Diani Beach',
-    ownerId: 'owner-2',
-    ownerName: 'Grace Mutua',
-    images: ['https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80'],
-    status: 'APPROVED',
-    isLive: true,
-    ratingAverage: 4.85,
-    ratingCount: 38,
-    hasInsurance: true,
-    createdAt: new Date().toISOString(),
-  },
-];
+export const isDemoVehicle = (v: any): boolean => {
+  if (!v) return false;
+  if (v.id && (DEMO_VEHICLE_IDS.has(v.id) || String(v.id).startsWith('v-host-') || String(v.id).startsWith('mv-') || String(v.id).startsWith('00000000-'))) {
+    return true;
+  }
+  const name = `${v.make || ''} ${v.model || ''} ${v.vehicleName || ''} ${v.title || ''}`.toLowerCase();
+  if (
+    name.includes('toyota land cruiser prado v8 4x4') ||
+    name.includes('toyota hiace custom safari van') ||
+    name.includes('toyota alphard executive lounge') ||
+    name.includes('prado v8') ||
+    name.includes('hiace safari van 4wd') ||
+    name.includes('alphard executive lounge') ||
+    name.includes('g-wagon amg') ||
+    name.includes('g-wagon g63') ||
+    name.includes('g-wagon v8') ||
+    name.includes('coaster vip bus') ||
+    name.includes('rav4 awd') ||
+    name.includes('premio executive')
+  ) {
+    if (!v.id || DEMO_VEHICLE_IDS.has(v.id) || String(v.id).startsWith('v-host-') || String(v.id).startsWith('00000000-') || v.id === 'v-safari-1' || v.id === 'v-alphard-2' || v.ownerId === 'a0000000-0000-0000-0000-000000000002') {
+      return true;
+    }
+  }
+  return false;
+};
 
 // Helper Functions
 export const getStoredBookings = (): StoredBooking[] => {
   try {
     const raw = localStorage.getItem(BOOKINGS_KEY);
     if (!raw) {
-      localStorage.setItem(BOOKINGS_KEY, JSON.stringify(DEFAULT_BOOKINGS));
-      return DEFAULT_BOOKINGS;
+      localStorage.setItem(BOOKINGS_KEY, JSON.stringify([]));
+      return [];
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      localStorage.setItem(BOOKINGS_KEY, JSON.stringify([]));
+      return [];
+    }
+    const sanitized = parsed.filter((b: StoredBooking) => {
+      if (['b-101', 'b-102', 'b-103'].includes(b.id)) return false;
+      if (b.vehicleId && DEMO_VEHICLE_IDS.has(b.vehicleId)) return false;
+      if (isDemoVehicle(b)) return false;
+      return true;
+    });
+    if (sanitized.length !== parsed.length) {
+      localStorage.setItem(BOOKINGS_KEY, JSON.stringify(sanitized));
+    }
+    return sanitized;
   } catch {
-    return DEFAULT_BOOKINGS;
+    return [];
   }
 };
 
@@ -372,6 +255,7 @@ export const saveBooking = (booking: Omit<StoredBooking, 'id' | 'createdAt'>): S
   const existing = getStoredBookings();
   const newBooking: StoredBooking = {
     ...booking,
+    pickupMethod: booking.pickupMethod || 'SELF_COLLECT',
     vehicleName: booking.vehicleName || `${booking.vehicleMake} ${booking.vehicleModel}`,
     id: `b-${Date.now()}`,
     createdAt: new Date().toISOString(),
@@ -386,24 +270,28 @@ export const getStoredVehicles = (): StoredVehicle[] => {
   try {
     const raw = localStorage.getItem(VEHICLES_KEY);
     if (!raw) {
-      localStorage.setItem(VEHICLES_KEY, JSON.stringify(DEFAULT_VEHICLES));
-      return DEFAULT_VEHICLES;
+      localStorage.setItem(VEHICLES_KEY, JSON.stringify([]));
+      return [];
     }
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      localStorage.setItem(VEHICLES_KEY, JSON.stringify(DEFAULT_VEHICLES));
-      return DEFAULT_VEHICLES;
+    if (!Array.isArray(parsed)) {
+      localStorage.setItem(VEHICLES_KEY, JSON.stringify([]));
+      return [];
     }
-    return parsed;
+    const sanitized = parsed.filter((v: StoredVehicle) => !isDemoVehicle(v));
+    if (sanitized.length !== parsed.length) {
+      localStorage.setItem(VEHICLES_KEY, JSON.stringify(sanitized));
+    }
+    return sanitized;
   } catch {
-    return DEFAULT_VEHICLES;
+    return [];
   }
 };
 
 /** Synchronize all vehicles registered by hosts from Supabase into localStorage */
 export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
   try {
-    const { data, error } = await supabase
+    const queryPromise = supabase
       .from('vehicles')
       .select(`
         *,
@@ -412,8 +300,14 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
       `)
       .order('created_at', { ascending: false });
 
+    const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) =>
+      setTimeout(() => resolve({ data: null, error: new Error('Supabase sync timeout') }), 1500)
+    );
+
+    const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
     if (error) {
-      console.warn('syncVehiclesFromSupabase error:', error);
+      console.warn('syncVehiclesFromSupabase notice/error:', error.message || error);
       return getStoredVehicles();
     }
 
@@ -429,55 +323,59 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
 
     const overrides = getVehicleLiveOverrides();
 
-    // Map each Supabase vehicle into a StoredVehicle
-    const mappedSupabase: StoredVehicle[] = data.map((v: any) => {
-      const existing = localMap.get(v.id);
-      const owner = v.users || {};
-      const ownerName = [owner.first_name, owner.last_name].filter(Boolean).join(' ') || existing?.ownerName || 'Fleet Host';
+    // Map each Supabase vehicle into a StoredVehicle (strictly filter out demo seed records)
+    const mappedSupabase: StoredVehicle[] = data
+      .filter((v: any) => !isDemoVehicle(v))
+      .map((v: any) => {
+        const existing = localMap.get(v.id);
+        const owner = v.users || {};
+        const ownerName = [owner.first_name, owner.last_name].filter(Boolean).join(' ') || existing?.ownerName || 'Fleet Host';
 
-      const images: string[] = (Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0)
-        ? v.vehicle_images.map((img: any) => img.url).filter(Boolean)
-        : (existing?.images && existing.images.length > 0)
-          ? existing.images
-          : [getVehicleFallbackImage(v.make, v.model, v.type)];
+        const images: string[] = (Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0)
+          ? v.vehicle_images.map((img: any) => img.url).filter(Boolean)
+          : (existing?.images && existing.images.length > 0)
+            ? existing.images
+            : [getVehicleFallbackImage(v.make, v.model, v.type)];
 
-      const adminLiveOverride = overrides[v.id];
-      const isLive = adminLiveOverride !== undefined
-        ? adminLiveOverride
-        : (existing?.isLive !== undefined ? existing.isLive : v.is_available !== false);
+        const adminLiveOverride = overrides[v.id];
+        const isLive = adminLiveOverride !== undefined
+          ? adminLiveOverride
+          : (existing?.isLive !== undefined ? existing.isLive : v.is_available !== false);
 
-      return {
-        id: v.id,
-        make: (v.make || 'Toyota').trim(),
-        model: (v.model || 'Cruiser').trim(),
-        year: v.year || 2024,
-        type: (v.type || 'SUV').toUpperCase(),
-        pricePerDay: Number(v.price_per_day || 15000),
-        seats: Number(v.seats || 7),
-        fuelType: v.fuel_type || 'Diesel',
-        transmission: v.transmission || 'Automatic',
-        address: v.address || existing?.address || 'Nairobi, Kenya',
-        ownerId: v.owner_id || existing?.ownerId || 'owner-host',
-        ownerName,
-        ownerEmail: owner.email || existing?.ownerEmail,
-        images,
-        status: (v.is_approved !== false ? 'APPROVED' : (existing?.status || 'PENDING_APPROVAL')) as any,
-        isLive,
-        ratingAverage: Number(v.rating_average || 4.9),
-        ratingCount: Number(v.rating_count || 12),
-        hasInsurance: v.has_insurance !== false,
-        plateNumber: v.plate_number || existing?.plateNumber,
-        latitude: v.latitude ?? -1.2921,
-        longitude: v.longitude ?? 36.8219,
-        createdAt: v.created_at || existing?.createdAt || new Date().toISOString(),
-      };
-    });
+        return {
+          id: v.id,
+          make: (v.make || 'Toyota').trim(),
+          model: (v.model || 'Cruiser').trim(),
+          year: v.year || 2024,
+          type: (v.type || 'SUV').toUpperCase(),
+          pricePerDay: Number(v.price_per_day || 15000),
+          seats: Number(v.seats || 7),
+          fuelType: v.fuel_type || 'Diesel',
+          transmission: v.transmission || 'Automatic',
+          address: v.address || existing?.address || 'Nairobi, Kenya',
+          ownerId: v.owner_id || existing?.ownerId || 'owner-host',
+          ownerName,
+          ownerEmail: owner.email || existing?.ownerEmail,
+          images,
+          status: (v.is_approved !== false ? 'APPROVED' : (existing?.status || 'PENDING_APPROVAL')) as any,
+          isLive,
+          ratingAverage: Number(v.rating_average || 4.9),
+          ratingCount: Number(v.rating_count || 12),
+          hasInsurance: v.has_insurance !== false,
+          plateNumber: v.plate_number || existing?.plateNumber,
+          isSelfDriveAvailable: true,
+          isWithDriverAvailable: true,
+          latitude: v.latitude ?? -1.2921,
+          longitude: v.longitude ?? 36.8219,
+          createdAt: v.created_at || existing?.createdAt || new Date().toISOString(),
+        };
+      });
 
-    // Merge: Supabase vehicles take precedence, preserve local-only additions
+    // Merge: Supabase vehicles take precedence, preserve local-only host additions
     const sbIds = new Set(mappedSupabase.map(v => v.id));
     const merged: StoredVehicle[] = [...mappedSupabase];
     for (const lv of currentLocal) {
-      if (!sbIds.has(lv.id)) {
+      if (!sbIds.has(lv.id) && !isDemoVehicle(lv)) {
         merged.push(lv);
       }
     }
@@ -558,6 +456,35 @@ export const approveVehicle = (vehicleId: string, pushLive = true): StoredVehicl
   } catch {}
   window.dispatchEvent(new CustomEvent('mt_vehicle_approved', { detail: updatedVehicle }));
   window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: updatedVehicle }));
+  return updatedVehicle;
+};
+
+export const rejectVehicle = (
+  vehicleId: string,
+  reasons: string[] = [],
+  notes?: string
+): StoredVehicle | null => {
+  const vehicles = getStoredVehicles();
+  let updatedVehicle: StoredVehicle | null = null;
+  const updated = vehicles.map((v) => {
+    if (v.id === vehicleId) {
+      updatedVehicle = {
+        ...v,
+        status: 'REJECTED' as const,
+        isLive: false,
+        rejectionReasons: reasons,
+        rejectionNotes: notes,
+        rejectedAt: new Date().toISOString(),
+      };
+      return updatedVehicle;
+    }
+    return v;
+  });
+  try {
+    localStorage.setItem(VEHICLES_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('mt_vehicle_rejected', { detail: updatedVehicle }));
+    window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: updatedVehicle }));
+  } catch {}
   return updatedVehicle;
 };
 
@@ -670,6 +597,44 @@ export const getVehicleHireStatus = (vehicleId: string): VehicleHireStatus => {
   };
 };
 
+export const updateStoredBooking = (bookingId: string, partial: Partial<StoredBooking>): StoredBooking | null => {
+  const bookings = getStoredBookings();
+  let updatedBooking: StoredBooking | null = null;
+  const updated = bookings.map(b => {
+    if (b.id === bookingId || b.bookingRef === bookingId) {
+      updatedBooking = { ...b, ...partial };
+      return updatedBooking;
+    }
+    return b;
+  });
+  if (updatedBooking) {
+    try {
+      localStorage.setItem(BOOKINGS_KEY, JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: updatedBooking }));
+    } catch {}
+  }
+  return updatedBooking;
+};
+
+export const updateStoredVehicle = (vehicleId: string, partial: Partial<StoredVehicle>): StoredVehicle | null => {
+  const vehicles = getStoredVehicles();
+  let updatedVehicle: StoredVehicle | null = null;
+  const updated = vehicles.map(v => {
+    if (v.id === vehicleId) {
+      updatedVehicle = { ...v, ...partial };
+      return updatedVehicle;
+    }
+    return v;
+  });
+  if (updatedVehicle) {
+    try {
+      localStorage.setItem(VEHICLES_KEY, JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: updatedVehicle }));
+    } catch {}
+  }
+  return updatedVehicle;
+};
+
 export const updateBookingStatus = (
   bookingIdOrRef: string,
   status: StoredBooking['status'],
@@ -699,7 +664,7 @@ export const updateBookingStatus = (
     const fallbackBooking: StoredBooking = {
       id: bookingIdOrRef,
       bookingRef: bookingIdOrRef.toUpperCase().startsWith('MT-') ? bookingIdOrRef.toUpperCase() : `MT-${bookingIdOrRef.slice(0, 8).toUpperCase()}`,
-      vehicleId: 'v-safari-1',
+      vehicleId: 'active-safari-vehicle',
       vehicleMake: 'Safari Fleet',
       vehicleModel: 'Vehicle',
       vehicleName: 'Safari Fleet Vehicle',
@@ -739,72 +704,80 @@ export const deleteBooking = (bookingId: string): boolean => {
 };
 
 /**
- * Assigns demo starter vehicles to the current fleet host so they can test immediately.
+ * Rates a completed booking (1 to 5 stars) and recalculates the vehicle or destination average rating.
  */
-export const claimDemoFleetForHost = (hostId: string, hostName: string, hostEmail?: string): StoredVehicle[] => {
-  const vehicles = getStoredVehicles();
-  const existingForHost = vehicles.filter(v => v.ownerId === hostId);
-  if (existingForHost.length > 0) return existingForHost;
+export const rateBooking = (
+  bookingIdOrRef: string,
+  rating: number,
+  comment?: string,
+  tags?: string[]
+): { booking: StoredBooking | null; vehicle: StoredVehicle | null } => {
+  const bookings = getStoredBookings();
+  let updatedBooking: StoredBooking | null = null;
+  const cleanKey = bookingIdOrRef.trim().toLowerCase();
 
-  const starterCars: StoredVehicle[] = [
-    {
-      id: `v-host-safari-${Date.now()}`,
-      make: 'Toyota',
-      model: 'Land Cruiser 4x4 Prado VX',
-      year: 2024,
-      type: '4x4',
-      pricePerDay: 16000,
-      seats: 7,
-      fuelType: 'Diesel',
-      transmission: 'Automatic',
-      address: 'Nairobi JKIA / Westlands',
-      ownerId: hostId,
-      ownerName: hostName,
-      ownerEmail: hostEmail,
-      images: [
-        'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80'
-      ],
-      status: 'APPROVED',
-      isLive: true,
-      ratingAverage: 4.9,
-      ratingCount: 18,
-      hasInsurance: true,
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: `v-host-alphard-${Date.now() + 1}`,
-      make: 'Toyota',
-      model: 'Alphard Executive Lounge VIP',
-      year: 2023,
-      type: 'VAN',
-      pricePerDay: 13500,
-      seats: 7,
-      fuelType: 'Petrol',
-      transmission: 'Automatic',
-      address: 'Mombasa / Diani Beach Hub',
-      ownerId: hostId,
-      ownerName: hostName,
-      ownerEmail: hostEmail,
-      images: [
-        'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80'
-      ],
-      status: 'APPROVED',
-      isLive: true,
-      ratingAverage: 4.8,
-      ratingCount: 12,
-      hasInsurance: true,
-      createdAt: new Date().toISOString(),
+  const updatedBookings = bookings.map((b) => {
+    const matchId = b.id && b.id.trim().toLowerCase() === cleanKey;
+    const matchRef = b.bookingRef && b.bookingRef.trim().toLowerCase() === cleanKey;
+    if (matchId || matchRef) {
+      updatedBooking = {
+        ...b,
+        rating,
+        reviewComment: comment,
+        reviewTags: tags,
+        ratedAt: new Date().toISOString(),
+      };
+      return updatedBooking;
     }
-  ];
+    return b;
+  });
 
-  const updated = [...starterCars, ...vehicles];
-  try {
-    localStorage.setItem(VEHICLES_KEY, JSON.stringify(updated));
-  } catch {}
-  window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: starterCars }));
-  return starterCars;
+  if (updatedBooking) {
+    try {
+      localStorage.setItem(BOOKINGS_KEY, JSON.stringify(updatedBookings));
+    } catch {}
+    window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: updatedBooking }));
+  }
+
+  // Update corresponding vehicle rating average and count
+  let updatedVehicle: StoredVehicle | null = null;
+  const vId = updatedBooking ? (updatedBooking as StoredBooking).vehicleId : null;
+  if (vId) {
+    const vehicles = getStoredVehicles();
+    const updatedVehicles = vehicles.map((v) => {
+      if (v.id === vId) {
+        const prevCount = v.ratingCount || 0;
+        const prevAvg = v.ratingAverage || 4.8;
+        const newCount = prevCount + 1;
+        const newAvg = Number(((prevAvg * prevCount + rating) / newCount).toFixed(1));
+        updatedVehicle = {
+          ...v,
+          ratingCount: newCount,
+          ratingAverage: newAvg,
+        };
+        return updatedVehicle;
+      }
+      return v;
+    });
+
+    if (updatedVehicle) {
+      try {
+        localStorage.setItem(VEHICLES_KEY, JSON.stringify(updatedVehicles));
+      } catch {}
+      window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: updatedVehicle }));
+    }
+  }
+
+  return { booking: updatedBooking, vehicle: updatedVehicle };
+};
+
+/**
+ * Retrieves registered vehicles for the fleet host.
+ * Demo starter vehicle injection is disabled per specification (strictly host-registered & admin-approved vehicles only).
+ */
+export const claimDemoFleetForHost = (hostId: string, _hostName?: string, _hostEmail?: string): StoredVehicle[] => {
+  const vehicles = getStoredVehicles();
+  return vehicles.filter(v => v.ownerId === hostId);
 };
 
 /**
@@ -850,4 +823,204 @@ export const generateSampleBookingForVehicle = (
   });
 
   return booking;
+};
+
+/**
+ * Assign a driver to a booking
+ */
+export const assignDriverToBooking = (
+  bookingId: string,
+  driverId: string,
+  driverName: string,
+  driverPhone?: string
+): StoredBooking | null => {
+  const bookings = getStoredBookings();
+  let updatedBooking: StoredBooking | null = null;
+  const updated = bookings.map((b) => {
+    if (b.id === bookingId || b.bookingRef === bookingId) {
+      updatedBooking = {
+        ...b,
+        driverId,
+        driverName,
+        driverPhone: driverPhone || b.driverPhone || '0799887766',
+        status: b.status === 'PENDING' ? 'CONFIRMED' : 'DRIVER_ASSIGNED',
+      };
+      return updatedBooking;
+    }
+    return b;
+  });
+
+  if (updatedBooking) {
+    try {
+      localStorage.setItem(BOOKINGS_KEY, JSON.stringify(updated));
+    } catch {}
+    window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: updatedBooking }));
+    window.dispatchEvent(new CustomEvent('mt_booking_status_changed', { detail: updatedBooking }));
+  }
+  return updatedBooking;
+};
+
+/**
+ * Assign a certified driver to a fleet vehicle
+ */
+export const assignDriverToVehicle = (
+  vehicleId: string,
+  driverId: string,
+  driverName: string,
+  driverPhone?: string
+): StoredVehicle | null => {
+  const vehicles = getStoredVehicles();
+  let updatedVehicle: StoredVehicle | null = null;
+  const updated = vehicles.map((v) => {
+    if (v.id === vehicleId) {
+      updatedVehicle = {
+        ...v,
+        driverId,
+        driverName,
+        driverPhone: driverPhone || '0799887766',
+        updatedAt: new Date().toISOString(),
+      };
+      return updatedVehicle;
+    }
+    return v;
+  });
+
+  if (updatedVehicle) {
+    try {
+      localStorage.setItem(VEHICLES_KEY, JSON.stringify(updated));
+    } catch {}
+    window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: updatedVehicle }));
+  }
+  return updatedVehicle;
+};
+
+/**
+ * Mark that the driver has reached the traveler's pickup location
+ */
+export const markDriverArrived = (bookingId: string): StoredBooking | null => {
+  const bookings = getStoredBookings();
+  let target: StoredBooking | null = null;
+  const updated = bookings.map((b) => {
+    if (b.id === bookingId || b.bookingRef === bookingId) {
+      target = {
+        ...b,
+        status: 'DRIVER_ARRIVED',
+      };
+      return target;
+    }
+    return b;
+  });
+
+  if (target) {
+    try {
+      localStorage.setItem(BOOKINGS_KEY, JSON.stringify(updated));
+    } catch {}
+    window.dispatchEvent(new CustomEvent('mt_booking_status_changed', { detail: target }));
+    window.dispatchEvent(new CustomEvent('mt_driver_arrived', { detail: target }));
+  }
+  return target;
+};
+
+/**
+ * Start the road trip (status -> IN_PROGRESS)
+ */
+export const startTripForBooking = (bookingId: string): StoredBooking | null => {
+  const bookings = getStoredBookings();
+  let target: StoredBooking | null = null;
+  const updated = bookings.map((b) => {
+    if (b.id === bookingId || b.bookingRef === bookingId) {
+      target = {
+        ...b,
+        status: 'IN_PROGRESS',
+      };
+      return target;
+    }
+    return b;
+  });
+
+  if (target) {
+    try {
+      localStorage.setItem(BOOKINGS_KEY, JSON.stringify(updated));
+    } catch {}
+    window.dispatchEvent(new CustomEvent('mt_booking_status_changed', { detail: target }));
+  }
+  return target;
+};
+
+/**
+ * Complete the trip (status -> COMPLETED)
+ */
+export const completeTripForBooking = (bookingId: string): StoredBooking | null => {
+  const bookings = getStoredBookings();
+  let target: StoredBooking | null = null;
+  const updated = bookings.map((b) => {
+    if (b.id === bookingId || b.bookingRef === bookingId) {
+      target = {
+        ...b,
+        status: 'COMPLETED',
+      };
+      return target;
+    }
+    return b;
+  });
+
+  if (target) {
+    try {
+      localStorage.setItem(BOOKINGS_KEY, JSON.stringify(updated));
+    } catch {}
+    window.dispatchEvent(new CustomEvent('mt_booking_status_changed', { detail: target }));
+    window.dispatchEvent(new CustomEvent('mt_trip_completed', { detail: target }));
+  }
+  return target;
+};
+
+/**
+ * Fetch bookings assigned to a specific driver or available for assignment
+ */
+export const getDriverBookings = (driverId?: string): StoredBooking[] => {
+  const all = getStoredBookings();
+  if (!driverId) return all;
+  return all.filter(
+    (b) =>
+      b.driverId === driverId ||
+      b.driverName?.toLowerCase().includes('samuel') ||
+      b.status === 'DRIVER_ASSIGNED' ||
+      b.status === 'DRIVER_ARRIVED' ||
+      b.status === 'IN_PROGRESS' ||
+      b.status === 'CONFIRMED'
+  );
+};
+
+/**
+ * Update the pickup method ('DRIVER_DELIVER' vs 'SELF_COLLECT')
+ */
+export const updateBookingPickupMethod = (
+  bookingId: string,
+  pickupMethod: 'SELF_COLLECT' | string = 'SELF_COLLECT',
+  coords?: { pickupLat?: number; pickupLng?: number; destLat?: number; destLng?: number }
+): StoredBooking | null => {
+  const bookings = getStoredBookings();
+  let target: StoredBooking | null = null;
+  const updated = bookings.map((b) => {
+    if (b.id === bookingId || b.bookingRef === bookingId) {
+      target = {
+        ...b,
+        pickupMethod,
+        ...(coords?.pickupLat !== undefined ? { pickupLat: coords.pickupLat } : {}),
+        ...(coords?.pickupLng !== undefined ? { pickupLng: coords.pickupLng } : {}),
+        ...(coords?.destLat !== undefined ? { destinationLat: coords.destLat } : {}),
+        ...(coords?.destLng !== undefined ? { destinationLng: coords.destLng } : {}),
+      };
+      return target;
+    }
+    return b;
+  });
+
+  if (target) {
+    try {
+      localStorage.setItem(BOOKINGS_KEY, JSON.stringify(updated));
+    } catch {}
+    window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: target }));
+  }
+  return target;
 };

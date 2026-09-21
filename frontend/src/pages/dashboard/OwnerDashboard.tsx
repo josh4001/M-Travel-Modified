@@ -6,24 +6,28 @@ import { supabase, insertVehicleImages } from '@/lib/supabaseClient';
 import {
   Car, PlusCircle, Activity, DollarSign, TrendingUp,
   RefreshCw, CheckCircle, Clock, XCircle, Bell, Image as ImageIcon, ShieldCheck,
-  Banknote, BarChart3, Star, Calendar, Smartphone, Upload, Wallet, Sparkles,
-  Radio, Gauge, Compass, Battery, Navigation, Shield, AlertTriangle
+  Banknote, BarChart3, Star, Calendar, Upload, Wallet, Sparkles,
+  CheckCircle2, X, FileText, Paperclip, Eye, Download, Check, Lock
 } from 'lucide-react';
-import { type DriverTripStatus } from '@/lib/driverGpsService';
-import { useFleetHostLocationTracking } from '@/hooks/useFleetHostLocationTracking';
-import { completeTripAndArchive } from '@/lib/tripLifecycleService';
-import type { TrackingStatus } from '@/types/tracking';
 import { useCurrency } from '@/context/CurrencyContext';
 import { fetchNotifications, sendNotification, type AppNotification } from '@/lib/notificationService';
 import {
   getStoredBookings, getStoredVehicles, syncVehiclesFromSupabase, saveVehicle, updateBookingStatus,
-  claimDemoFleetForHost, generateSampleBookingForVehicle,
+  generateSampleBookingForVehicle,
   getVehicleHireStatus,
-  type StoredBooking, type StoredVehicle
+  type StoredBooking, type StoredVehicle, type VehicleDocument
 } from '@/lib/bookingStore';
-import { withdrawFromWallet } from '@/lib/paymentService';
-import { UberLiveTracker } from '@/components/tracking/UberLiveTracker';
+import { getLocalWallet } from '@/lib/paymentService';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
+import { VehicleStatusBadge } from '@/components/ui/LuxuryVehicleBadges';
+import {
+  getHostApprovalWhatsAppUrl,
+} from '@/lib/communicationService';
+import {
+  getHandoverByBookingId,
+  getInspectionByBookingId,
+  evaluateTripOverdueStatus
+} from '@/lib/rentalLifecycleStore';
 
 const STATUS_CFG: Record<string, { color: string; icon: any; label: string }> = {
   PENDING:     { color: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30', icon: Clock,         label: 'Pending Approval' },
@@ -41,15 +45,22 @@ export default function OwnerDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as 'fleet' | 'bookings' | 'earnings' | 'add' | 'alerts' | null;
 
-  const [vehicles, setVehicles] = useState<StoredVehicle[]>([]);
-  const [bookings, setBookings] = useState<StoredBooking[]>([]);
+  const [vehicles, setVehicles] = useState<StoredVehicle[]>(() => {
+    const all = getStoredVehicles();
+    const uid = user?.id;
+    return uid ? all.filter(v => v.ownerId === uid || (user?.email && v.ownerEmail === user.email)) : [];
+  });
+  const [bookings, setBookings] = useState<StoredBooking[]>(() => {
+    const all = getStoredBookings();
+    const uid = user?.id;
+    const vIds = new Set(getStoredVehicles().filter(v => uid && (v.ownerId === uid || (user?.email && v.ownerEmail === user.email))).map(v => v.id));
+    return uid ? all.filter(b => (b.ownerId && (b.ownerId === uid || (user?.email && b.ownerId === user.email))) || vIds.has(b.vehicleId)) : [];
+  });
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading] = useState(false);
   const [activeTab, setActiveTab] = useState<'fleet' | 'bookings' | 'earnings' | 'add' | 'alerts'>(
     tabParam && ['fleet', 'bookings', 'earnings', 'add', 'alerts'].includes(tabParam) ? tabParam : 'fleet'
   );
-  const [showOpenCvTracker, setShowOpenCvTracker] = useState(false);
-  const [selectedBookingForTrack, setSelectedBookingForTrack] = useState<StoredBooking | null>(null);
   const [approvalAlert, setApprovalAlert] = useState<string | null>(null);
   const [rejectConfirm, setRejectConfirm] = useState<string | null>(null);
 
@@ -67,17 +78,68 @@ export default function OwnerDashboard() {
 
   // New vehicle form state with verification photos (Front & Back view)
   const [newV, setNewV] = useState({
-    make: '', model: '', year: '2024', type: '4x4', price_per_day: '15000', seats: '7', address: '',
+    make: '', model: '', year: '2024', type: '4x4', price_per_day: '15000', seats: '7', address: '', plateNumber: '',
   });
   const [frontPhoto, setFrontPhoto] = useState<string>('https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80');
   const [backPhoto, setBackPhoto] = useState<string>('https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80');
   const [extraPhotos, setExtraPhotos] = useState<string[]>([]);
   const [extraPhotoInput, setExtraPhotoInput] = useState('');
 
+  // Compliance Documents state (Logbook, Insurance, Inspection)
+  const [documents, setDocuments] = useState<VehicleDocument[]>([]);
+  const [docUploadLoading, setDocUploadLoading] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<VehicleDocument | null>(null);
+
+  const handleDocumentUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: 'LOGBOOK' | 'INSURANCE' | 'INSPECTION_CERT' | 'OTHER',
+    defaultName: string
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setDocUploadLoading(true);
+
+    try {
+      let fileUrl = '';
+      if (file.type.startsWith('image/')) {
+        fileUrl = await compressImageFile(file, 1400, 0.82);
+      } else {
+        fileUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => resolve('');
+          reader.readAsDataURL(file);
+        });
+      }
+
+      if (!fileUrl) return;
+
+      const sizeKB = Math.round(file.size / 1024);
+      const sizeStr = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
+
+      const newDoc: VehicleDocument = {
+        id: `doc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        name: defaultName,
+        type,
+        fileUrl,
+        fileName: file.name,
+        fileSize: sizeStr,
+        uploadedAt: new Date().toISOString(),
+      };
+
+      setDocuments((prev) => [...prev.filter((d) => d.type !== type), newDoc]);
+    } finally {
+      setDocUploadLoading(false);
+      e.target.value = '';
+    }
+  };
+
+  const removeDocument = (docId: string) => {
+    setDocuments((prev) => prev.filter((d) => d.id !== docId));
+  };
+
   const [addMsg, setAddMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [isDriverOnline, setIsDriverOnline] = useState(false);
-  const [tripStatus, setTripStatus] = useState<DriverTripStatus>('OFFLINE');
 
   // Client-side Canvas Image Compression helper (converts heavy uploads to lightweight ~40KB JPEGs)
   const compressImageFile = (file: File, maxWidth = 800, quality = 0.7): Promise<string> => {
@@ -130,69 +192,21 @@ export default function OwnerDashboard() {
     setExtraPhotoInput('');
   };
 
-  // Payout form state
-  const [payoutPhone, setPayoutPhone] = useState(user?.phone || '0722374535');
-  const [payoutAmount, setPayoutAmount] = useState('');
-  const [payoutLoading, setPayoutLoading] = useState(false);
-  const [payoutMsg, setPayoutMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
-
-  // Live GPS Tracking Hook for Fleet Host
-  const [selectedVehicleIdForTracking, setSelectedVehicleIdForTracking] = useState<string>('');
-  const {
-    isPublishing,
-    startTracking,
-    stopTracking,
-    setTripStatus: setHostTripStatus,
-    currentTelemetry,
-    error: gpsError,
-    gpsQuality,
-    bufferedCount,
-  } = useFleetHostLocationTracking({
-    vehicleId: selectedVehicleIdForTracking || vehicles[0]?.id,
-    tripId: 'TRIP-AVAILABLE',
-  });
-
-  const toggleDriverGps = async () => {
-    if (!isPublishing) {
-      const vId = selectedVehicleIdForTracking || vehicles[0]?.id || '00000000-0000-0000-0000-000000000001';
-      const activeBooking = bookings.find(b => b.vehicleId === vId && ['IN_PROGRESS', 'CONFIRMED'].includes(b.status));
-      const tripId = activeBooking?.bookingRef || `TRIP-${vId.slice(0, 8)}`;
-      const ok = await startTracking(vId, tripId);
-      if (ok) {
-        setIsDriverOnline(true);
-        setTripStatus('DRIVING_TO_PICKUP');
-      }
-    } else {
-      stopTracking();
-      setIsDriverOnline(false);
-      setTripStatus('OFFLINE');
-    }
-  };
-
-  const handleTripStatusChange = async (newStatus: TrackingStatus) => {
-    setHostTripStatus(newStatus);
-    setTripStatus(newStatus as DriverTripStatus);
-
-    // If marked completed, archive route and refresh
-    if (newStatus === 'TRIP_COMPLETED') {
-      const vId = selectedVehicleIdForTracking || vehicles[0]?.id || '';
-      const activeBooking = bookings.find(b => b.vehicleId === vId && ['IN_PROGRESS', 'CONFIRMED'].includes(b.status));
-      if (activeBooking) {
-        await completeTripAndArchive(activeBooking.bookingRef, []);
-        updateBookingStatus(activeBooking.id, 'COMPLETED');
-        window.dispatchEvent(new CustomEvent('mt_booking_status_changed'));
-      }
-      setTimeout(() => {
-        stopTracking();
-        setIsDriverOnline(false);
-        setTripStatus('OFFLINE');
-      }, 1500);
-    }
-  };
 
   const fetchData = async () => {
-    setLoading(true);
-    await syncVehiclesFromSupabase().catch(() => {});
+    // Non-blocking background sync from Supabase
+    syncVehiclesFromSupabase().then(() => {
+      const allVehicles = getStoredVehicles();
+      const currentUserId = user?.id;
+      const ownerVehicles = currentUserId
+        ? allVehicles.filter(v => 
+            v.ownerId === currentUserId || 
+            (user?.email && v.ownerEmail === user.email)
+          )
+        : [];
+      setVehicles(ownerVehicles);
+    }).catch(() => {});
+
     const allVehicles = getStoredVehicles();
     const allBookings = getStoredBookings();
 
@@ -217,10 +231,11 @@ export default function OwnerDashboard() {
     setVehicles(ownerVehicles);
     setBookings(ownerBookings);
 
-    // Fetch alerts strictly isolated to this host
-    const notifs = await fetchNotifications(user?.id, 'VEHICLE_OWNER');
-    setNotifications(notifs);
-    setLoading(false);
+    // Fetch alerts strictly isolated to this host in background
+    fetchNotifications(user?.id, 'VEHICLE_OWNER').then(notifs => {
+      if (notifs) setNotifications(notifs);
+    }).catch(() => {});
+
   };
 
   useEffect(() => {
@@ -232,7 +247,7 @@ export default function OwnerDashboard() {
       const v = e.detail;
       // Security check: Only notify if the approved vehicle belongs to this host
       if (v && (v.ownerId === user?.id || (user?.email && v.ownerEmail === user.email))) {
-        setApprovalAlert(`🎉 Congratulations! Admin has approved your vehicle "${v?.make} ${v?.model}" and pushed it live for tourist bookings!`);
+        setApprovalAlert(`🎉 Congratulations! Admin has approved your vehicle "${v?.make} ${v?.model}" and pushed it live for tourist bookings! Your official accreditation and onboarding notice is ready via automated WhatsApp.`);
       }
     };
     const handleNotifUpdate = () => {
@@ -244,6 +259,7 @@ export default function OwnerDashboard() {
     window.addEventListener('mt_vehicle_approved', handleVehicleApproved);
     window.addEventListener('mt_vehicle_updated', handleBookingUpdate);
     window.addEventListener('mt_notification_received', handleNotifUpdate);
+    window.addEventListener('mt_wallet_updated', handleBookingUpdate);
 
     return () => {
       window.removeEventListener('mt_booking_updated', handleBookingUpdate);
@@ -251,6 +267,7 @@ export default function OwnerDashboard() {
       window.removeEventListener('mt_vehicle_approved', handleVehicleApproved);
       window.removeEventListener('mt_vehicle_updated', handleBookingUpdate);
       window.removeEventListener('mt_notification_received', handleNotifUpdate);
+      window.removeEventListener('mt_wallet_updated', handleBookingUpdate);
     };
   }, [user?.id, user?.email]);
 
@@ -263,7 +280,14 @@ export default function OwnerDashboard() {
     .reduce((s, b) => s + Number(b.totalAmount), 0);
 
   const platformFee = totalEarnings * 0.15;
-  const netEarnings = Math.max(0, totalEarnings - platformFee);
+  const grossNet = Math.max(0, totalEarnings - platformFee);
+
+  const localW = user?.id ? getLocalWallet(user.id, true, user?.email) : null;
+  const totalWithdrawn = (localW?.transactions || [])
+    .filter(t => t.type === 'WITHDRAWAL' && t.status === 'COMPLETED')
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const netEarnings = Math.max(0, grossNet - totalWithdrawn);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -292,7 +316,9 @@ export default function OwnerDashboard() {
         ownerName: `${user.firstName ?? 'Fleet Host'} ${user.lastName ?? ''}`.trim(),
         ownerEmail: user.email,
         images: chosenPhotos,
-        hasInsurance: true,
+        hasInsurance: documents.some(d => d.type === 'INSURANCE') || true,
+        plateNumber: newV.plateNumber,
+        documents: documents,
       });
 
       try {
@@ -320,7 +346,7 @@ export default function OwnerDashboard() {
         role: 'ADMIN',
         type: 'VEHICLE_PENDING_ADMIN',
         title: `New Vehicle Registration Request: ${newV.make} ${newV.model}`,
-        message: `Fleet Host ${user?.firstName ?? 'Car Owner'} submitted a new ${newV.make} ${newV.model} (${newV.year}) for approval.`,
+        message: `Fleet Host ${user?.firstName ?? 'Car Owner'} submitted a new ${newV.make} ${newV.model} (${newV.year}) with ${documents.length} compliance document(s) for approval.`,
         link: '/dashboard/admin',
       });
 
@@ -329,12 +355,13 @@ export default function OwnerDashboard() {
         role: 'VEHICLE_OWNER',
         type: 'VEHICLE_SUBMITTED',
         title: `Vehicle Registered: ${newV.make} ${newV.model}`,
-        message: `Your ${newV.make} ${newV.model} was registered and submitted for Admin verification.`,
+        message: `Your ${newV.make} ${newV.model} was registered with ${documents.length} compliance document(s) and submitted for Admin verification.`,
         link: '/dashboard/owner?tab=fleet',
       });
 
       setAddMsg(`🎉 "${newV.make} ${newV.model}" registered successfully! Redirecting to your fleet…`);
-      setNewV({ make: '', model: '', year: '2024', type: '4x4', price_per_day: '15000', seats: '7', address: '' });
+      setNewV({ make: '', model: '', year: '2024', type: '4x4', price_per_day: '15000', seats: '7', address: '', plateNumber: '' });
+      setDocuments([]);
       fetchData();
       setTimeout(() => switchTab('fleet'), 1200);
     } catch (err: any) {
@@ -376,12 +403,10 @@ export default function OwnerDashboard() {
         message: `Trip ${b.bookingRef} marked completed! ${formatPrice(earned)} has been released to your Net Earnings balance.`,
         link: '/dashboard/owner?tab=earnings',
       });
-      setApprovalAlert(`🎉 Trip ${b.bookingRef} completed! ${formatPrice(earned)} released to your Net Earnings.`);
+      setApprovalAlert(`🎉 Trip ${b.bookingRef} completed! ${formatPrice(earned)} released to your Net Earnings & Wallet balance.`);
     }
     fetchData();
   };
-
-
 
   const handleGenerateSampleBooking = (v: StoredVehicle) => {
     if (!user?.id) return;
@@ -405,60 +430,6 @@ export default function OwnerDashboard() {
     switchTab('bookings');
   };
 
-  const handleClaimDemoFleet = () => {
-    if (!user?.id) return;
-    claimDemoFleetForHost(
-      user.id,
-      `${user.firstName ?? 'Host'} ${user.lastName ?? ''}`.trim(),
-      user.email
-    );
-    setApprovalAlert('🎉 Demo fleet of 2 verified luxury vehicles assigned to your host account!');
-    fetchData();
-  };
-
-  const handleRequestPayout = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user?.id) return;
-    const amt = Number(payoutAmount);
-    if (!amt || amt <= 0) {
-      setPayoutMsg({ type: 'err', text: 'Please enter a valid payout amount.' });
-      return;
-    }
-    if (amt > netEarnings) {
-      setPayoutMsg({ type: 'err', text: `Amount exceeds available net earnings of ${formatPrice(netEarnings)}.` });
-      return;
-    }
-    if (!payoutPhone || payoutPhone.length < 9) {
-      setPayoutMsg({ type: 'err', text: 'Please enter a valid M-Pesa phone number (e.g. 0712345678).' });
-      return;
-    }
-
-    setPayoutLoading(true);
-    setPayoutMsg(null);
-    const res = await withdrawFromWallet(user.id, payoutPhone, amt);
-
-    if (res.success) {
-      const receiptRef = res.reference || `B2C-${Date.now()}`;
-      setPayoutMsg({
-        type: 'ok',
-        text: `🎉 M-Pesa B2C Payout of ${formatPrice(amt)} approved & dispatched to ${payoutPhone}! (M-Pesa Ref: ${receiptRef})`
-      });
-      setPayoutAmount('');
-      sendNotification({
-        recipientId: user?.id,
-        role: 'VEHICLE_OWNER',
-        type: 'PAYOUT_DISPATCHED',
-        title: 'M-Pesa Payout Dispatched',
-        message: `M-Pesa B2C transfer of ${formatPrice(amt)} sent to ${payoutPhone}. Receipt: ${receiptRef}`,
-        link: '/dashboard/wallet',
-      });
-      fetchData();
-    } else {
-      setPayoutMsg({ type: 'err', text: res.message || 'Payout request failed.' });
-    }
-    setPayoutLoading(false);
-  };
-
   const TABS = [
     { id: 'fleet',    label: `My Registered Cars (${vehicles.length})`, icon: Car },
     { id: 'bookings', label: `Bookings (${bookings.length})`, icon: Clock },
@@ -469,60 +440,50 @@ export default function OwnerDashboard() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6 font-display text-slate-900">
-      {/* UBER LIVE GPS TRACKER MODAL */}
-      {showOpenCvTracker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md overflow-y-auto">
-          <div className="w-full max-w-4xl my-8">
-            <UberLiveTracker
-              vehicle={{
-                id: selectedBookingForTrack?.vehicleId || 'vh-host',
-                hostId: user?.id || 'host-1',
-                make: selectedBookingForTrack?.vehicleMake || 'Toyota',
-                model: selectedBookingForTrack?.vehicleModel || 'Land Cruiser',
-                year: 2024,
-                type: 'SUV' as any,
-                seatingCapacity: 7,
-                fuelType: 'DIESEL' as any,
-                transmission: 'AUTOMATIC' as any,
-                dailyRate: 150,
-                isAvailable: true,
-                images: selectedBookingForTrack?.vehicleImage ? [selectedBookingForTrack.vehicleImage] : [],
-                features: [],
-                rating: 4.9,
-                tripsCount: 142,
-                plateNumber: 'KDA 782P',
-                owner: {
-                  id: user?.id || 'owner-1',
-                  firstName: user?.firstName || 'Samuel',
-                  lastName: user?.lastName || 'Omondi',
-                  email: user?.email || 'owner@mtravel.co.ke',
-                  phone: user?.phone || '+254 712 345 678',
-                  avatarUrl: user?.avatarUrl || '',
-                  rating: 4.9,
-                  tripsCount: 142,
-                }
-              }}
-              bookingRef={selectedBookingForTrack?.bookingRef || 'MT-884920'}
-              tripId={selectedBookingForTrack?.id || selectedBookingForTrack?.bookingRef || 'MT-884920'}
-              startDate={selectedBookingForTrack?.startDate}
-              endDate={selectedBookingForTrack?.endDate}
-              pickupLocation={selectedBookingForTrack?.pickupLocation || 'Westlands, Nairobi'}
-              dropoffLocation={selectedBookingForTrack?.dropoffLocation || 'Maasai Mara National Reserve'}
-              viewerRole="DRIVER"
-              onClose={() => setShowOpenCvTracker(false)}
-            />
-          </div>
-        </div>
-      )}
 
       {/* APPROVAL ALERT POPUP */}
       {approvalAlert && (
-        <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-3">
-            <CheckCircle className="h-6 w-6 text-emerald-600 shrink-0" />
-            <p className="text-xs text-emerald-900 font-bold">{approvalAlert}</p>
+        <div className="rounded-3xl border border-amber-400/50 bg-gradient-to-r from-[#0E1526] via-[#161F36] to-[#0E1526] p-5 shadow-2xl text-white flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="rounded-2xl bg-amber-500/20 p-3 text-amber-400 border border-amber-500/40 shrink-0 shadow-inner">
+              <CheckCircle2 className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-300 font-mono">
+                  Official Vehicle Accreditation
+                </span>
+                <span className="rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-2.5 py-0.5 text-[10px] font-mono font-bold">
+                  ✓ Automated WhatsApp Notification Ready
+                </span>
+              </div>
+              <p className="text-xs text-slate-200 mt-1 font-medium leading-relaxed max-w-2xl">{approvalAlert}</p>
+            </div>
           </div>
-          <button onClick={() => setApprovalAlert(null)} className="btn-ghost !py-1 !px-3 text-xs border border-emerald-200 text-emerald-800">Dismiss</button>
+          <div className="flex items-center gap-2.5 shrink-0">
+            {vehicles.some(x => x.status === 'APPROVED') && (
+              <a
+                href={getHostApprovalWhatsAppUrl({
+                  hostName: `${user?.firstName || 'Matthew'} ${user?.lastName || ''}`.trim(),
+                  hostPhone: (user as any)?.phone || '0712345678',
+                  vehicle: vehicles.find(x => x.status === 'APPROVED') || vehicles[0],
+                })}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-primary !py-2 !px-4 text-xs font-bold text-slate-950 bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 shadow-md flex items-center gap-1.5 transition"
+                title="Open official WhatsApp vehicle approval notice"
+              >
+                <span>💬 Open WhatsApp Accreditation</span>
+              </a>
+            )}
+            <button
+              onClick={() => setApprovalAlert(null)}
+              className="rounded-lg p-2 text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              title="Dismiss banner"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -540,26 +501,6 @@ export default function OwnerDashboard() {
             <p className="mt-1 text-sm text-slate-200 font-medium">Manage your registered cars, tourist bookings, and earnings in one place.</p>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={toggleDriverGps}
-              className={`flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-xs font-bold transition shadow-md ${
-                isDriverOnline
-                  ? 'border-emerald-400 bg-emerald-500 text-slate-950 animate-pulse'
-                  : 'border-white/30 bg-white/15 text-white hover:bg-white/25'
-              }`}
-            >
-              {isDriverOnline ? (
-                <>
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-950 animate-ping" />
-                  Live ({tripStatus})
-                </>
-              ) : (
-                <>
-                  <Smartphone className="h-4 w-4 text-amber-300" />
-                  Start GPS Broadcast
-                </>
-              )}
-            </button>
             <button onClick={fetchData} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2.5 text-xs font-bold transition">
               <RefreshCw className="h-4 w-4 text-amber-300" /> Refresh
             </button>
@@ -614,143 +555,6 @@ export default function OwnerDashboard() {
             </button>
           </div>
 
-          {/* FLEET HOST LIVE GPS TELEMETRY CONSOLE */}
-          <div className="rounded-2xl border border-emerald-300/80 bg-gradient-to-br from-emerald-50 via-white to-teal/10 p-5 shadow-sm space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-md">
-                  <Radio className="h-5 w-5 animate-pulse" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-display font-bold text-slate-900 text-sm">Fleet Host GPS Telemetry Console</h3>
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border ${
-                      isPublishing
-                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300 animate-pulse'
-                        : 'bg-slate-100 text-slate-600 border-slate-300'
-                    }`}>
-                      {isPublishing ? '● BROADCASTING LIVE' : '○ STANDBY'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 font-medium">Broadcast your vehicle's live smartphone GPS position to the assigned traveller and platform admin.</p>
-                </div>
-              </div>
-
-              {/* Start/Stop Toggle Button */}
-              <button
-                onClick={toggleDriverGps}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition shadow-md ${
-                  isPublishing
-                    ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/30'
-                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30'
-                }`}
-              >
-                {isPublishing ? (
-                  <>
-                    <XCircle className="h-4 w-4" /> Stop Live GPS
-                  </>
-                ) : (
-                  <>
-                    <Navigation className="h-4 w-4" /> Start Live GPS Broadcast
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Vehicle selection for GPS tracking if multiple cars */}
-            {vehicles.length > 1 && (
-              <div className="flex items-center gap-2 text-xs pt-2 border-t border-emerald-200/50">
-                <span className="font-semibold text-slate-700">Select Car for Live GPS:</span>
-                <select
-                  value={selectedVehicleIdForTracking || vehicles[0]?.id}
-                  onChange={(e) => setSelectedVehicleIdForTracking(e.target.value)}
-                  className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white font-bold text-slate-800 text-xs focus:ring-1 focus:ring-emerald-500"
-                >
-                  {vehicles.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.make} {v.model} ({v.plateNumber || 'Car'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* GPS Error notification */}
-            {gpsError && (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-700 font-semibold flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
-                <span>{gpsError}</span>
-              </div>
-            )}
-
-            {/* When Publishing, show interactive telemetry gauges & status controller */}
-            {isPublishing && (
-              <div className="pt-2 border-t border-emerald-200/60 space-y-3 animate-in fade-in duration-200">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-                  {/* Signal Quality */}
-                  <div className="p-2.5 rounded-xl bg-white border border-slate-200 shadow-xs">
-                    <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-slate-500">
-                      <Shield className="h-3.5 w-3.5 text-emerald-600" /> GPS Signal
-                    </div>
-                    <div className="font-mono font-black text-xs text-slate-900 mt-1">
-                      {gpsQuality} {currentTelemetry?.accuracy ? `(±${currentTelemetry.accuracy}m)` : ''}
-                    </div>
-                  </div>
-
-                  {/* Speedometer */}
-                  <div className="p-2.5 rounded-xl bg-white border border-slate-200 shadow-xs">
-                    <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-slate-500">
-                      <Gauge className="h-3.5 w-3.5 text-teal" /> Live Speed
-                    </div>
-                    <div className="font-mono font-black text-xs text-slate-900 mt-1">
-                      {currentTelemetry?.speed || 0} km/h
-                    </div>
-                  </div>
-
-                  {/* Compass Heading */}
-                  <div className="p-2.5 rounded-xl bg-white border border-slate-200 shadow-xs">
-                    <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-slate-500">
-                      <Compass className="h-3.5 w-3.5 text-amber-500" /> Compass Heading
-                    </div>
-                    <div className="font-mono font-black text-xs text-slate-900 mt-1">
-                      {currentTelemetry?.heading || 0}°
-                    </div>
-                  </div>
-
-                  {/* Battery / Offline Buffer */}
-                  <div className="p-2.5 rounded-xl bg-white border border-slate-200 shadow-xs">
-                    <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-slate-500">
-                      <Battery className="h-3.5 w-3.5 text-emerald-500" /> Battery / Sync
-                    </div>
-                    <div className="font-mono font-black text-xs text-slate-900 mt-1">
-                      {currentTelemetry?.battery_level !== undefined ? `${currentTelemetry.battery_level}%` : '100%'}
-                      {bufferedCount > 0 && <span className="text-[9px] text-amber-600 ml-1 font-sans font-bold">({bufferedCount} buffered)</span>}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Trip Phase Selector */}
-                <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-slate-200">
-                  <span className="text-xs font-bold text-slate-700">Update Trip Phase:</span>
-                  <div className="flex flex-wrap gap-1.5 text-xs font-semibold">
-                    {(['AVAILABLE', 'DRIVING_TO_PICKUP', 'WAITING_FOR_TOURIST', 'TRIP_IN_PROGRESS', 'TRIP_COMPLETED'] as TrackingStatus[]).map((phase) => (
-                      <button
-                        key={phase}
-                        onClick={() => handleTripStatusChange(phase)}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition border ${
-                          (currentTelemetry?.status || tripStatus) === phase
-                            ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                        }`}
-                      >
-                        {phase.replace(/_/g, ' ')}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
 
           {loading ? (
             <div className="glass-card rounded-2xl p-10 text-center">
@@ -773,23 +577,14 @@ export default function OwnerDashboard() {
                       <span className="absolute top-3 left-3 rounded-full bg-mtravel-burgundy text-amber-300 font-mono text-[10px] font-bold px-2.5 py-0.5 border border-amber-400/30">
                         {v.type}
                       </span>
-                      {v.status === 'PENDING_APPROVAL' ? (
-                        <span className="absolute top-3 right-3 rounded-full bg-yellow-400 text-slate-950 font-bold text-[10px] px-2.5 py-0.5 shadow-sm">
-                          ⏳ Reviewing
-                        </span>
-                      ) : hireStatus.isHired ? (
-                        <span className="absolute top-3 right-3 rounded-full bg-amber-400 text-slate-950 font-bold text-[10px] px-2.5 py-0.5 shadow-sm animate-pulse">
-                          🚗 On Trip
-                        </span>
-                      ) : isLive ? (
-                        <span className="absolute top-3 right-3 rounded-full bg-emerald-400 text-slate-950 font-bold text-[10px] px-2.5 py-0.5 shadow-sm">
-                          🟢 Live
-                        </span>
-                      ) : (
-                        <span className="absolute top-3 right-3 rounded-full bg-slate-700 text-slate-100 font-bold text-[10px] px-2.5 py-0.5 shadow-sm">
-                          ⏸️ Offline
-                        </span>
-                      )}
+                      <div className="absolute top-3 right-3">
+                        <VehicleStatusBadge
+                          isHired={hireStatus.isHired}
+                          isLive={isLive}
+                          isPendingApproval={v.status === 'PENDING_APPROVAL'}
+                          variant="overlay"
+                        />
+                      </div>
                       <span className="absolute bottom-3 left-3 text-xs font-bold text-white bg-slate-950/80 px-2.5 py-1 rounded-full border border-white/20">
                         {v.seats} Seats | {v.fuelType}
                       </span>
@@ -827,55 +622,113 @@ export default function OwnerDashboard() {
                     )}
 
                     {/* LIVE FLEET / TRIP STATUS CONTROL PANEL */}
-                    {v.status === 'APPROVED' && (
-                      hireStatus.isHired ? (
-                        <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-3 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900">
-                              <Car className="h-3.5 w-3.5 text-amber-700" />
-                              🚗 On Active Trip (Hired until {hireStatus.returnDate || 'completion'})
-                            </span>
-                            <span className="rounded-full bg-amber-200 text-amber-900 text-[10px] font-bold px-2 py-0.5">
-                              Auto-Locked
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-amber-800 font-medium">
-                            Currently with tourist <strong className="font-semibold text-slate-900">{hireStatus.touristName || 'Traveler'}</strong>. Hire is automatically paused on marketplace until car is returned.
-                          </p>
-                        </div>
-                      ) : (
-                        <div className={`rounded-xl border p-3 flex items-center justify-between transition-all duration-200 ${
-                          isLive ? 'bg-emerald-50/80 border-emerald-200' : 'bg-slate-50 border-slate-200'
-                        }`}>
-                          <div className="space-y-0.5 pr-2">
-                            <div className="flex items-center gap-1.5">
-                              <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${
-                                isLive ? 'text-emerald-800' : 'text-slate-600'
-                              }`}>
-                                <span className={`h-2.5 w-2.5 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-                                {isLive ? '🟢 Live on Marketplace' : '⏸️ Offline (Standby)'}
+                    {v.status === 'APPROVED' && (() => {
+                      const activeBooking = vBookings.find(b => b.status === 'IN_PROGRESS' || b.status === 'ACTIVE');
+                      const handover = activeBooking ? getHandoverByBookingId(activeBooking.id) : undefined;
+                      const overdueEval = activeBooking ? evaluateTripOverdueStatus(activeBooking) : null;
+                      const completedWithInspection = vBookings
+                        .filter(b => b.status === 'COMPLETED')
+                        .map(b => ({ booking: b, inspection: getInspectionByBookingId(b.id) }))
+                        .filter(item => item.inspection !== undefined);
+
+                      return (
+                        <div className="space-y-2.5">
+                          {hireStatus.isHired || activeBooking ? (
+                            <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-3.5 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                                  <Lock className="h-3.5 w-3.5 text-amber-700 shrink-0" />
+                                  Active Rental in Progress 🔐
+                                </span>
+                                {overdueEval && (
+                                  <span className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${overdueEval.badgeClass}`}>
+                                    {overdueEval.label}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="text-xs text-amber-950 space-y-1">
+                                <p>
+                                  <strong>Renter:</strong> {activeBooking?.touristName || hireStatus.touristName || 'Traveler'} ({activeBooking?.touristPhone || 'Direct Client'})
+                                </p>
+                                <p className="text-[11px] text-amber-800">
+                                  <strong>Handover State:</strong> {handover ? `✓ Handover Confirmed at ${handover.odometerReading.toLocaleString()} km (Fuel: ${handover.fuelLevelPercent}%)` : 'Handover In Progress'}
+                                </p>
+                                {handover?.existingDamageNotes && (
+                                  <p className="text-[10px] text-amber-700 italic">
+                                    Pre-departure notes: "{handover.existingDamageNotes}"
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className={`rounded-xl border p-3 flex items-center justify-between transition-all duration-200 ${
+                              isLive ? 'bg-emerald-50/80 border-emerald-200' : 'bg-slate-50 border-slate-200'
+                            }`}>
+                              <div className="space-y-0.5 pr-2">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${
+                                    isLive ? 'text-emerald-800' : 'text-slate-600'
+                                  }`}>
+                                    <span className={`h-2 w-2 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                                    {isLive ? 'Live on Marketplace' : 'Offline (Standby)'}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-slate-500 font-medium leading-tight">
+                                  {isLive 
+                                    ? 'Pushed live by Admin. Tourists can discover and book this vehicle in real time.' 
+                                    : 'Vehicle is approved. Admin activates the live toggle to push vehicle to travelers.'}
+                                </p>
+                              </div>
+
+                              <div className="shrink-0 text-right">
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold border shadow-xs ${
+                                  isLive 
+                                    ? 'bg-emerald-100/80 text-emerald-800 border-emerald-300' 
+                                    : 'bg-slate-200/80 text-slate-700 border-slate-300'
+                                }`}>
+                                  <ShieldCheck className="h-3 w-3" />
+                                  {isLive ? 'Admin Verified Live' : 'Admin Controlled'}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Compliance Documents Status Badges */}
+                          <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200/70 flex flex-wrap items-center justify-between gap-1.5 text-[11px]">
+                            <span className="font-bold text-slate-600 uppercase text-[10px] tracking-wider">Compliance Docs:</span>
+                            <div className="flex flex-wrap gap-1">
+                              <span className="px-2 py-0.5 rounded font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                ✓ Logbook Verified
+                              </span>
+                              <span className="px-2 py-0.5 rounded font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                ✓ Commercial Insurance
+                              </span>
+                              <span className="px-2 py-0.5 rounded font-mono font-bold bg-teal/10 text-teal border border-teal/20">
+                                ✓ NTSA Inspection
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-500 font-medium leading-tight">
-                              {isLive 
-                                ? 'Pushed live by Admin. Tourists can discover and book this vehicle in real time.' 
-                                : 'Vehicle is approved. Admin activates the live toggle to push vehicle to travelers.'}
-                            </p>
                           </div>
 
-                          <div className="shrink-0 text-right">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold border shadow-xs ${
-                              isLive 
-                                ? 'bg-emerald-100/80 text-emerald-800 border-emerald-300' 
-                                : 'bg-slate-200/80 text-slate-700 border-slate-300'
-                            }`}>
-                              <ShieldCheck className="h-3 w-3" />
-                              {isLive ? 'Admin Verified Live' : 'Admin Controlled'}
-                            </span>
-                          </div>
+                          {/* Return History & Damage Log (if completed trips exist) */}
+                          {completedWithInspection.length > 0 && (
+                            <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200/80 text-xs space-y-1">
+                              <span className="font-bold text-slate-700 text-[11px] block">
+                                Recent Rental Return Inspection Log:
+                              </span>
+                              {completedWithInspection.slice(0, 2).map(({ booking: cb, inspection: ci }) => (
+                                <div key={cb.id} className="text-[11px] text-slate-600 flex justify-between items-center border-t border-slate-200/60 pt-1">
+                                  <span>{cb.touristName} (Ref: {cb.bookingRef})</span>
+                                  <span className={`font-mono font-bold ${ci?.damageFound ? 'text-red-700' : 'text-emerald-700'}`}>
+                                    {ci?.damageFound ? `⚠ Damage: ${ci.damageDescription}` : '✓ Returned Clean (0 Damage)'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )
-                    )}
+                      );
+                    })()}
 
                     {/* Performance metrics */}
                     <div className="grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3 border border-slate-200/80">
@@ -895,39 +748,13 @@ export default function OwnerDashboard() {
 
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
                       <span className="font-mono font-bold text-amber-700 text-base">{formatPrice(v.pricePerDay)}/day</span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
                           onClick={() => handleGenerateSampleBooking(v)}
                           title="Generate a realistic incoming booking request for this car"
                           className="btn-secondary !py-1 !px-2.5 text-[11px] font-bold text-teal-800 bg-teal-50 border-teal-200 hover:bg-teal-100 flex items-center gap-1"
                         >
                           <Sparkles className="h-3 w-3 text-teal-600" /> + Test Booking
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedBookingForTrack({
-                              id: 'b-0',
-                              bookingRef: 'MT-LIVE',
-                              vehicleId: v.id,
-                              vehicleMake: v.make,
-                              vehicleModel: v.model,
-                              vehicleName: `${v.make} ${v.model}`,
-                              vehicleImage: v.images[0],
-                              touristId: 't-1',
-                              touristName: 'Tourist Traveler',
-                              touristPhone: '0712345678',
-                              startDate: '2026-08-10',
-                              endDate: '2026-08-12',
-                              totalAmount: v.pricePerDay * 2,
-                              paymentStatus: 'PAID',
-                              status: 'IN_PROGRESS',
-                              createdAt: new Date().toISOString(),
-                            });
-                            setShowOpenCvTracker(true);
-                          }}
-                          className="btn-secondary !py-1 !px-2.5 text-[11px] flex items-center gap-1 text-slate-800 border-slate-200 hover:text-slate-950 font-bold"
-                        >
-                          <Navigation className="h-3.5 w-3.5 text-emerald-600" /> Track (Uber GPS)
                         </button>
                       </div>
                     </div>
@@ -939,16 +766,13 @@ export default function OwnerDashboard() {
                   <div className="mx-auto w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center">
                     <Car className="h-6 w-6 text-amber-600" />
                   </div>
-                  <h3 className="font-serif text-lg font-bold text-slate-900">No cars registered to your host account yet</h3>
+                  <h3 className="font-serif text-lg font-bold text-slate-900">No vehicles available at the moment</h3>
                   <p className="text-xs text-slate-500 font-medium max-w-md mx-auto">
-                    Only vehicles registered to your host account appear here. Register your first vehicle to start receiving tourist bookings and earning.
+                    You have not registered any vehicles to your host fleet yet. Register your vehicle to submit it for Admin verification and push it live to the marketplace.
                   </p>
                   <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                     <button onClick={() => switchTab('add')} className="btn-primary !py-2 !px-4 text-xs font-bold text-white shadow-sm inline-flex items-center gap-1.5">
                       <PlusCircle className="h-4 w-4" /> Register Your First Car
-                    </button>
-                    <button onClick={handleClaimDemoFleet} className="btn-secondary !py-2 !px-4 text-xs font-bold text-slate-800 border-slate-300 hover:bg-slate-50 inline-flex items-center gap-1.5">
-                      <Sparkles className="h-4 w-4 text-amber-600" /> Claim Demo Fleet (2 Vehicles)
                     </button>
                   </div>
                 </div>
@@ -1051,18 +875,6 @@ export default function OwnerDashboard() {
                         {rejectConfirm === b.id ? 'Confirm Rejection?' : 'Decline'}
                       </button>
                     )}
-                    {/* Live track */}
-                    {['ACCEPTED', 'CONFIRMED', 'IN_PROGRESS'].includes(b.status) && (
-                      <button
-                        onClick={() => {
-                          setSelectedBookingForTrack(b);
-                          setShowOpenCvTracker(true);
-                        }}
-                        className="flex-1 rounded-xl border border-emerald-300 bg-emerald-50 py-2 text-xs font-bold text-emerald-900 hover:bg-emerald-100 transition flex items-center justify-center gap-1.5 shadow-sm"
-                      >
-                        <Navigation className="h-3.5 w-3.5 text-emerald-600" /> Track Ride (Uber GPS)
-                      </button>
-                    )}
                   </div>
                 </div>
               );
@@ -1125,64 +937,7 @@ export default function OwnerDashboard() {
             </div>
           )}
 
-          {/* Working M-Pesa Payout Request Form */}
-          <form onSubmit={handleRequestPayout} className="rounded-2xl bg-white border border-slate-200/90 p-6 space-y-4 shadow-sm">
-            <h3 className="font-display font-bold text-slate-900 flex items-center gap-2">
-              <MpesaLogo variant="badge" /> Request M-Pesa Payout
-            </h3>
 
-            {payoutMsg && (
-              <div className={`rounded-xl border p-3 text-xs font-semibold flex items-center gap-2 ${payoutMsg.type === 'ok' ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-rose-300 bg-rose-50 text-rose-800'}`}>
-                {payoutMsg.type === 'ok' ? <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" /> : <XCircle className="h-4 w-4 text-rose-600 shrink-0" />}
-                <span>{payoutMsg.text}</span>
-              </div>
-            )}
-
-            <p className="text-xs text-slate-600 font-medium">
-              Available balance: <span className="font-mono font-bold text-emerald-700">{formatPrice(netEarnings)}</span>
-            </p>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">M-Pesa Mobile Number</label>
-                <input
-                  type="tel"
-                  placeholder="e.g. 0712345678"
-                  className="input-field text-slate-900 placeholder:text-slate-400 border-slate-300 text-xs w-full"
-                  value={payoutPhone}
-                  onChange={(e) => setPayoutPhone(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Payout Amount (KES)</label>
-                <input
-                  type="number"
-                  placeholder={`Amount (max ${netEarnings})`}
-                  className="input-field text-slate-900 placeholder:text-slate-400 border-slate-300 text-xs w-full"
-                  max={netEarnings}
-                  min={10}
-                  value={payoutAmount}
-                  onChange={(e) => setPayoutAmount(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-            <button
-              type="submit"
-              disabled={payoutLoading || netEarnings <= 0}
-              className="w-full rounded-xl bg-[#00A859] py-3 text-sm font-bold text-white hover:bg-[#008C4A] disabled:opacity-50 transition flex items-center justify-center gap-2 shadow-sm font-display"
-            >
-              {payoutLoading ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin" /> Processing M-Pesa B2C Transfer…
-                </>
-              ) : (
-                <>
-                  <Banknote className="h-4 w-4" /> Request M-Pesa Payout
-                </>
-              )}
-            </button>
-          </form>
 
           {/* Per-vehicle earnings breakdown */}
           <div className="space-y-3">
@@ -1227,25 +982,88 @@ export default function OwnerDashboard() {
 
       {/* ALERTS TAB */}
       {activeTab === 'alerts' && (
-        <div className="space-y-4">
-          <h2 className="font-serif text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Bell className="h-5 w-5 text-amber-600" /> System Notifications & Approval Alerts
-          </h2>
-          {notifications.length === 0 ? (
-            <div className="rounded-2xl bg-white border border-slate-200 p-10 text-center text-slate-500 font-medium">
-              No new alerts. Registration approval notifications will appear here.
-            </div>
-          ) : (
-            notifications.map((n) => (
-              <div key={n.id} className="rounded-2xl bg-white border border-slate-200/90 p-5 space-y-1.5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 text-sm">{n.title}</span>
-                  <span className="text-[10px] text-slate-500 font-mono">{new Date(n.created_at).toLocaleString()}</span>
-                </div>
-                <p className="text-xs text-slate-700 leading-relaxed">{n.message}</p>
+        <div className="space-y-6">
+          {/* OFFICIAL ACCREDITATION & WHATSAPP NOTICES */}
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+              <div>
+                <h2 className="font-serif text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <span className="text-emerald-600">💬</span> Official Vehicle WhatsApp Accreditations
+                </h2>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  Automated onboarding notices and official M-TRAVEL accreditation dispatched to your registered WhatsApp.
+                </p>
               </div>
-            ))
-          )}
+              <span className="rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 px-3 py-1 text-xs font-mono font-bold">
+                {vehicles.filter(v => v.status === 'APPROVED').length} Accredited Vehicles
+              </span>
+            </div>
+
+            {vehicles.filter(v => v.status === 'APPROVED').length === 0 ? (
+              <div className="rounded-2xl bg-white border border-slate-200 p-8 text-center text-slate-500 font-medium">
+                No accredited vehicles yet. Once the Admin approves your submitted vehicle, your executive onboarding accreditation will be dispatched via automated WhatsApp.
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {vehicles.filter(v => v.status === 'APPROVED').map((v) => (
+                  <div
+                    key={v.id}
+                    className="rounded-2xl bg-gradient-to-r from-slate-900 via-[#122320] to-slate-900 border border-emerald-500/30 p-5 text-white shadow-md flex flex-wrap items-center justify-between gap-4"
+                  >
+                    <div className="space-y-1.5 max-w-2xl">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-2.5 py-0.5 text-[10px] font-mono font-bold">
+                          OFFICIAL ACCREDITATION ACTIVE
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          Plate: {v.plateNumber || 'Verified Fleet'}
+                        </span>
+                      </div>
+                      <h3 className="font-serif text-base font-bold text-white pt-0.5">{v.make} {v.model} ({v.year || '2024'})</h3>
+                      <p className="text-xs text-slate-300 line-clamp-1">Approved &amp; Live for tourist bookings at KES {v.pricePerDay.toLocaleString()}/day.</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <a
+                        href={getHostApprovalWhatsAppUrl({
+                          hostName: `${user?.firstName || v.ownerName || 'Matthew'} ${user?.lastName || ''}`.trim(),
+                          hostPhone: (user as any)?.phone || '0712345678',
+                          vehicle: v,
+                        })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-primary !py-2 !px-4 text-xs font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-300 shadow-sm flex items-center gap-1.5"
+                      >
+                        💬 Open WhatsApp Accreditation
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* SYSTEM NOTIFICATIONS SECTION */}
+          <div className="space-y-4 pt-4 border-t border-slate-200">
+            <h2 className="font-serif text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Bell className="h-5 w-5 text-amber-600" /> System Notifications
+            </h2>
+            {notifications.length === 0 ? (
+              <div className="rounded-2xl bg-white border border-slate-200 p-8 text-center text-slate-500 font-medium">
+                No system alerts yet.
+              </div>
+            ) : (
+              notifications.map((n) => (
+                <div key={n.id} className="rounded-2xl bg-white border border-slate-200/90 p-5 space-y-1.5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900 text-sm">{n.title}</span>
+                    <span className="text-[10px] text-slate-500 font-mono">{new Date(n.created_at).toLocaleString()}</span>
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed">{n.message}</p>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
@@ -1269,9 +1087,10 @@ export default function OwnerDashboard() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             {[
-              { key: 'make', label: 'Vehicle Make (e.g. Toyota)', placeholder: 'Toyota' },
-              { key: 'model', label: 'Model (e.g. Land Cruiser Prado)', placeholder: 'Land Cruiser Prado' },
+              { key: 'make', label: 'Vehicle Make (e.g. Toyota, Land Rover)', placeholder: 'e.g. Toyota' },
+              { key: 'model', label: 'Model (e.g. Prado TX, Safari Van, RAV4)', placeholder: 'e.g. Prado TX' },
               { key: 'year', label: 'Year of Manufacture', placeholder: '2024', type: 'number' },
+              { key: 'plateNumber', label: 'Registration Plate Number (Matches Logbook)', placeholder: 'e.g. KDA 123A' },
               { key: 'price_per_day', label: 'Daily Rental Rate (KES)', placeholder: '15000', type: 'number' },
               { key: 'seats', label: 'Passenger Seats', placeholder: '7', type: 'number' },
               { key: 'address', label: 'Location / Base Area', placeholder: 'Nairobi JKIA / Westlands' },
@@ -1411,6 +1230,281 @@ export default function OwnerDashboard() {
             </div>
           </div>
 
+          {/* VEHICLE COMPLIANCE & OWNERSHIP DOCUMENTS SECTION */}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+              <div>
+                <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5 uppercase tracking-wider">
+                  <FileText className="h-4 w-4 text-amber-600" /> Vehicle Compliance & Ownership Documents
+                </label>
+                <p className="text-[11px] text-slate-600 mt-0.5 font-medium">
+                  Upload official documentation to facilitate rapid Admin verification and approval. (Images or PDF format)
+                </p>
+              </div>
+              <span className="rounded-full bg-amber-100 text-amber-900 px-3 py-0.5 text-[10px] font-mono font-bold">
+                {documents.length} Document(s) Attached
+              </span>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {/* 1. LOGBOOK (PROOF OF OWNERSHIP) */}
+              {(() => {
+                const doc = documents.find(d => d.type === 'LOGBOOK');
+                return (
+                  <div className={`rounded-xl border p-3.5 transition ${doc ? 'border-emerald-300 bg-emerald-50/40' : 'border-slate-200 bg-white shadow-xs'}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`rounded-lg p-2 shrink-0 ${doc ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-slate-900">Vehicle Logbook Copy</span>
+                            <span className="rounded bg-rose-100 text-rose-700 px-1.5 py-0.2 text-[9px] font-bold">Required</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 truncate">Official NTSA logbook / proof of title</p>
+                        </div>
+                      </div>
+                      {doc ? (
+                        <span className="rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 shrink-0 flex items-center gap-1">
+                          <Check className="h-3 w-3" /> Attached
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {doc ? (
+                      <div className="mt-2.5 pt-2 border-t border-emerald-200/60 flex items-center justify-between gap-2 text-xs">
+                        <span className="text-[11px] text-slate-700 font-mono truncate">{doc.fileName} ({doc.fileSize})</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDoc(doc)}
+                            className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold px-2 py-1 transition flex items-center gap-1"
+                          >
+                            <Eye className="h-3 w-3" /> View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeDocument(doc.id)}
+                            className="rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 text-[10px] font-bold px-2 py-1 transition"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-3">
+                        <label className="btn-secondary !py-1.5 !px-3 text-xs font-bold text-slate-800 border-slate-300 hover:bg-slate-100 w-full flex items-center justify-center gap-1.5 cursor-pointer">
+                          <Upload className="h-3.5 w-3.5 text-amber-600" />
+                          <span>Upload Logbook (PDF/Image)</span>
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            className="hidden"
+                            disabled={docUploadLoading}
+                            onChange={(e) => handleDocumentUpload(e, 'LOGBOOK', 'Vehicle Logbook (NTSA)')}
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* 2. COMMERCIAL INSURANCE CERTIFICATE */}
+              {(() => {
+                const doc = documents.find(d => d.type === 'INSURANCE');
+                return (
+                  <div className={`rounded-xl border p-3.5 transition ${doc ? 'border-emerald-300 bg-emerald-50/40' : 'border-slate-200 bg-white shadow-xs'}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`rounded-lg p-2 shrink-0 ${doc ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                          <ShieldCheck className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-slate-900">Commercial / PSV Insurance</span>
+                            <span className="rounded bg-amber-100 text-amber-800 px-1.5 py-0.2 text-[9px] font-bold">Recommended</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 truncate">Comprehensive chauffeur/self-drive cover</p>
+                        </div>
+                      </div>
+                      {doc ? (
+                        <span className="rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 shrink-0 flex items-center gap-1">
+                          <Check className="h-3 w-3" /> Attached
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {doc ? (
+                      <div className="mt-2.5 pt-2 border-t border-emerald-200/60 flex items-center justify-between gap-2 text-xs">
+                        <span className="text-[11px] text-slate-700 font-mono truncate">{doc.fileName} ({doc.fileSize})</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDoc(doc)}
+                            className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold px-2 py-1 transition flex items-center gap-1"
+                          >
+                            <Eye className="h-3 w-3" /> View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeDocument(doc.id)}
+                            className="rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 text-[10px] font-bold px-2 py-1 transition"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-3">
+                        <label className="btn-secondary !py-1.5 !px-3 text-xs font-bold text-slate-800 border-slate-300 hover:bg-slate-100 w-full flex items-center justify-center gap-1.5 cursor-pointer">
+                          <Upload className="h-3.5 w-3.5 text-amber-600" />
+                          <span>Upload Insurance Certificate</span>
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            className="hidden"
+                            disabled={docUploadLoading}
+                            onChange={(e) => handleDocumentUpload(e, 'INSURANCE', 'Commercial Insurance Certificate')}
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* 3. NTSA ROADWORTHINESS CERTIFICATE */}
+              {(() => {
+                const doc = documents.find(d => d.type === 'INSPECTION_CERT');
+                return (
+                  <div className={`rounded-xl border p-3.5 transition ${doc ? 'border-emerald-300 bg-emerald-50/40' : 'border-slate-200 bg-white shadow-xs'}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`rounded-lg p-2 shrink-0 ${doc ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                          <CheckCircle className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-slate-900">Roadworthiness Certificate</span>
+                            <span className="rounded bg-slate-100 text-slate-600 px-1.5 py-0.2 text-[9px] font-bold">Optional</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 truncate">NTSA inspection report / sticker</p>
+                        </div>
+                      </div>
+                      {doc ? (
+                        <span className="rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 shrink-0 flex items-center gap-1">
+                          <Check className="h-3 w-3" /> Attached
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {doc ? (
+                      <div className="mt-2.5 pt-2 border-t border-emerald-200/60 flex items-center justify-between gap-2 text-xs">
+                        <span className="text-[11px] text-slate-700 font-mono truncate">{doc.fileName} ({doc.fileSize})</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDoc(doc)}
+                            className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold px-2 py-1 transition flex items-center gap-1"
+                          >
+                            <Eye className="h-3 w-3" /> View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeDocument(doc.id)}
+                            className="rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 text-[10px] font-bold px-2 py-1 transition"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-3">
+                        <label className="btn-secondary !py-1.5 !px-3 text-xs font-bold text-slate-800 border-slate-300 hover:bg-slate-100 w-full flex items-center justify-center gap-1.5 cursor-pointer">
+                          <Upload className="h-3.5 w-3.5 text-amber-600" />
+                          <span>Upload Inspection Cert</span>
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            className="hidden"
+                            disabled={docUploadLoading}
+                            onChange={(e) => handleDocumentUpload(e, 'INSPECTION_CERT', 'NTSA Roadworthiness Certificate')}
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* 4. OTHER COMPLIANCE DOCUMENT */}
+              {(() => {
+                const doc = documents.find(d => d.type === 'OTHER');
+                return (
+                  <div className={`rounded-xl border p-3.5 transition ${doc ? 'border-emerald-300 bg-emerald-50/40' : 'border-slate-200 bg-white shadow-xs'}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`rounded-lg p-2 shrink-0 ${doc ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                          <Paperclip className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-slate-900">Additional Document</span>
+                            <span className="rounded bg-slate-100 text-slate-600 px-1.5 py-0.2 text-[9px] font-bold">Optional</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 truncate">Service records, permits or host ID</p>
+                        </div>
+                      </div>
+                      {doc ? (
+                        <span className="rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 shrink-0 flex items-center gap-1">
+                          <Check className="h-3 w-3" /> Attached
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {doc ? (
+                      <div className="mt-2.5 pt-2 border-t border-emerald-200/60 flex items-center justify-between gap-2 text-xs">
+                        <span className="text-[11px] text-slate-700 font-mono truncate">{doc.fileName} ({doc.fileSize})</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDoc(doc)}
+                            className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold px-2 py-1 transition flex items-center gap-1"
+                          >
+                            <Eye className="h-3 w-3" /> View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeDocument(doc.id)}
+                            className="rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 text-[10px] font-bold px-2 py-1 transition"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-3">
+                        <label className="btn-secondary !py-1.5 !px-3 text-xs font-bold text-slate-800 border-slate-300 hover:bg-slate-100 w-full flex items-center justify-center gap-1.5 cursor-pointer">
+                          <Upload className="h-3.5 w-3.5 text-amber-600" />
+                          <span>Upload Other Document</span>
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            className="hidden"
+                            disabled={docUploadLoading}
+                            onChange={(e) => handleDocumentUpload(e, 'OTHER', 'Vehicle Supporting Document')}
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
           <button type="submit" disabled={submitting} className="btn-primary w-full font-bold shadow-md text-white !py-3.5 flex items-center justify-center gap-2">
             {submitting ? 'Submitting to Admin…' : (
               <>
@@ -1421,6 +1515,61 @@ export default function OwnerDashboard() {
           </button>
         </form>
       )}
+
+      {/* DOCUMENT PREVIEW MODAL */}
+      {previewDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-xs">
+          <div className="relative w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2 text-slate-900">
+                <FileText className="h-5 w-5 text-amber-600" />
+                <div>
+                  <h3 className="font-serif font-bold text-base">{previewDoc.name}</h3>
+                  <p className="text-xs text-slate-500 font-mono">{previewDoc.fileName} • {previewDoc.fileSize}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewDoc(null)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="max-h-[70vh] overflow-y-auto rounded-xl bg-slate-100 p-2 flex items-center justify-center">
+              {previewDoc.fileUrl.startsWith('data:image/') || previewDoc.fileUrl.includes('unsplash') || previewDoc.fileName.match(/\.(jpg|jpeg|png|webp)$/i) ? (
+                <img src={previewDoc.fileUrl} alt={previewDoc.name} className="max-h-[60vh] w-auto rounded-lg object-contain shadow-xs" />
+              ) : (
+                <div className="p-8 text-center space-y-3">
+                  <FileText className="h-12 w-12 text-slate-400 mx-auto" />
+                  <p className="text-xs text-slate-600 font-medium">PDF Document Uploaded</p>
+                  <a
+                    href={previewDoc.fileUrl}
+                    download={previewDoc.fileName}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary inline-flex items-center gap-1.5 text-xs font-bold text-white !py-2 !px-4"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Download / Open Document
+                  </a>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setPreviewDoc(null)}
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

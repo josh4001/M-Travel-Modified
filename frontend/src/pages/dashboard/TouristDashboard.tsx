@@ -3,20 +3,21 @@ import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Car, Calendar, Wallet, MapPin, Star, Clock, Search,
-  CheckCircle, XCircle, AlertCircle, ArrowRight, TrendingUp, Video, Smartphone, X,
-  Compass, Mountain, Trees, Waves, Sparkles, Bell
+  CheckCircle, XCircle, AlertCircle, ArrowRight, TrendingUp, Smartphone, X,
+  Compass, Mountain, Trees, Waves, Sparkles, Bell, Palmtree, User, Shield
 } from 'lucide-react';
 import type { RootState } from '@/store';
 import { supabase, cancelBookingInSupabase } from '@/lib/supabaseClient';
 import { useCurrency } from '@/context/CurrencyContext';
 import { fetchNotifications, type AppNotification } from '@/lib/notificationService';
 import {
-  getStoredBookings, updateBookingStatus,
+  getStoredBookings, updateBookingStatus, isTripBooking,
   type StoredBooking
 } from '@/lib/bookingStore';
-import { UberLiveTracker } from '@/components/tracking/UberLiveTracker';
 import { MpesaStkPushModal } from '@/components/ui/MpesaStkPushModal';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
+import { DestinationVoucherModal } from '@/components/ui/DestinationVoucherModal';
+import { getTravelerCreditProfile } from '@/lib/creditScoreStore';
 
 interface WalletData {
   balance: number;
@@ -43,13 +44,14 @@ export default function TouristDashboard() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // OpenCV tracker modal
-  const [showTracker, setShowTracker] = useState(false);
-  const [trackBooking, setTrackBooking] = useState<StoredBooking | null>(null);
+  const [selectedDestVoucher, setSelectedDestVoucher] = useState<StoredBooking | null>(null);
 
   // M-Pesa STK push modal
   const [showMpesa, setShowMpesa] = useState(false);
   const [mpesaBooking, setMpesaBooking] = useState<StoredBooking | null>(null);
+
+  // Profile Modal state
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Cancel confirmation
   const [cancelConfirm, setCancelConfirm] = useState<string | null>(null);
@@ -150,7 +152,7 @@ export default function TouristDashboard() {
     setShowMpesa(false);
     setMpesaBooking(null);
   };
-  const handleLiveTrack = (booking: StoredBooking) => { setTrackBooking(booking); setShowTracker(true); };
+
 
   const handleCancelBooking = async (bookingId: string) => {
     if (cancelConfirm === bookingId) {
@@ -196,6 +198,12 @@ export default function TouristDashboard() {
               >
                 <Search className="h-4 w-4" /> Find a Vehicle <ArrowRight className="h-4 w-4" />
               </Link>
+              <button
+                onClick={() => setShowProfileModal(true)}
+                className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/20 transition backdrop-blur-xs"
+              >
+                <User className="h-4 w-4 text-mtravel-lightGold" /> My Profile &amp; Credit Score
+              </button>
               {pending.length > 0 && (
                 <button
                   onClick={() => handlePayNow(pending[0])}
@@ -301,6 +309,7 @@ export default function TouristDashboard() {
             {allStoreBookings.map(b => {
               const cfg = STATUS_CONFIG[b.status] ?? STATUS_CONFIG['PENDING'];
               const canCancel = ['PENDING', 'PAID', 'ACCEPTED', 'CONFIRMED'].includes(b.status);
+              const isDest = isTripBooking(b);
               return (
                 <div
                   key={b.id}
@@ -351,13 +360,23 @@ export default function TouristDashboard() {
                         </button>
                       )}
                       {['CONFIRMED', 'IN_PROGRESS', 'PAID', 'ACCEPTED'].includes(b.status) && (
-                        <button
-                          onClick={() => handleLiveTrack(b)}
-                          className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition shadow"
-                        >
-                          <Video className="h-3.5 w-3.5 animate-pulse" />
-                          Track Live (GPS)
-                        </button>
+                        isDest ? (
+                          <button
+                            onClick={() => setSelectedDestVoucher(b)}
+                            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-700 px-4 py-2 text-xs font-bold text-white hover:from-purple-800 hover:to-indigo-800 transition shadow"
+                          >
+                            <Palmtree className="h-3.5 w-3.5 text-amber-300" />
+                            View Destination Voucher &amp; Itinerary
+                          </button>
+                        ) : (
+                          <Link
+                            to="/dashboard/bookings"
+                            className="flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 transition shadow"
+                          >
+                            <Car className="h-3.5 w-3.5 text-amber-400" />
+                            View Rental Details
+                          </Link>
+                        )
                       )}
                       {canCancel && (
                         <button
@@ -586,49 +605,100 @@ export default function TouristDashboard() {
           onClose={() => { setShowMpesa(false); setMpesaBooking(null); }}
         />
       )}
-
-      {/* ── UBER LIVE GPS TRACKER MODAL ──────────────────────────── */}
-      {showTracker && trackBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 overflow-y-auto">
-          <div className="w-full max-w-4xl rounded-2xl bg-white shadow-2xl text-slate-800 my-8">
-            <UberLiveTracker
-              vehicle={{
-                id: trackBooking.vehicleId || 'v-live',
-                type: 'SUV',
-                make: trackBooking.vehicleName ? trackBooking.vehicleName.split(' ')[0] : 'Toyota',
-                model: trackBooking.vehicleName ? trackBooking.vehicleName.split(' ').slice(1).join(' ') : 'Land Cruiser',
-                year: 2024,
-                seats: 7,
-                fuelType: 'DIESEL',
-                transmission: 'AUTOMATIC',
-                pricePerDay: '150',
-                hasInsurance: true,
-                latitude: -1.2650,
-                longitude: 36.8050,
-                ratingAverage: 4.9,
-                ratingCount: 142,
-                images: trackBooking.vehicleImage ? [{ id: 'img-1', url: trackBooking.vehicleImage, isPrimary: true }] : [],
-                plateNumber: 'KDA 782P',
-                owner: {
-                  id: 'owner-1',
-                  firstName: trackBooking.driverName ? trackBooking.driverName.split(' ')[0] : 'James',
-                  lastName: trackBooking.driverName ? (trackBooking.driverName.split(' ')[1] || 'Mwangi') : 'Mwangi',
-                  phone: '+254 712 345 678',
-                  avatarUrl: '',
-                },
-              }}
-              bookingRef={trackBooking.bookingRef || trackBooking.id.slice(0, 8)}
-              tripId={trackBooking.id}
-              startDate={trackBooking.startDate}
-              endDate={trackBooking.endDate}
-              pickupLocation={trackBooking.pickupLocation || 'Westlands, Nairobi'}
-              dropoffLocation={trackBooking.dropoffLocation || 'Maasai Mara National Reserve'}
-              viewerRole="TOURIST"
-              onClose={() => { setShowTracker(false); setTrackBooking(null); }}
-            />
-          </div>
-        </div>
+      {/* ── DESTINATION VOUCHER & ITINERARY MODAL ────────────────── */}
+      {selectedDestVoucher && (
+        <DestinationVoucherModal
+          booking={selectedDestVoucher}
+          onClose={() => setSelectedDestVoucher(null)}
+        />
       )}
+
+      {/* ── TRAVELER ACCOUNT PROFILE & CREDIT RATING MODAL ── */}
+      {showProfileModal && (() => {
+        const creditProfile = getTravelerCreditProfile(user?.id || 'user-tourist-1', {
+          name: `${user?.firstName || 'Sarah'} ${user?.lastName || 'Ochieng'}`.trim(),
+          email: user?.email || 'sarah.ochieng@gmail.com',
+          phone: user?.phone || '0712345678',
+        });
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md font-display">
+            <div className="relative w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl text-slate-800 space-y-5 max-h-[90vh] overflow-y-auto">
+              <button
+                onClick={() => setShowProfileModal(false)}
+                className="absolute right-4 top-4 rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200 transition"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                  <User className="h-6 w-6" />
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-mono font-bold text-amber-700">Account Credentials &amp; Rating</span>
+                  <h3 className="font-display text-xl font-bold text-slate-900">{user?.firstName || 'Sarah'} {user?.lastName || 'Ochieng'}</h3>
+                  <span className="text-xs text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Verified Traveler Account</span>
+                </div>
+              </div>
+
+              {/* Account Details Box */}
+              <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-2 text-xs">
+                <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
+                  <span className="text-slate-500 font-semibold">Registered Email:</span>
+                  <span className="font-mono font-bold text-slate-900">{user?.email || 'sarah.ochieng@gmail.com'}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
+                  <span className="text-slate-500 font-semibold">Contact Phone:</span>
+                  <span className="font-mono font-bold text-slate-900">{user?.phone || '0712345678'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-semibold">Account Role:</span>
+                  <span className="font-bold text-amber-700">Tourist / Traveler</span>
+                </div>
+              </div>
+
+              {/* Traveler Credit Score Card */}
+              <div className="rounded-2xl border border-amber-300 bg-gradient-to-br from-amber-500/10 via-amber-100/40 to-amber-500/5 p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Shield className="h-4 w-4 text-amber-600" /> Traveler Credit Rating
+                  </span>
+                  <span className="rounded-full bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-0.5 uppercase tracking-wider">
+                    {creditProfile.tier}
+                  </span>
+                </div>
+
+                <div className="flex items-baseline gap-2">
+                  <span className="font-mono text-4xl font-bold text-slate-900">{creditProfile.score}</span>
+                  <span className="text-slate-500 text-sm font-semibold">/ 850 Max Score</span>
+                </div>
+
+                <p className="text-xs text-slate-700 leading-relaxed">
+                  Your credit score reflects clean vehicle handovers, prompt return inspections, and verified identity document standing.
+                </p>
+
+                <div className="grid grid-cols-2 gap-2 text-xs font-semibold pt-1">
+                  <div className="rounded-xl bg-white p-2.5 border border-amber-200 text-slate-800">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Completed Trips</span>
+                    <span className="font-mono font-bold text-base text-slate-900">{creditProfile.completedTrips}</span>
+                  </div>
+                  <div className="rounded-xl bg-white p-2.5 border border-amber-200 text-slate-800">
+                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Clean Returns</span>
+                    <span className="font-mono font-bold text-base text-emerald-700">{creditProfile.cleanHandovers}</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowProfileModal(false)}
+                className="w-full rounded-xl bg-slate-900 text-white py-2.5 text-xs font-bold hover:bg-slate-800 transition"
+              >
+                Close Profile
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
