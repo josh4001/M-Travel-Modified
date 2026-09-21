@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Car, MapPin, Calendar, Shield, Eye, RefreshCw, Trash2,
+  Car, MapPin, Calendar, Shield, RefreshCw, Trash2,
   Star, Download, RotateCcw, Navigation, Phone, MessageSquare,
   CheckCircle2, Clock, TrendingUp, Zap, Share2, X, AlertTriangle,
-  ChevronRight, Sparkles, Heart, Smartphone, ArrowRight,
+  ChevronRight, Sparkles, Heart, Smartphone, ArrowRight, ShieldCheck, FileText,
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { selectUser } from '@/store/slices/authSlice';
@@ -12,7 +12,6 @@ import { useCurrency } from '@/context/CurrencyContext';
 import { fetchUserBookings, cancelBookingInSupabase, supabase } from '@/lib/supabaseClient';
 import { sendNotification } from '@/lib/notificationService';
 import { api } from '@/lib/api';
-import { UberLiveTracker } from '@/components/tracking/UberLiveTracker';
 import { OfficialReceiptModal } from '@/components/ui/OfficialReceiptModal';
 import { MpesaStkPushModal } from '@/components/ui/MpesaStkPushModal';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
@@ -46,6 +45,7 @@ export interface UnifiedBooking {
   status: 'PENDING' | 'PAID' | 'CONFIRMED' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'IN_PROGRESS' | 'COMPLETED';
   createdAt: string;
   pickupLocation?: string;
+  dropoffLocation?: string;
   // Raw backing object
   raw?: any;
 }
@@ -496,8 +496,8 @@ function BookingCard({
               )}
 
               <button onClick={() => onTrack(b)} className="btn-primary text-xs !py-2.5 !px-5 flex items-center gap-2 shadow-sm font-bold text-white">
-                <Eye className="h-4 w-4" />
-                {isActive ? 'Track Live' : 'View Ride'}
+                <Car className="h-4 w-4" />
+                View Ride Details
                 <ChevronRight className="h-3 w-3" />
               </button>
             </div>
@@ -569,7 +569,7 @@ export default function MyBookings() {
       totalAmount: Number(b.totalAmount || 0),
       paymentStatus: b.paymentStatus || (['PAID', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes(b.status) ? 'PAID' : 'PENDING'),
       mpesaReceipt: b.mpesaReceipt,
-      status: b.status,
+      status: b.status as UnifiedBooking['status'],
       createdAt: b.createdAt || new Date().toISOString(),
       pickupLocation: 'Nairobi JKIA / Westlands ➔ Safari Reserve',
       raw: b,
@@ -778,35 +778,219 @@ export default function MyBookings() {
     { key: 'CANCELLED', label: 'Cancelled', count: displayBookings.filter(b => ['CANCELLED','REJECTED'].includes(b.status)).length },
   ];
 
-  // Live tracker vehicle format
-  const trackingVehicle = activeTrackingBooking ? {
-    id: activeTrackingBooking.vehicleId,
-    make: activeTrackingBooking.vehicleMake || activeTrackingBooking.vehicleName,
-    model: activeTrackingBooking.vehicleModel || '',
-    type: '4x4',
-    images: [{ id: 'img-1', url: activeTrackingBooking.vehicleImage, isPrimary: true }],
-    address: activeTrackingBooking.pickupLocation || 'Nairobi ➔ Safari National Reserve',
-    owner: {
-      id: activeTrackingBooking.ownerId || 'o1',
-      firstName: activeTrackingBooking.driverName?.split(' ')[0] || 'Samuel',
-      lastName: activeTrackingBooking.driverName?.split(' ')[1] || 'Omondi',
-      phone: activeTrackingBooking.driverPhone || '+254722374535',
-    },
-  } : null;
+
+
+  const handleDownloadVoucher = (b: UnifiedBooking) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>M-TRAVEL Voucher & Verification Receipt - ${b.bookingRef}</title>
+          <style>
+            body { font-family: 'Segoe UI', Roboto, sans-serif; padding: 40px; color: #0f172a; line-height: 1.5; }
+            .header { border-bottom: 2px solid #f59e0b; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+            .brand { font-size: 24px; font-weight: bold; color: #5c0632; }
+            .ref { font-family: monospace; font-size: 16px; color: #b45309; font-weight: bold; }
+            .section { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+            .notice-box { background: #fffbebf5; border: 2px solid #f59e0b; border-radius: 12px; padding: 20px; margin-bottom: 25px; }
+            .notice-title { font-weight: bold; color: #78350f; font-size: 14px; text-transform: uppercase; margin-bottom: 8px; }
+            .notice-list { margin: 8px 0; padding-left: 20px; font-weight: 600; color: #1e293b; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+            .label { font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: bold; }
+            .val { font-weight: bold; font-size: 15px; }
+            .footer { border-top: 1px solid #cbd5e1; padding-top: 15px; text-align: center; font-size: 12px; color: #64748b; margin-top: 30px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="brand">M-TRAVEL EAST AFRICA</div>
+              <div style="font-size:12px; color:#64748b;">Luxury Vehicle Rental & Safari Expedition Pass</div>
+            </div>
+            <div class="ref">REF: ${b.bookingRef}</div>
+          </div>
+
+          <div class="notice-box">
+            <div class="notice-title">⚠️ Mandatory Vehicle Handover Document Requirements</div>
+            <p style="font-size:13px; margin:0;">Please bring the following original identity credentials to the M-TRAVEL station at pickup for physical inspection by our fleet agents:</p>
+            <ul class="notice-list">
+              <li>Original National ID Card or Valid International Passport (Mandatory for all renters)</li>
+              <li>Valid National Driving License (Mandatory for Self-Drive vehicle hires)</li>
+            </ul>
+            <div style="font-size:11px; color:#92400e; font-style:italic;">Key release and vehicle activation are strictly contingent on physical document verification.</div>
+          </div>
+
+          <div class="section">
+            <div style="font-weight:bold; font-size:16px; margin-bottom:15px; color:#0f172a;">Reserved Vehicle Details</div>
+            <div class="grid">
+              <div>
+                <div class="label">Vehicle Model</div>
+                <div class="val">${b.vehicleName}</div>
+              </div>
+              <div>
+                <div class="label">Total Amount Paid</div>
+                <div class="val" style="color:#059669;">KES ${b.totalAmount.toLocaleString()} (Verified)</div>
+              </div>
+            </div>
+            <div class="grid">
+              <div>
+                <div class="label">Rental Pickup Date</div>
+                <div class="val">${b.startDate}</div>
+              </div>
+              <div>
+                <div class="label">Return End Date</div>
+                <div class="val">${b.endDate}</div>
+              </div>
+            </div>
+            <div class="grid">
+              <div>
+                <div class="label">Pickup Station</div>
+                <div class="val">${b.pickupLocation || 'Westlands Fleet Hub, Nairobi'}</div>
+              </div>
+              <div>
+                <div class="label">Assigned Chauffeur / Host</div>
+                <div class="val">${b.driverName || 'Samuel Omondi'} (${b.driverPhone || '+254722374535'})</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer">
+            Official M-TRAVEL Digital Voucher • East Africa Luxury Travel Network • 24/7 Support: +254 722 374 535
+          </div>
+          <script>window.onload = function() { window.print(); };</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
-      {/* Real-time Telemetry & Live Tracker Modal */}
-      {activeTrackingBooking && trackingVehicle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
-          <div className="w-full max-w-3xl">
-            <UberLiveTracker
-              vehicle={trackingVehicle as any}
-              bookingRef={activeTrackingBooking.bookingRef}
-              startDate={activeTrackingBooking.startDate}
-              endDate={activeTrackingBooking.endDate}
-              onClose={() => setActiveTrackingBooking(null)}
-            />
+      {/* ── VEHICLE RIDE & RENTAL DETAILS MODAL (NO GPS TRACKER) ── */}
+      {activeTrackingBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md font-display">
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl text-slate-800 space-y-4">
+            <button
+              onClick={() => setActiveTrackingBooking(null)}
+              className="absolute right-4 top-4 rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200 transition"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                <Car className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-mono font-bold text-amber-700">Booked Vehicle &amp; Ride Details</span>
+                <h3 className="font-display text-lg font-bold text-slate-900">{activeTrackingBooking.vehicleName}</h3>
+              </div>
+            </div>
+
+            {activeTrackingBooking.vehicleImage && (
+              <div className="relative h-44 w-full overflow-hidden rounded-2xl bg-slate-100 border border-slate-200">
+                <img src={activeTrackingBooking.vehicleImage} alt={activeTrackingBooking.vehicleName} className="h-full w-full object-cover" />
+                <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg">
+                  Ref: {activeTrackingBooking.bookingRef}
+                </div>
+                <div className="absolute bottom-3 right-3 bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border border-emerald-400">
+                  {activeTrackingBooking.status === 'IN_PROGRESS' ? 'Active Trip' : activeTrackingBooking.status}
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded-xl bg-slate-50 p-3 border border-slate-200">
+                <p className="text-[10px] font-bold uppercase text-slate-400">Rental Period</p>
+                <p className="font-semibold text-slate-800 mt-1">{activeTrackingBooking.startDate}</p>
+                <p className="text-[11px] text-slate-500">to {activeTrackingBooking.endDate}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-3 border border-slate-200">
+                <p className="text-[10px] font-bold uppercase text-slate-400">Total Amount</p>
+                <p className="font-mono font-bold text-amber-700 text-base mt-0.5">{formatPrice(activeTrackingBooking.totalAmount)}</p>
+                <p className="text-[10px] text-emerald-700 font-bold">Payment Verified</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="flex items-start gap-2 text-slate-700">
+                <MapPin className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong>Pickup Location:</strong> {activeTrackingBooking.pickupLocation || 'Westlands Fleet Hub, Nairobi'}
+                </div>
+              </div>
+              <div className="flex items-start gap-2 text-slate-700">
+                <MapPin className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong>Dropoff Destination:</strong> {activeTrackingBooking.dropoffLocation || 'Maasai Mara / Reserved Station'}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3.5 flex items-center justify-between gap-3 text-xs">
+              <div>
+                <p className="font-bold text-slate-900">{activeTrackingBooking.driverName || 'Samuel Omondi'}</p>
+                <p className="text-[11px] text-slate-600 font-medium">Verified Safari Chauffeur &amp; Host</p>
+              </div>
+              <div className="flex gap-2">
+                <a
+                  href={`tel:${activeTrackingBooking.driverPhone || '+254722374535'}`}
+                  className="flex items-center gap-1 rounded-xl bg-emerald-600 text-white px-3 py-1.5 font-bold hover:bg-emerald-700 transition"
+                >
+                  <Phone className="h-3.5 w-3.5" /> Call Driver
+                </a>
+                <a
+                  href={`https://wa.me/${(activeTrackingBooking.driverPhone || '254722374535').replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 rounded-xl bg-teal-700 text-white px-3 py-1.5 font-bold hover:bg-teal-800 transition"
+                >
+                  <MessageSquare className="h-3.5 w-3.5" /> Chat
+                </a>
+              </div>
+            </div>
+
+            {/* MANDATORY HANDOVER DOCUMENT VERIFICATION NOTICE */}
+            <div className="rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-50/90 via-amber-100/50 to-orange-50 p-4 text-xs space-y-2 shadow-sm">
+              <div className="flex items-center gap-2 font-display font-bold text-amber-900 uppercase tracking-wider text-[11px] border-b border-amber-200 pb-1.5">
+                <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
+                <span>Mandatory Handover Document Notice</span>
+              </div>
+              <p className="text-slate-800 text-[11px] leading-relaxed font-semibold">
+                Please present the following physical documents to the M-TRAVEL representative at vehicle pickup for identity verification &amp; fleet security:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-bold text-slate-900 pt-1">
+                <div className="flex items-center gap-2 bg-white/80 p-2 rounded-xl border border-amber-200/80">
+                  <FileText className="h-4 w-4 text-amber-600 shrink-0" />
+                  <span>National ID or International Passport</span>
+                </div>
+                <div className="flex items-center gap-2 bg-white/80 p-2 rounded-xl border border-amber-200/80">
+                  <Car className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Valid Driving License (Self-Drive)</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-[11px] text-emerald-900 flex items-center gap-2">
+              <Shield className="h-4 w-4 text-emerald-600 shrink-0" />
+              <span>Full Comprehensive Insurance &amp; 24/7 Roadside Assistance Included.</span>
+            </div>
+
+            <button
+              onClick={() => handleDownloadVoucher(activeTrackingBooking)}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 py-2.5 text-xs font-bold shadow-sm transition"
+            >
+              <Download className="h-4 w-4" /> Download Official Verification Voucher &amp; Receipt (PDF)
+            </button>
+
+            <button
+              onClick={() => setActiveTrackingBooking(null)}
+              className="w-full rounded-xl bg-slate-900 text-white py-2.5 text-xs font-bold hover:bg-slate-800 transition"
+            >
+              Close Details
+            </button>
           </div>
         </div>
       )}

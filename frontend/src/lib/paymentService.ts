@@ -1,5 +1,6 @@
 import { api } from './api';
 import { supabase } from './supabaseClient';
+import { getStoredBookings, getStoredVehicles } from './bookingStore';
 
 // ─── M-Pesa Payment Gateway Service ─────────────────────────────────────────
 // Connects to backend NestJS M-Pesa Daraja endpoints.
@@ -117,30 +118,56 @@ export interface LocalWalletData {
   }[];
 }
 
-export function getLocalWallet(userId: string, initialSeed = 0): LocalWalletData {
+export function getLocalWallet(userId: string, isHost = false, userEmail?: string): LocalWalletData {
   try {
     const raw = localStorage.getItem(`mt_local_wallet_${userId}`);
-    if (raw) return JSON.parse(raw);
-    const w: LocalWalletData = {
-      id: `w-${userId}`,
-      balance: initialSeed,
-      currency: 'KES',
-      transactions: initialSeed > 0 ? [
-        {
-          id: `tx-seed-${Date.now()}`,
-          type: 'BOOKING_PAYOUT',
-          amount: initialSeed,
-          status: 'COMPLETED',
-          reference: `REV-INITIAL-${Math.floor(1000 + Math.random() * 9000)}`,
-          description: 'Host Booking Revenue Seed Balance',
-          created_at: new Date().toISOString(),
+    let w: LocalWalletData = raw
+      ? JSON.parse(raw)
+      : { id: `w-${userId}`, balance: 0, currency: 'KES', transactions: [] };
+
+    let checkIsHost = isHost;
+    if (!checkIsHost && typeof window !== 'undefined') {
+      try {
+        const storedUserRaw = localStorage.getItem('mt_user');
+        if (storedUserRaw) {
+          const u = JSON.parse(storedUserRaw);
+          if (u.id === userId && (u.role === 'VEHICLE_OWNER' || u.role === 'OWNER')) {
+            checkIsHost = true;
+            if (!userEmail) userEmail = u.email;
+          }
         }
-      ] : [],
-    };
+      } catch {}
+    }
+
+    if (checkIsHost) {
+      const allVehicles = getStoredVehicles();
+      const allBookings = getStoredBookings();
+      const ownerVehicleIds = new Set(
+        allVehicles
+          .filter(v => v.ownerId === userId || (userEmail && v.ownerEmail === userEmail))
+          .map(v => v.id)
+      );
+      const ownerBookings = allBookings.filter(b =>
+        (b.ownerId && (b.ownerId === userId || (userEmail && b.ownerId === userEmail))) ||
+        ownerVehicleIds.has(b.vehicleId)
+      );
+      const totalGross = ownerBookings
+        .filter(b => b.paymentStatus === 'PAID' || b.status === 'COMPLETED' || b.status === 'CONFIRMED')
+        .reduce((sum, b) => sum + Number(b.totalAmount), 0);
+
+      const netEarningsFromBookings = Math.max(0, totalGross * 0.85);
+
+      const totalWithdrawn = (w.transactions || [])
+        .filter(t => t.type === 'WITHDRAWAL' && t.status === 'COMPLETED')
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+
+      w.balance = Math.max(0, netEarningsFromBookings - totalWithdrawn);
+    }
+
     localStorage.setItem(`mt_local_wallet_${userId}`, JSON.stringify(w));
     return w;
   } catch {
-    return { id: `w-${userId}`, balance: initialSeed, currency: 'KES', transactions: [] };
+    return { id: `w-${userId}`, balance: 0, currency: 'KES', transactions: [] };
   }
 }
 

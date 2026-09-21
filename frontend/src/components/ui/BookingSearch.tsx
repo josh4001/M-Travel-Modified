@@ -28,6 +28,14 @@ export const BookingSearch: React.FC = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    if (activeTab === 'homes' || activeTab === 'packages') {
+      navigate('/holidays-and-tours');
+      return;
+    }
+    if (activeTab === 'buses') {
+      navigate('/catalogue?category=buses');
+      return;
+    }
     const query = new URLSearchParams({
       tab: activeTab,
       type: vehicleCategory,
@@ -83,7 +91,7 @@ export const BookingSearch: React.FC = () => {
           {[
             { id: 'round', label: 'Round Trip' },
             { id: 'oneway', label: 'One Way' },
-            { id: 'chauffeur', label: 'With Chauffeur Driver' },
+            { id: 'chauffeur', label: 'With Station Chauffeur' },
           ].map((type) => (
             <button
               key={type.id}
@@ -183,7 +191,7 @@ export const BookingSearch: React.FC = () => {
               <option value="all" className="bg-white text-slate-900">All Vehicles</option>
               <option value="4x4" className="bg-white text-slate-900">4x4 Safari Cruisers</option>
               <option value="SUV" className="bg-white text-slate-900">Luxury SUVs</option>
-              <option value="VAN" className="bg-white text-slate-900">Executive Vans (Alphard)</option>
+              <option value="VAN" className="bg-white text-slate-900">Executive VIP Vans</option>
               <option value="SEDAN" className="bg-white text-slate-900">Premium Sedans</option>
             </select>
             <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-full text-[11px] text-slate-800 shadow-sm">
@@ -212,8 +220,8 @@ export const BookingSearch: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Popular:</span>
           {[
-            { label: '4x4 Safari Land Cruisers', val: '4x4' },
-            { label: 'Executive Vans (Alphard)', val: 'VAN' },
+            { label: '4x4 Safari Cruisers', val: '4x4' },
+            { label: 'Executive VIP Vans', val: 'VAN' },
             { label: 'Self-Drive SUVs', val: 'SUV' },
             { label: 'Airport VIP Transfer', val: 'SEDAN' },
           ].map((pill) => (
@@ -239,7 +247,15 @@ export const BookingSearch: React.FC = () => {
           className="btn-primary !px-7 !py-3 text-sm flex items-center gap-2.5 shadow-md hover:shadow-lg transition-all"
         >
           <Sparkles className="h-4 w-4 fill-white" />
-          <span>Find Available Vehicles</span>
+          <span>
+            {activeTab === 'homes'
+              ? 'Explore Holiday Homes'
+              : activeTab === 'packages'
+              ? 'Explore Holidays & Safaris'
+              : activeTab === 'buses'
+              ? 'Explore Bus Routes'
+              : 'Find Available Vehicles'}
+          </span>
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </button>
       </div>

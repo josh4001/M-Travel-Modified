@@ -47,7 +47,7 @@ export const KENYA_DESTINATIONS: Destination[] = [
     highlights: ['Large Elephant Herds', 'Mount Kilimanjaro Views', 'Observation Hill Panorama', 'Swamp Birdlife'],
     recommendedTerrain: 'Rugged SUV',
     suggestedVehicleTypes: ['SUV', 'VAN'],
-    vehicleReason: 'Dry dusty tracks with occasional swamp soil. A 4x4 Land Cruiser or Prado offers smooth ride and pop-up roof for wildlife viewing.',
+    vehicleReason: 'Dry dusty tracks with occasional swamp soil. A verified 4x4 Safari SUV offers smooth ride and pop-up roof for wildlife viewing.',
     imageUrl: 'https://images.unsplash.com/photo-1534177616072-ef7dc120449d?auto=format&fit=crop&w=1200&q=80',
     galleryUrls: [
       'https://images.unsplash.com/photo-1534177616072-ef7dc120449d?auto=format&fit=crop&w=800&q=80',

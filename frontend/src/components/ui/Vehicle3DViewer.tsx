@@ -82,7 +82,7 @@ function StylizedVehicle({ color, autoRotate }: VehicleModelProps) {
   );
 }
 
-export function Vehicle3DViewer({ make = 'Toyota', model = 'Prado TX' }: { make?: string; model?: string }) {
+export function Vehicle3DViewer({ make = 'Safari', model = '4x4 SUV' }: { make?: string; model?: string }) {
   const [color, setColor] = useState('#F5A623');
   const [autoRotate, setAutoRotate] = useState(true);
 

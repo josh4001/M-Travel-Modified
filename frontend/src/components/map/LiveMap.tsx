@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { MapPin, Navigation, Zap } from 'lucide-react';
+import { MapPin, Navigation } from 'lucide-react';
 
 interface MapVehicle {
   id: string;
@@ -71,7 +71,7 @@ export default function LiveMap({
       });
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors | M-TRAVEL GPS',
+        attribution: '© OpenStreetMap contributors | M-TRAVEL Map',
         maxZoom: 19,
       }).addTo(map);
 
@@ -223,7 +223,7 @@ export default function LiveMap({
       <div className="absolute left-0 right-0 top-0 z-[1000] flex items-center justify-between bg-ink/80 px-4 py-2 backdrop-blur-sm">
         <div className="flex items-center gap-2 text-xs text-white font-medium">
           <Navigation className="h-3.5 w-3.5 text-teal animate-pulse" />
-          <span>Live GPS Map — Kenya</span>
+          <span>Interactive Map — Kenya</span>
           {vehicles.length > 0 && (
             <span className="rounded-full bg-teal/20 px-2 py-0.5 text-teal font-mono font-bold">
               {vehicles.filter(v => v.is_available).length} Available
@@ -233,11 +233,6 @@ export default function LiveMap({
         {userPos && (
           <span className="flex items-center gap-1 text-[10px] text-blue-400">
             <MapPin className="h-3 w-3" /> Your location active
-          </span>
-        )}
-        {trackingMode && (
-          <span className="flex items-center gap-1 text-[10px] text-emerald-400 animate-pulse">
-            <Zap className="h-3 w-3" /> LIVE TRACKING
           </span>
         )}
       </div>

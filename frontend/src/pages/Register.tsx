@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { ArrowRight, Mail, Lock, Phone, User, Car, Shield, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { register } from '@/lib/authService';
@@ -24,7 +24,7 @@ const ROLES = [
   {
     value: 'ADMIN',
     label: 'System Admin',
-    description: 'Platform control & vehicle monitoring',
+    description: 'Platform control & fleet monitoring',
     icon: Shield,
     color: 'purple',
   },
@@ -42,7 +42,6 @@ export default function Register() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
   const dispatch = useDispatch();
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -57,12 +56,13 @@ export default function Register() {
 
   function redirectByRole(role: string) {
     if (redirectUrl && (role === 'TOURIST' || role === 'CUSTOMER' || !role)) {
-      navigate(redirectUrl);
+      window.location.href = redirectUrl;
       return;
     }
-    if (role === 'ADMIN' || role === 'SUPER_ADMIN') navigate('/dashboard/admin');
-    else if (role === 'VEHICLE_OWNER') navigate('/dashboard/owner');
-    else navigate('/dashboard/tourist');
+    const r = role?.toUpperCase();
+    if (r === 'ADMIN' || r === 'SUPER_ADMIN') window.location.href = '/dashboard/admin';
+    else if (r === 'VEHICLE_OWNER' || r === 'OWNER' || r === 'HOST' || r === 'FLEET_HOST') window.location.href = '/dashboard/owner';
+    else window.location.href = '/dashboard/tourist';
   }
 
   async function onSubmit(e: FormEvent) {
@@ -77,6 +77,7 @@ export default function Register() {
     setLoading(true);
     try {
       const data = await register(form);
+      sessionStorage.setItem('mt_just_logged_in', 'true');
       dispatch(setUser(data.user));
       redirectByRole(data.user.role);
     } catch (err: unknown) {
@@ -224,7 +225,7 @@ export default function Register() {
               <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-300">
                 Account Type
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {ROLES.map((r) => {
                   const active = form.role === r.value;
                   return (

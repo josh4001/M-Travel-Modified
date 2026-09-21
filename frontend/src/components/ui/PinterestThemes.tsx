@@ -21,14 +21,14 @@ const PINTEREST_PINS: ThemePin[] = [
   {
     id: 'pin-1',
     title: 'Wilderness Luxe & Big Five Safari',
-    subtitle: 'Track lions and wildebeests across the golden savannah in a luxury 4x4 Prado.',
+    subtitle: 'Track lions and wildebeests across the golden savannah in a luxury 4x4 Safari Cruiser.',
     tag: 'Safari Vibe',
     location: 'Maasai Mara National Reserve',
     pricePerDayKES: 14000,
     imageUrl: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=800&q=80',
     aspect: 'aspect-[3/4]',
     likes: 342,
-    featuredVehicle: 'Toyota Land Cruiser Prado',
+    featuredVehicle: 'Luxury 4x4 Safari Cruiser',
   },
   {
     id: 'pin-2',
@@ -40,7 +40,7 @@ const PINTEREST_PINS: ThemePin[] = [
     imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
     aspect: 'aspect-[4/5]',
     likes: 512,
-    featuredVehicle: 'Toyota RAV4 AWD',
+    featuredVehicle: 'Coastal All-Wheel Drive',
   },
   {
     id: 'pin-3',
@@ -52,7 +52,7 @@ const PINTEREST_PINS: ThemePin[] = [
     imageUrl: 'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?auto=format&fit=crop&w=800&q=80',
     aspect: 'aspect-[3/4]',
     likes: 289,
-    featuredVehicle: 'Toyota Hiace Safari Van',
+    featuredVehicle: 'Custom Safari Tour Van',
   },
   {
     id: 'pin-4',

@@ -23,7 +23,9 @@ import TouristDashboard from '@/pages/dashboard/TouristDashboard';
 import OwnerDashboard from '@/pages/dashboard/OwnerDashboard';
 import AdminDashboard from '@/pages/dashboard/AdminDashboard';
 import WalletPage from '@/pages/dashboard/WalletPage';
+import HolidaysAndTours from '@/pages/HolidaysAndTours';
 import NotFound from '@/pages/NotFound';
+import UberLocationPrompt from '@/components/common/UberLocationPrompt';
 
 /** Ensures every route transition and refresh starts at the very top (0, 0) */
 function ScrollToTop() {
@@ -47,15 +49,17 @@ function ScrollToTop() {
 function RoleDashboard() {
   const user = useSelector((s: RootState) => s.auth.user);
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') return <Navigate to="/dashboard/admin" replace />;
-  if (user.role === 'VEHICLE_OWNER') return <Navigate to="/dashboard/owner" replace />;
+  const role = user.role?.toUpperCase();
+  if (role === 'ADMIN' || role === 'SUPER_ADMIN') return <Navigate to="/dashboard/admin" replace />;
+  if (role === 'VEHICLE_OWNER' || role === 'OWNER' || role === 'HOST' || role === 'FLEET_HOST') return <Navigate to="/dashboard/owner" replace />;
   return <Navigate to="/dashboard/tourist" replace />;
 }
 
-/** Protects Fleet Market / Catalogue from Fleet Host persona */
+/** Protects Fleet Market / Catalogue from Fleet Host personas */
 function NonHostRoute({ children }: { children: JSX.Element }) {
   const user = useSelector((s: RootState) => s.auth.user);
-  if (user?.role === 'VEHICLE_OWNER') {
+  const role = user?.role?.toUpperCase();
+  if (role === 'VEHICLE_OWNER' || role === 'OWNER' || role === 'HOST' || role === 'FLEET_HOST') {
     return <Navigate to="/dashboard/owner" replace />;
   }
   return children;
@@ -64,17 +68,27 @@ function NonHostRoute({ children }: { children: JSX.Element }) {
 export default function App() {
   const dispatch = useDispatch();
 
-  // Restore session on load if access token exists
+  // Restore session on load if user exists in local cache
   useEffect(() => {
+    // 1. Instant local rehydration (0ms paint on refresh)
+    const cached = localStorage.getItem('mt_user');
+    if (cached) {
+      try {
+        dispatch(setUser(JSON.parse(cached)));
+      } catch {}
+    }
+
     const token = localStorage.getItem('mt_access_token');
     if (!token) return;
-    api.get('/users/me').then(({ data }) => dispatch(setUser(data))).catch(() => {
-      // Fallback restore from cached storage
-      const cached = localStorage.getItem('mt_user');
-      if (cached) {
-        try { dispatch(setUser(JSON.parse(cached))); } catch {}
-      }
-    });
+
+    // 2. Background verification (non-blocking, fast 2s timeout)
+    api.get('/users/me', { timeout: 2000 })
+      .then(({ data }) => {
+        if (data) dispatch(setUser(data));
+      })
+      .catch(() => {
+        // Backend offline or timeout; session safely remains on cached user
+      });
   }, [dispatch]);
 
   return (
@@ -86,6 +100,7 @@ export default function App() {
           {/* PUBLIC ROUTES (Fleet Hosts redirected to host portal) */}
           <Route path="/" element={<Landing />} />
           <Route path="/catalogue" element={<NonHostRoute><Catalogue /></NonHostRoute>} />
+          <Route path="/holidays-and-tours" element={<NonHostRoute><HolidaysAndTours /></NonHostRoute>} />
           <Route path="/services" element={<Services />} />
           <Route path="/team" element={<Team />} />
           <Route path="/contact" element={<Contact />} />
@@ -96,6 +111,7 @@ export default function App() {
 
           {/* SMART ROLE REDIRECT */}
           <Route path="/dashboard" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/holidays-and-tours" element={<NonHostRoute><HolidaysAndTours /></NonHostRoute>} />
 
           {/* RBAC-PROTECTED ROLE DASHBOARDS */}
           <Route
@@ -109,7 +125,7 @@ export default function App() {
           <Route
             path="/dashboard/owner"
             element={
-              <ProtectedRoute allowedRoles={['VEHICLE_OWNER', 'ADMIN']}>
+              <ProtectedRoute allowedRoles={['VEHICLE_OWNER', 'OWNER', 'HOST', 'FLEET_HOST', 'ADMIN']}>
                 <OwnerDashboard />
               </ProtectedRoute>
             }
@@ -125,12 +141,22 @@ export default function App() {
 
           {/* SHARED PROTECTED DASHBOARD PAGES */}
           <Route path="/dashboard/bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
-          <Route path="/dashboard/wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
+          <Route path="/dashboard/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+          <Route
+            path="/dashboard/wallet"
+            element={
+              <ProtectedRoute allowedRoles={['TOURIST', 'CUSTOMER', 'VEHICLE_OWNER', 'ADMIN', 'SUPER_ADMIN']}>
+                <WalletPage />
+              </ProtectedRoute>
+            }
+          />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       <Footer />
+      {/* GLOBAL UBER-STYLE LOCATION PERMISSION PROMPT */}
+      <UberLocationPrompt />
       {/* GLOBAL AI SAFARI ASSISTANT WIDGET */}
       <FloatingAiAssistant />
     </div>

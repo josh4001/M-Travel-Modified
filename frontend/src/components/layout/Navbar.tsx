@@ -1,8 +1,8 @@
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   Menu, Wallet, Sparkles, X, User as UserIcon, Shield, Car,
-  Globe, Phone, Crown, LayoutDashboard, CalendarCheck, PlusCircle
+  Globe, Phone, Crown, LayoutDashboard, CalendarCheck, PlusCircle, Palmtree
 } from 'lucide-react';
 import { useState } from 'react';
 import type { RootState } from '@/store';
@@ -19,21 +19,29 @@ interface NavItem {
 export function Navbar() {
   const user = useSelector((s: RootState) => s.auth.user);
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const { currency, setCurrency } = useCurrency();
 
+  const handleSignOut = () => {
+    dispatch(logout());
+    localStorage.removeItem('mt_access_token');
+    localStorage.removeItem('mt_refresh_token');
+    localStorage.removeItem('mt_user');
+    window.location.href = '/login';
+  };
+
   const getRoleBadge = () => {
     if (!user) return null;
-    if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+    const role = user.role?.toUpperCase();
+    if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
       return (
         <span className="flex items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-[11px] font-bold text-purple-700">
           <Shield className="h-3 w-3 text-purple-600" /> Admin
         </span>
       );
     }
-    if (user.role === 'VEHICLE_OWNER') {
+    if (role === 'VEHICLE_OWNER' || role === 'OWNER' || role === 'HOST' || role === 'FLEET_HOST') {
       return (
         <span className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-bold text-amber-800">
           <Car className="h-3 w-3 text-amber-600" /> Fleet Host
@@ -56,13 +64,17 @@ export function Navbar() {
     if (!user) {
       return [
         { label: 'Home', path: '/', isActive: (p) => p === '/' },
+        { label: 'Explore Fleet', path: '/catalogue', isActive: (p) => p === '/catalogue' || p === '/search' },
+        { label: 'Holidays & Tours', path: '/holidays-and-tours', isActive: (p) => p === '/holidays-and-tours' },
         { label: 'Services', path: '/services', isActive: (p) => p === '/services' },
         { label: 'Contact', path: '/contact', isActive: (p) => p === '/contact' },
       ];
     }
 
+    const role = user?.role?.toUpperCase();
+
     // 1. ADMIN ACCOUNT — Mission Control & Fleet Oversight (No consumer marketing fluff)
-    if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+    if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
       return [
         {
           label: 'Dashboard',
@@ -86,7 +98,7 @@ export function Navbar() {
     }
 
     // 2. FLEET HOST ACCOUNT — Only Host Dashboard, My Registered Cars, Bookings, Register Car & Wallet
-    if (user.role === 'VEHICLE_OWNER') {
+    if (role === 'VEHICLE_OWNER' || role === 'OWNER' || role === 'HOST' || role === 'FLEET_HOST') {
       return [
         {
           label: 'Host Dashboard',
@@ -121,7 +133,7 @@ export function Navbar() {
       ];
     }
 
-    // 3. TRAVELER / TOURIST ACCOUNT — Booking, Active Trips, Live GPS & Wallet
+    // 3. TRAVELER / TOURIST ACCOUNT — Booking, Active Trips & Wallet
     return [
       {
         label: 'Dashboard',
@@ -134,6 +146,12 @@ export function Navbar() {
         path: '/catalogue',
         icon: Car,
         isActive: (p) => p === '/catalogue' || p === '/search' || p.startsWith('/vehicles'),
+      },
+      {
+        label: 'Holidays and Tours',
+        path: '/holidays-and-tours',
+        icon: Palmtree,
+        isActive: (p) => p === '/holidays-and-tours',
       },
       {
         label: 'My Bookings',
@@ -214,7 +232,7 @@ export function Navbar() {
               const Icon = item.icon;
               return (
                 <Link
-                  key={item.path}
+                  key={`${item.label}-${item.path}`}
                   to={item.path}
                   className={`relative flex items-center gap-1.5 px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all duration-200 rounded-full ${
                     isActive
@@ -241,7 +259,7 @@ export function Navbar() {
                   {user.firstName ? `${user.firstName} ${user.lastName ?? ''}` : user.email}
                 </span>
                 <button
-                  onClick={() => { dispatch(logout()); navigate('/login'); }}
+                  onClick={handleSignOut}
                   className="btn-secondary !px-4 !py-1.5 text-xs font-semibold tracking-wide uppercase"
                 >
                   Sign out
@@ -293,7 +311,7 @@ export function Navbar() {
                 const Icon = item.icon;
                 return (
                   <Link
-                    key={item.path}
+                    key={`${item.label}-${item.path}`}
                     to={item.path}
                     onClick={() => setOpen(false)}
                     className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition ${
@@ -311,7 +329,7 @@ export function Navbar() {
               {user ? (
                 <div className="border-t border-slate-150 pt-3 flex items-center justify-end">
                   <button
-                    onClick={() => { dispatch(logout()); setOpen(false); navigate('/login'); }}
+                    onClick={() => { setOpen(false); handleSignOut(); }}
                     className="text-xs text-rose-600 font-bold px-3 py-1.5 rounded-lg hover:bg-rose-50 transition"
                   >
                     Sign out

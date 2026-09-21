@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Car, Bus, Palmtree, Home, MapPin, ArrowRight, Search, Sparkles,
-  CheckCircle, Calendar, ShieldCheck, X, Ticket, Star, Power, Lock, AlertTriangle
+  Car, Bus, Palmtree, MapPin, ArrowRight, Search, Sparkles,
+  CheckCircle, Calendar, ShieldCheck, X, Ticket, Star, Power, Lock, AlertTriangle, Navigation
 } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import { MpesaStkPushModal } from '@/components/ui/MpesaStkPushModal';
@@ -15,8 +15,10 @@ import {
 } from '@/lib/bookingStore';
 import { supabase } from '@/lib/supabaseClient';
 import { sendNotification } from '@/lib/notificationService';
+import { sendTravelerBookingEmail } from '@/lib/communicationService';
+import { VehicleStatusBadge } from '@/components/ui/LuxuryVehicleBadges';
 
-type TabType = 'vehicles' | 'buses' | 'tours' | 'homes';
+type TabType = 'vehicles' | 'buses';
 
 interface CatalogueItem {
   id: string;
@@ -42,63 +44,7 @@ interface CatalogueItem {
 }
 
 const CATALOGUE_ITEMS: CatalogueItem[] = [
-  // VEHICLES
-  {
-    id: 'v-1',
-    category: 'vehicles',
-    title: 'Toyota Land Cruiser Prado V8 4x4',
-    subtitle: 'Full 4WD Capability, Pop-up Safari Roof, Professional Chauffeur Optional',
-    badge: '4x4 Safari SUV',
-    priceKES: 14000,
-    priceUnit: '/ day',
-    imageUrl: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80',
-    location: 'Nairobi & National Parks',
-    specs: ['7 Seats', 'Diesel 4.5L', 'Automatic', 'Pop-Up Roof'],
-    rating: 4.9,
-    reviews: 87,
-    details: {
-      overview: 'Heavy-duty 4x4 safari cruiser engineered for Kenya terrain. Features high clearance, twin tanks, pop-up roof for wildlife photography, and dual air-conditioning.',
-      highlights: ['Pop-up safari roof for 360° game viewing', 'Free cooler box with ice', 'Experienced bush driver available', 'UN & Embassy clearance compliant'],
-    },
-  },
-  {
-    id: 'v-2',
-    category: 'vehicles',
-    title: 'Toyota Hiace Custom Safari Van',
-    subtitle: 'Heavy-duty suspension, high-clearance 4WD for group game drives',
-    badge: 'Safari Van',
-    priceKES: 11500,
-    priceUnit: '/ day',
-    imageUrl: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80',
-    location: 'Westlands / Airport Pickup',
-    specs: ['9 Seats', 'Diesel 3.0L', 'Manual 4WD', 'Cooler Box'],
-    rating: 4.7,
-    reviews: 134,
-    details: {
-      overview: 'Customized safari van equipped with 9 individual window seats, pop-up roof, long-range HF radio, and charging sockets for camera gear.',
-      highlights: ['9 window seats for every traveler', 'Pop-up roof', 'HF radio connected to park rangers', 'Luggage roof rack'],
-    },
-  },
-  {
-    id: 'v-3',
-    category: 'vehicles',
-    title: 'Toyota Alphard Executive Lounge',
-    subtitle: 'First-class captain seats, dual sunroof, ambient lighting & VIP privacy glass',
-    badge: 'Luxury VIP Van',
-    priceKES: 16500,
-    priceUnit: '/ day',
-    imageUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
-    location: 'Nairobi JKIA / Kilimani',
-    specs: ['7 Seats', 'Hybrid 2.5L', 'Automatic', 'Leather Recliners'],
-    rating: 4.95,
-    reviews: 62,
-    details: {
-      overview: 'The pinnacle of executive road travel. Power Ottoman captain recliners, dual sunroofs, JBL surround audio, and whisper-quiet hybrid drivetrain.',
-      highlights: ['Power Ottoman captain seats with massage', 'Dual sunroofs', 'Complimentary onboard refreshments', 'Airport VIP greeting service'],
-    },
-  },
-
-  // BUS RESERVATIONS
+  // BUS RESERVATIONS ONLY (Tours & Holiday Homes moved to dedicated Holidays & Tours page)
   {
     id: 'b-1',
     category: 'buses',
@@ -138,99 +84,12 @@ const CATALOGUE_ITEMS: CatalogueItem[] = [
     reviews: 145,
     details: {
       overview: 'VIP intercity shuttle operating hourly departures between Nairobi, Nakuru, and Kisumu. Guaranteed seat reservation with no midway stops.',
-      highlights: ['Hourly Departures from 06:00 AM to 06:00 PM', 'Maximum 14 passengers for speedy transit', 'Dedicated luggage compartment', 'GPS real-time route monitoring'],
+      highlights: ['Hourly Departures from 06:00 AM to 06:00 PM', 'Maximum 14 passengers for speedy transit', 'Dedicated luggage compartment', 'Real-time route & schedule monitoring'],
       scheduleOrItinerary: [
         'Departure — Every hour on the hour',
         'Nairobi CBD → Nakuru (2 Hours Transit)',
         'Nakuru → Kisumu (3 Hours Transit)',
       ],
-    },
-  },
-
-  // TOURS & TRAVEL
-  {
-    id: 't-1',
-    category: 'tours',
-    title: '3-Day Maasai Mara Great Migration Package',
-    subtitle: 'All-inclusive 4x4 game drives, luxury safari lodge stay, park entry & meals',
-    badge: 'Guided Safari Tour',
-    priceKES: 45000,
-    priceUnit: '/ person',
-    imageUrl: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=800&q=80',
-    location: 'Maasai Mara National Reserve',
-    specs: ['3 Days / 2 Nights', 'Full Board Lodge', 'Expert Guide', 'Park Entry Included'],
-    rating: 4.98,
-    reviews: 320,
-    details: {
-      overview: 'Unforgettable 3-day safari in Africa’s highest-density wildlife haven. Witness the Big Five, Mara River crossings, and cultural Maasai village visits.',
-      highlights: ['4x4 Land Cruiser game drives with KPSGA guide', 'Luxury safari tented lodge accommodation', 'All meals (Breakfast, Lunch & Gourmet Dinner)', 'Park entry fees & airport transfers included'],
-      scheduleOrItinerary: [
-        'Day 1: Departure from Nairobi, Great Rift Valley viewpoint stop, arrive Mara for evening sunset game drive.',
-        'Day 2: Full-day Mara game drive with picnic lunch near Mara River crossing.',
-        'Day 3: Sunrise game drive, Maasai cultural village visit, return transit to Nairobi.',
-      ],
-    },
-  },
-  {
-    id: 't-2',
-    category: 'tours',
-    title: 'Swahili Diani Beach Luxury Getaway',
-    subtitle: 'Return flights from Nairobi, beach resort stay, glass-bottom boat & seafood dining',
-    badge: 'Beach Resort Package',
-    priceKES: 38000,
-    priceUnit: '/ person',
-    imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
-    location: 'Diani Beach, South Coast',
-    specs: ['4 Days / 3 Nights', '5-Star Resort', 'Airport Transfers', 'Snorkeling'],
-    rating: 4.9,
-    reviews: 180,
-    details: {
-      overview: 'Unwind on the world-famous white sands of Diani Beach. Includes return flight tickets, oceanfront resort suite, private dhow cruise, and seafood dinner.',
-      highlights: ['Return flights (Nairobi Wilson ⇄ Ukunda Airport)', 'Oceanfront Deluxe Suite at 5-Star Resort', 'Private glass-bottom boat & reef snorkeling', 'Daily buffet breakfast & seafood dinner'],
-      scheduleOrItinerary: [
-        'Day 1: Flight Wilson → Ukunda, airport transfer, resort check-in & evening sunset cocktail.',
-        'Day 2: Wasini Island dhow safari, dolphin spotting & seafood lunch.',
-        'Day 3: Leisure beach day, spa treatment & water sports.',
-        'Day 4: Morning beach walk, souvenir shopping & flight back to Nairobi.',
-      ],
-    },
-  },
-
-  // HOLIDAY HOMES
-  {
-    id: 'h-1',
-    category: 'homes',
-    title: 'Mara River View Safari Lodge Villa',
-    subtitle: 'Private infinity pool, personal chef service, and views of wildlife crossing the river',
-    badge: 'Luxury Villa',
-    priceKES: 32000,
-    priceUnit: '/ night',
-    imageUrl: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
-    location: 'Mara Triangle Edge',
-    specs: ['4 Bedrooms', 'Private Pool', 'Personal Chef', 'High-Speed WiFi'],
-    rating: 4.96,
-    reviews: 48,
-    details: {
-      overview: 'Exclusive 4-bedroom villa perched on a ridge overlooking the Mara River. Comes with private infinity pool, dedicated chef, solar power, and 24/7 security.',
-      highlights: ['4 Ensuite Master Bedrooms with king beds', 'Private infinity pool overlooking wildlife waterhole', 'Personal chef & butler service included', 'Solar power & satellite Starlink internet'],
-    },
-  },
-  {
-    id: 'h-2',
-    category: 'homes',
-    title: 'Diani Oceanfront Swahili Cottage',
-    subtitle: 'Direct beach access, tropical palm garden, and open-air veranda for sunset dining',
-    badge: 'Oceanfront Cottage',
-    priceKES: 22000,
-    priceUnit: '/ night',
-    imageUrl: 'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=800&q=80',
-    location: 'Galu Beach, Diani',
-    specs: ['3 Bedrooms', 'Direct Ocean Access', 'Air-Conditioned', 'Housekeeping'],
-    rating: 4.88,
-    reviews: 76,
-    details: {
-      overview: 'Charming Swahili-style cottage with direct access to Galu Beach sand. Features open-air thatch roof veranda, lush private garden, and daily housekeeping.',
-      highlights: ['3 Air-conditioned bedrooms with mosquito nets', 'Private gate leading straight onto Diani Beach', 'Daily housekeeping & laundry service', 'Outdoor Swahili barbecue pit'],
     },
   },
 ];
@@ -241,12 +100,12 @@ export default function Catalogue() {
   const user = useSelector((s: RootState) => s.auth.user);
   const { formatPrice } = useCurrency();
 
-  const categoryParam = (searchParams.get('category') as TabType) || 'vehicles';
+  const categoryParam = searchParams.get('category');
   const [activeTab, setActiveTab] = useState<TabType>(
-    ['vehicles', 'buses', 'tours', 'homes'].includes(categoryParam) ? categoryParam : 'vehicles'
+    categoryParam === 'buses' ? 'buses' : 'vehicles'
   );
   const [searchTerm, setSearchTerm] = useState('');
-  const [storedVehicles, setStoredVehicles] = useState<StoredVehicle[]>([]);
+  const [storedVehicles, setStoredVehicles] = useState<StoredVehicle[]>(() => getStoredVehicles());
   const [adminNotice, setAdminNotice] = useState<string | null>(null);
   const [liveTick, setLiveTick] = useState(0);
 
@@ -280,14 +139,18 @@ export default function Catalogue() {
   const [selectedSeat, setSelectedSeat] = useState<number | null>(12);
 
   useEffect(() => {
-    const cat = searchParams.get('category') as TabType;
-    if (cat && ['vehicles', 'buses', 'tours', 'homes'].includes(cat)) {
+    const cat = searchParams.get('category');
+    if (cat === 'tours' || cat === 'homes') {
+      navigate(`/holidays-and-tours?tab=${cat === 'homes' ? 'homes' : 'tours'}`, { replace: true });
+      return;
+    }
+    if (cat === 'buses' || cat === 'vehicles') {
       setActiveTab(cat);
       if (cat === 'vehicles') {
         syncVehiclesFromSupabase().then(() => refreshVehicles()).catch(() => {});
       }
     }
-  }, [searchParams]);
+  }, [searchParams, navigate]);
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
@@ -298,15 +161,13 @@ export default function Catalogue() {
   };
 
   const TABS: { id: TabType; label: string; icon: any; desc: string }[] = [
-    { id: 'vehicles', label: 'Vehicle Hire',     icon: Car,      desc: 'Safari 4x4 SUVs, Vans & Pickups' },
-    { id: 'buses',    label: 'Bus Reservations', icon: Bus,      desc: 'Highway Coaches & Express Shuttles' },
-    { id: 'tours',    label: 'Tours & Travel',   icon: Palmtree, desc: 'Maasai Mara Safaris & Beach Resorts' },
-    { id: 'homes',    label: 'Holiday Homes',    icon: Home,     desc: 'Private Villas & Oceanfront Cottages' },
+    { id: 'vehicles', label: 'Live Vehicle Hire', icon: Car, desc: 'Live Approved 4x4 Cruisers, SUVs & Executive Cars' },
+    { id: 'buses',    label: 'Bus Reservations',  icon: Bus, desc: 'VIP Highway Coaches & Intercity Shuttles' },
   ];
 
-  // Dynamic approved vehicles from registered hosts
+  // Dynamic approved vehicles strictly from registered hosts that are currently LIVE
   const approvedHostVehicles: CatalogueItem[] = storedVehicles
-    .filter((v) => v.status === 'APPROVED')
+    .filter((v) => v.status === 'APPROVED' && isVehicleLive(v.id))
     .map((v) => ({
       id: v.id,
       category: 'vehicles' as TabType,
@@ -334,12 +195,10 @@ export default function Catalogue() {
       },
     }));
 
+  // Platform catalogue: Live Vehicles strictly from approved hosts; Bus reservations for intercity routes
   const allCatalogueItems: CatalogueItem[] = [
     ...approvedHostVehicles,
-    ...CATALOGUE_ITEMS.filter((ci) => !approvedHostVehicles.some((hv) => hv.id === ci.id)).map((ci) => ({
-      ...ci,
-      isLive: ci.category === 'vehicles' ? isVehicleLive(ci.id) : true,
-    })),
+    ...CATALOGUE_ITEMS.filter((ci) => ci.category === 'buses'),
   ];
 
   const filteredItems = allCatalogueItems.filter((item) => {
@@ -364,22 +223,35 @@ export default function Catalogue() {
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-600 shadow-sm">
               {activeTab === 'vehicles' && <Car className="h-6 w-6 stroke-[2]" />}
               {activeTab === 'buses' && <Bus className="h-6 w-6 stroke-[2]" />}
-              {activeTab === 'tours' && <Palmtree className="h-6 w-6 stroke-[2]" />}
-              {activeTab === 'homes' && <Home className="h-6 w-6 stroke-[2]" />}
             </div>
             <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-slate-900">
               {activeTab === 'buses' && 'Bus Reservations & Coach Routes'}
-              {activeTab === 'tours' && 'Guided Safaris & Holiday Packages'}
-              {activeTab === 'homes' && 'Private Safari Villas & Beach Cottages'}
-              {activeTab === 'vehicles' && 'Safari 4x4 SUVs & Luxury Vehicle Hire'}
+              {activeTab === 'vehicles' && 'Live Fleet Vehicles & Safari Hire'}
             </h1>
           </div>
           <p className="text-sm md:text-base text-slate-600 leading-relaxed">
             {activeTab === 'buses' && 'Book luxury highway coaches & intercity express shuttles with seat selection, onboard WiFi, and instant QR tickets.'}
-            {activeTab === 'tours' && 'Explore all-inclusive Maasai Mara safari packages, Swahili Diani beach getaways, and mountain expeditions.'}
-            {activeTab === 'homes' && 'Rent private holiday villas, Mara river lodges, and coastal cottages with personal chefs and private pools.'}
-            {activeTab === 'vehicles' && 'Rent executive 4x4 Land Cruisers, safari vans, and luxury Alphard vans for self-drive or with professional drivers.'}
+            {activeTab === 'vehicles' && 'Explore live certified 4x4 safari cruisers, executive SUVs, and passenger vehicles registered by approved fleet hosts.'}
           </p>
+
+          {/* HOLIDAYS AND TOURS PROMPT BANNER */}
+          <div className="pt-2">
+            <div className="rounded-2xl bg-white/80 border border-amber-300/80 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <Palmtree className="h-5 w-5 text-amber-600 shrink-0" />
+                <span className="text-xs text-slate-700 font-medium">
+                  Looking for Guided Safaris, Mara Packages, or Holiday Homes?
+                </span>
+              </div>
+              <Link
+                to="/holidays-and-tours"
+                className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 hover:text-amber-800 hover:underline"
+              >
+                <span>Visit Holidays and Tours</span>
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </div>
 
           {/* SEARCH BAR */}
           <div className="pt-2 max-w-xl">
@@ -398,7 +270,7 @@ export default function Catalogue() {
       </div>
 
       {/* CATEGORY TABS BAR */}
-      <div className="flex flex-wrap gap-3 justify-center rounded-2xl border border-slate-200/80 bg-white p-2 shadow-card">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -406,10 +278,10 @@ export default function Catalogue() {
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
-              className={`flex-1 min-w-[170px] flex items-center justify-center gap-3 rounded-xl px-5 py-3.5 text-xs font-bold transition-all duration-200 ${
+              className={`flex items-center gap-3 p-4 rounded-2xl border transition-all duration-200 ${
                 isActive
-                  ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  ? 'bg-amber-500 text-white border-amber-500 shadow-md scale-[1.02]'
+                  : 'bg-white text-slate-700 border-slate-200 hover:border-amber-400 hover:bg-amber-50/40 shadow-sm'
               }`}
             >
               <Icon className="h-5 w-5 shrink-0" />
@@ -444,9 +316,43 @@ export default function Catalogue() {
           className="grid gap-6 md:grid-cols-2 items-stretch"
         >
           {filteredItems.length === 0 ? (
-            <div className="col-span-full text-center py-12 text-slate-400 font-mono">
-              No listings found matching "{searchTerm}" under {TABS.find(t => t.id === activeTab)?.label}.
-            </div>
+            activeTab === 'vehicles' ? (
+              <div className="col-span-full rounded-3xl bg-white border border-slate-200/90 p-12 md:p-16 text-center space-y-4 shadow-sm">
+                <div className="h-16 w-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mx-auto">
+                  <Car className="h-8 w-8 stroke-[1.75]" />
+                </div>
+                <div className="space-y-1.5 max-w-md mx-auto">
+                  <h3 className="font-serif text-2xl font-bold text-slate-900">
+                    No vehicles available at the moment
+                  </h3>
+                  <p className="text-xs md:text-sm text-slate-500 font-medium leading-relaxed">
+                    {searchTerm
+                      ? `No approved vehicles match "${searchTerm}". Try searching for another keyword or location.`
+                      : 'There are currently no approved fleet vehicles listed for hire. Check back soon or register as a fleet host to list your vehicle.'}
+                  </p>
+                </div>
+                <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="btn-secondary !py-2 !px-4 text-xs font-bold border-slate-200 text-slate-700"
+                    >
+                      Clear Search
+                    </button>
+                  )}
+                  <Link
+                    to="/register"
+                    className="btn-primary !py-2.5 !px-5 text-xs font-bold text-white shadow-sm inline-flex items-center gap-1.5"
+                  >
+                    <Sparkles className="h-4 w-4" /> Register as Fleet Host
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="col-span-full text-center py-12 text-slate-400 font-mono">
+                No listings found matching "{searchTerm}" under {TABS.find(t => t.id === activeTab)?.label}.
+              </div>
+            )
           ) : (
             filteredItems.map((item) => {
               const isVehicle = item.category === 'vehicles';
@@ -472,19 +378,14 @@ export default function Catalogue() {
 
                     {/* OPERATIONAL STATUS BADGE */}
                     {isVehicle && (
-                      hireStatus.isHired ? (
-                        <span className="absolute top-3 right-3 rounded-full bg-amber-500 text-slate-950 px-2.5 py-1 text-[10px] font-bold shadow-md animate-pulse">
-                          🚗 In Use (Hired)
-                        </span>
-                      ) : !isLive ? (
-                        <span className="absolute top-3 right-3 rounded-full bg-rose-600 text-white px-2.5 py-1 text-[10px] font-bold shadow-md">
-                          ⏸️ Unavailable
-                        </span>
-                      ) : (
-                        <span className="absolute top-3 right-3 rounded-full bg-emerald-600 text-white px-2.5 py-1 text-[10px] font-bold shadow-md">
-                          🟢 Live & Ready
-                        </span>
-                      )
+                      <div className="absolute top-3 right-3">
+                        <VehicleStatusBadge
+                          isHired={hireStatus.isHired}
+                          isLive={isLive}
+                          variant="overlay"
+                          labelOverride={hireStatus.isHired ? 'In Use (Hired)' : undefined}
+                        />
+                      </div>
                     )}
                   </div>
 
@@ -513,9 +414,13 @@ export default function Catalogue() {
                             <ShieldCheck className="h-4 w-4 text-purple-700 shrink-0" />
                             <div>
                               <span className="font-bold text-purple-900 block text-[11px]">Admin Fleet Controls</span>
-                              <span className="text-[10px] text-purple-700 font-medium">
-                                Status: <strong className="font-bold">{isLive ? '🟢 Live on Marketplace' : '⏸️ Offline (Paused)'}</strong>
-                              </span>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-[10px] text-purple-700 font-medium">Status:</span>
+                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${isLive ? 'text-emerald-700' : 'text-slate-600'}`}>
+                                  <span className={`h-1.5 w-1.5 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                                  {isLive ? 'Live on Marketplace' : 'Offline (Paused)'}
+                                </span>
+                              </div>
                             </div>
                           </div>
                           <button
@@ -543,11 +448,14 @@ export default function Catalogue() {
 
                       {/* UNAVAILABILITY & HIRED NOTICES FOR TRAVELERS */}
                       {isVehicle && hireStatus.isHired && (
-                        <div className="mt-2.5 p-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-medium flex items-start gap-1.5">
-                          <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
-                          <span>
-                            <strong>Currently in use:</strong> On an active trip with a traveler until {hireStatus.returnDate || 'return'}. Cannot be hired until returned.
-                          </span>
+                        <div className="mt-2.5 p-2.5 rounded-xl bg-amber-500/10 border border-amber-400/30 text-amber-950 text-[11px] font-medium flex items-start gap-2 shadow-xs">
+                          <div className="p-1 rounded-lg bg-amber-500/15 text-amber-800 shrink-0 mt-0.5">
+                            <Navigation className="h-3.5 w-3.5 -rotate-45" />
+                          </div>
+                          <div className="leading-snug">
+                            <span className="font-bold block text-amber-900">Active Passenger Journey</span>
+                            Currently on an active trip with a traveler until {hireStatus.returnDate || 'return'}. Cannot be hired until returned.
+                          </div>
                         </div>
                       )}
 
@@ -605,10 +513,7 @@ export default function Catalogue() {
                           onClick={() => setSelectedItem(item)}
                           className="btn-primary !px-5 !py-2 text-xs flex items-center gap-1.5 font-bold shadow-sm"
                         >
-                          {activeTab === 'buses' && 'Reserve Bus Seat'}
-                          {activeTab === 'tours' && 'Book Safari Tour'}
-                          {activeTab === 'homes' && 'Reserve Villa'}
-                          {activeTab === 'vehicles' && 'Book Vehicle'}
+                          {activeTab === 'buses' ? 'Reserve Bus Seat' : 'Book Vehicle'}
                           <ArrowRight className="h-3.5 w-3.5" />
                         </button>
                       )}
@@ -682,9 +587,13 @@ export default function Catalogue() {
                         <div className="mt-3 p-3 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-between text-xs">
                           <div>
                             <span className="font-bold text-purple-900 block text-[11px]">Admin Fleet Control</span>
-                            <span className="text-[10px] text-purple-700 font-medium">
-                              Live Status: <strong className="font-bold">{selectedIsLive ? '🟢 Live on Marketplace' : '⏸️ Offline (Paused)'}</strong>
-                            </span>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[10px] text-purple-700 font-medium">Live Status:</span>
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${selectedIsLive ? 'text-emerald-700' : 'text-slate-600'}`}>
+                                <span className={`h-1.5 w-1.5 rounded-full ${selectedIsLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                                {selectedIsLive ? 'Live on Marketplace' : 'Offline (Paused)'}
+                              </span>
+                            </div>
                           </div>
                           <button
                             type="button"
@@ -854,8 +763,9 @@ export default function Catalogue() {
             const endDate = new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0];
 
             // 1. Centralized Stored Booking (Real-time across all dashboards)
-            saveBooking({
+            const newBooking = saveBooking({
               bookingRef,
+              bookingType: selectedItem.category === 'vehicles' ? 'VEHICLE' : 'VEHICLE',
               vehicleId: selectedItem.id,
               vehicleMake: selectedItem.title,
               vehicleModel: selectedItem.badge,
@@ -875,12 +785,18 @@ export default function Catalogue() {
               status: 'CONFIRMED',
             });
 
+            // Dispatch luxury confirmation email
+            sendTravelerBookingEmail({
+              booking: newBooking,
+              isDestination: false,
+            }).catch(() => {});
+
             // 2. Persist in Supabase Postgres Database
             try {
               await supabase.from('bookings').insert({
                 booking_ref: bookingRef,
                 user_id: user?.id || 'a0000000-0000-0000-0000-000000000003',
-                bookable_type: selectedItem.category === 'vehicles' ? 'VEHICLE' : selectedItem.category === 'buses' ? 'BUS_SEAT' : selectedItem.category === 'tours' ? 'TOUR' : 'HOLIDAY_HOME',
+                bookable_type: selectedItem.category === 'vehicles' ? 'VEHICLE' : 'BUS_SEAT',
                 start_date: new Date().toISOString(),
                 end_date: new Date(Date.now() + 86400000 * 3).toISOString(),
                 total_amount: selectedItem.priceKES,

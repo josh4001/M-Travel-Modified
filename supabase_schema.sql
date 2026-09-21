@@ -12,6 +12,8 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 1. DROP EXISTING TABLES IF ANY
+DROP TABLE IF EXISTS trip_history CASCADE;
+DROP TABLE IF EXISTS driver_live_locations CASCADE;
 DROP TABLE IF EXISTS audit_logs CASCADE;
 DROP TABLE IF EXISTS coupons CASCADE;
 DROP TABLE IF EXISTS support_tickets CASCADE;
@@ -41,6 +43,7 @@ DROP TYPE IF EXISTS role_enum CASCADE;
 CREATE TYPE role_enum AS ENUM (
   'TRAVELER',
   'TOURIST',
+  'DRIVER',
   'VEHICLE_OWNER',
   'BUS_COMPANY',
   'TOUR_OPERATOR',
@@ -75,6 +78,8 @@ DROP TYPE IF EXISTS booking_status_enum CASCADE;
 CREATE TYPE booking_status_enum AS ENUM (
   'PENDING',
   'ACCEPTED',
+  'DRIVER_ASSIGNED',
+  'DRIVER_ARRIVED',
   'REJECTED',
   'CONFIRMED',
   'IN_PROGRESS',
@@ -132,6 +137,7 @@ CREATE TABLE device_logins (
 CREATE TABLE vehicles (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  driver_id UUID REFERENCES users(id) ON DELETE SET NULL,
   type vehicle_type_enum NOT NULL,
   make TEXT NOT NULL,
   model TEXT NOT NULL,
@@ -144,6 +150,8 @@ CREATE TABLE vehicles (
   plate_number TEXT UNIQUE,
   has_insurance BOOLEAN DEFAULT true,
   is_stolen BOOLEAN DEFAULT false,
+  is_self_drive_available BOOLEAN DEFAULT true,
+  is_with_driver_available BOOLEAN DEFAULT true,
   latitude FLOAT NOT NULL,
   longitude FLOAT NOT NULL,
   address TEXT,
@@ -178,6 +186,12 @@ CREATE TABLE bookings (
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   bookable_type bookable_type_enum DEFAULT 'VEHICLE',
   vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL,
+  driver_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  pickup_method TEXT DEFAULT 'DRIVER_DELIVER', -- 'DRIVER_DELIVER' (Driver brings vehicle) or 'SELF_COLLECT' (Traveler goes to vehicle)
+  pickup_lat FLOAT,
+  pickup_lng FLOAT,
+  destination_lat FLOAT,
+  destination_lng FLOAT,
   start_date TIMESTAMPTZ NOT NULL,
   end_date TIMESTAMPTZ NOT NULL,
   total_amount DECIMAL(10,2) NOT NULL,
@@ -187,6 +201,36 @@ CREATE TABLE bookings (
   cancel_reason TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 6b. REAL-TIME DRIVER & VEHICLE GPS TELEMETRY
+CREATE TABLE driver_live_locations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  driver_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  trip_id TEXT NOT NULL,
+  vehicle_id UUID REFERENCES vehicles(id) ON DELETE CASCADE,
+  latitude FLOAT NOT NULL,
+  longitude FLOAT NOT NULL,
+  speed FLOAT DEFAULT 0,
+  heading FLOAT DEFAULT 0,
+  accuracy FLOAT DEFAULT 5,
+  status TEXT DEFAULT 'AVAILABLE',
+  battery_level INT,
+  recorded_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(driver_id, trip_id)
+);
+
+-- 6c. COMPLETED TRIP ROUTE BREADCRUMBS & AUDIT
+CREATE TABLE trip_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  trip_id TEXT NOT NULL,
+  latitude FLOAT NOT NULL,
+  longitude FLOAT NOT NULL,
+  speed FLOAT DEFAULT 0,
+  heading FLOAT DEFAULT 0,
+  sequence_number INT NOT NULL,
+  recorded_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 7. PAYMENTS & WALLETS
@@ -408,6 +452,18 @@ ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow Public Read Bookings" ON bookings;
 CREATE POLICY "Allow Public Read Bookings" ON bookings FOR SELECT USING (true);
 
+ALTER TABLE driver_live_locations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public Read Driver Live Locations" ON driver_live_locations;
+CREATE POLICY "Public Read Driver Live Locations" ON driver_live_locations FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow Upsert Driver Live Locations" ON driver_live_locations;
+CREATE POLICY "Allow Upsert Driver Live Locations" ON driver_live_locations FOR ALL USING (true);
+
+ALTER TABLE trip_history ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public Read Trip History" ON trip_history;
+CREATE POLICY "Public Read Trip History" ON trip_history FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow Insert Trip History" ON trip_history;
+CREATE POLICY "Allow Insert Trip History" ON trip_history FOR ALL USING (true);
+
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
@@ -427,7 +483,9 @@ ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 INSERT INTO users (id, email, phone, password_hash, first_name, last_name, role) VALUES
 ('a0000000-0000-0000-0000-000000000001', 'safari@jambo.africa', '0722374535', '$2a$12$FcgCkt0j41e9vnp7pXSzzeGGZ.VPoec/vZ1N3Xxt1RLU4LC6UDt4u', 'Amos', 'M-TRAVEL', 'ADMIN'),
 ('a0000000-0000-0000-0000-000000000002', 'james.mwangi@mtravel.co.ke', '0712345678', '$2a$12$popjt7TXu8/i0Q.wTg34C.6Wzx26cj9t1hPMfco6oVmc9M0s5SCf.', 'James', 'Mwangi', 'VEHICLE_OWNER'),
-('a0000000-0000-0000-0000-000000000003', 'sarah.ochieng@gmail.com', '0723456789', '$2a$12$YYIumgDr0LzGLS2Y2RhA3Oavdcd1yemS2BLyug7A1YzwAAJDf1Bgy', 'Sarah', 'Ochieng', 'TOURIST');
+('a0000000-0000-0000-0000-000000000003', 'sarah.ochieng@gmail.com', '0723456789', '$2a$12$YYIumgDr0LzGLS2Y2RhA3Oavdcd1yemS2BLyug7A1YzwAAJDf1Bgy', 'Sarah', 'Ochieng', 'TOURIST'),
+('a0000000-0000-0000-0000-000000000004', 'driver@mtravel.co.ke', '0799887766', '$2a$12$FcgCkt0j41e9vnp7pXSzzeGGZ.VPoec/vZ1N3Xxt1RLU4LC6UDt4u', 'Samuel', 'Omondi', 'DRIVER'),
+('a0000000-0000-0000-0000-000000000005', 'driver.john@mtravel.co.ke', '0788776655', '$2a$12$FcgCkt0j41e9vnp7pXSzzeGGZ.VPoec/vZ1N3Xxt1RLU4LC6UDt4u', 'John', 'Gitau', 'DRIVER');
 
 -- SEED VEHICLES
 INSERT INTO vehicles (id, owner_id, type, make, model, year, seats, fuel_type, transmission, price_per_day, has_insurance, latitude, longitude, address, rating_average, rating_count) VALUES
@@ -447,4 +505,11 @@ INSERT INTO vehicle_images (vehicle_id, url, is_primary) VALUES
 INSERT INTO wallets (user_id, balance) VALUES
 ('a0000000-0000-0000-0000-000000000001', 500000.00),
 ('a0000000-0000-0000-0000-000000000002', 342000.00),
-('a0000000-0000-0000-0000-000000000003', 45000.00);
+('a0000000-0000-0000-0000-000000000003', 45000.00),
+('a0000000-0000-0000-0000-000000000004', 12500.00),
+('a0000000-0000-0000-0000-000000000005', 8500.00);
+
+-- SEED DRIVER LIVE TELEMETRY
+INSERT INTO driver_live_locations (driver_id, trip_id, vehicle_id, latitude, longitude, speed, heading, accuracy, status) VALUES
+('a0000000-0000-0000-0000-000000000004', 'TRIP-DEMO-01', 'v0000000-0000-0000-0000-000000000001', -1.2921, 36.8219, 45.0, 110.0, 5, 'AVAILABLE'),
+('a0000000-0000-0000-0000-000000000005', 'TRIP-DEMO-02', 'v0000000-0000-0000-0000-000000000003', -1.2833, 36.8167, 52.0, 225.0, 6, 'DRIVING_TO_PICKUP');

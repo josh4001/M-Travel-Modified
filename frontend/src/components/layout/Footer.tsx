@@ -59,7 +59,7 @@ export function Footer() {
           <div className="mt-4 flex flex-col gap-2 text-xs text-slate-400">
             <Link to="/catalogue" className="hover:text-white transition">4x4 Safaris & Car Hire</Link>
             <Link to="/catalogue?category=buses" className="hover:text-white transition">Intercity Luxury Buses</Link>
-            <Link to="/catalogue?category=homes" className="hover:text-white transition">Holiday Villas & Stays</Link>
+            <Link to="/holidays-and-tours" className="hover:text-white transition">Holidays, Safaris & Villas</Link>
             <Link to="/services" className="hover:text-white transition">All Travel Services</Link>
             <Link to="/contact" className="hover:text-white transition">24/7 Concierge Desk</Link>
           </div>

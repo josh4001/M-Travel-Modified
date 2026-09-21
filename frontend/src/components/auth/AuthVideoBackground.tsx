@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Volume2, VolumeX, Pause, Play, MapPin, Globe2, Sparkles, Compass, Palmtree, Mountain, Building2 } from 'lucide-react';
+import { MapPin, Globe2, Sparkles, Compass, Palmtree, Mountain, Building2 } from 'lucide-react';
 
 export interface VideoTheme {
   id: string;
@@ -59,7 +59,7 @@ export const VIDEO_THEMES: VideoTheme[] = [
     videoUrl: 'https://cdn.coverr.co/videos/coverr-a-timelapse-of-a-city-1753/1080p.mp4',
     posterUrl: 'https://images.unsplash.com/photo-1589556264800-08ae9e129a8c?auto=format&fit=crop&w=1600&q=80',
     tagline: 'The vibrant cosmopolitan gateway where business meets wildlife',
-    editorial: 'Chauffeured Mercedes, Alphard executive vans, and instant airport express shuttles.',
+    editorial: 'Chauffeured luxury vehicles, executive VIP vans, and instant airport express shuttles.',
     icon: Building2,
     region: 'Nairobi Capital, Kenya',
   },
@@ -73,31 +73,10 @@ interface AuthVideoBackgroundProps {
 
 export function AuthVideoBackground({ children, title, subtitle }: AuthVideoBackgroundProps) {
   const [activeTheme, setActiveTheme] = useState<VideoTheme>(VIDEO_THEMES[0]);
-  const [isMuted, setIsMuted] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
-  };
-
-  const togglePlay = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
 
   const changeTheme = (theme: VideoTheme) => {
     setActiveTheme(theme);
-    setIsPlaying(true);
     if (videoRef.current) {
       videoRef.current.load();
       videoRef.current.play().catch(() => {});
@@ -106,14 +85,14 @@ export function AuthVideoBackground({ children, title, subtitle }: AuthVideoBack
 
   return (
     <div className="relative min-h-[calc(100vh-73px)] w-full overflow-hidden bg-slate-950 font-display flex flex-col justify-between">
-      {/* 1. CINEMATIC BACKGROUND VIDEO */}
+      {/* 1. CINEMATIC BACKGROUND VIDEO (PERMANENTLY MUTED & SILENT) */}
       <div className="absolute inset-0 z-0">
         <video
           ref={videoRef}
           key={activeTheme.videoUrl}
           autoPlay
           loop
-          muted={isMuted}
+          muted
           playsInline
           poster={activeTheme.posterUrl}
           className="h-full w-full object-cover scale-105 transition-transform duration-1000 ease-out"
@@ -199,40 +178,11 @@ export function AuthVideoBackground({ children, title, subtitle }: AuthVideoBack
             </p>
           </div>
 
-          {/* CONTROLS & TELEMETRY */}
+          {/* REGIONAL TELEMETRY */}
           <div className="flex items-center gap-3 pt-1">
             <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-slate-900/60 px-4 py-2.5 backdrop-blur-xl">
               <MapPin className="h-4 w-4 text-amber-400" />
               <span className="text-xs font-semibold text-white">{activeTheme.region}</span>
-            </div>
-
-            <div className="flex items-center gap-1 rounded-xl border border-white/15 bg-slate-900/60 px-3 py-2 backdrop-blur-xl">
-              <button
-                onClick={togglePlay}
-                title={isPlaying ? 'Pause Experience' : 'Play Experience'}
-                className="p-1 text-slate-300 hover:text-amber-400 transition"
-              >
-                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-              </button>
-              <div className="h-4 w-[1px] bg-white/20 mx-1" />
-              <button
-                onClick={toggleMute}
-                title={isMuted ? 'Unmute Ambient Wildlife Audio' : 'Mute Ambient Audio'}
-                className="p-1 text-slate-300 hover:text-amber-400 transition flex items-center gap-1.5"
-              >
-                {isMuted ? (
-                  <VolumeX className="h-4 w-4" />
-                ) : (
-                  <div className="flex items-center gap-1">
-                    <Volume2 className="h-4 w-4 text-emerald-400" />
-                    <span className="flex gap-0.5 items-end h-3">
-                      <span className="w-0.5 h-1.5 bg-emerald-400 animate-pulse" />
-                      <span className="w-0.5 h-3 bg-emerald-400 animate-pulse delay-75" />
-                      <span className="w-0.5 h-2 bg-emerald-400 animate-pulse delay-150" />
-                    </span>
-                  </div>
-                )}
-              </button>
             </div>
           </div>
 
