@@ -168,7 +168,6 @@ export default function VehicleDetail() {
     setPaymentLoading(true);
     setPaymentError(null);
 
-    // 1. Create booking in database
     let bookingId = targetVehicle.id;
     let finalRef = `MT-${Math.floor(100000 + Math.random() * 900000)}`;
     const pickupLat = -1.2650;
@@ -178,36 +177,45 @@ export default function VehicleDetail() {
     const assignedDriverId = withDriver ? 'a0000000-0000-0000-0000-000000000004' : undefined;
 
     try {
-      const booking = await createBooking({
-        userId: user.id,
-        vehicleId: targetVehicle.id,
-        startDate: `${startDate}T${startTime}:00`,
-        endDate: `${endDate}T${endTime}:00`,
-        totalAmount: grandTotal,
-        currency: 'KES',
-        driverId: assignedDriverId,
-        pickupMethod,
-        pickupLat,
-        pickupLng,
-        destinationLat: destLat,
-        destinationLng: destLng,
-      });
-      bookingId = booking.id;
-      finalRef = booking.booking_ref;
-      setBookedRef(finalRef);
-    } catch {
-      setBookedRef(finalRef);
-    }
+      // 1. Create booking (failsafe DB insert with local fallback)
+      try {
+        const booking = await createBooking({
+          userId: user.id,
+          vehicleId: targetVehicle.id,
+          startDate: `${startDate}T${startTime}:00`,
+          endDate: `${endDate}T${endTime}:00`,
+          totalAmount: grandTotal,
+          currency: 'KES',
+          driverId: assignedDriverId,
+          pickupMethod,
+          pickupLat,
+          pickupLng,
+          destinationLat: destLat,
+          destinationLng: destLng,
+        });
+        if (booking?.id) {
+          bookingId = booking.id;
+          finalRef = booking.booking_ref || finalRef;
+        }
+      } catch (err) {
+        console.warn('DB booking insert notice (local store fallback active):', err);
+      }
 
-    // 2. Process Payment via M-Pesa
-    const payResult = await payForBooking(bookingId, mpesaPhone, grandTotal);
-    const paySuccess = payResult.success;
-    if (!paySuccess) setPaymentError(payResult.message);
+      setBookedRef(finalRef);
 
-    if (paySuccess) {
+      // 2. Process Demo M-Pesa Payment
+      const payResult = await payForBooking(bookingId, mpesaPhone, grandTotal);
+      const paySuccess = payResult.success;
+
+      if (!paySuccess) {
+        setPaymentError(payResult.message || 'M-Pesa payment failed. Please try again.');
+        return;
+      }
+
       setIsSuccess(true);
 
-      // Save to centralized store for real-time dashboards
+      // Save to centralized store for real-time dashboards & executive handovers
+      const mpesaReceiptCode = payResult.reference || `QK${Math.floor(100000 + Math.random() * 900000)}`;
       const newBooking = saveBooking({
         bookingRef: finalRef,
         bookingType: 'VEHICLE',
@@ -228,7 +236,7 @@ export default function VehicleDetail() {
         endDate: `${endDate}T${endTime}:00`,
         totalAmount: grandTotal,
         paymentStatus: 'PAID',
-        mpesaReceipt: `QK${Math.floor(100000 + Math.random() * 900000)}`,
+        mpesaReceipt: mpesaReceiptCode,
         status: 'CONFIRMED',
         pickupMethod: 'SELF_COLLECT',
         pickupLocation,
@@ -240,7 +248,7 @@ export default function VehicleDetail() {
         hasDriver: withDriver,
       });
 
-      // 1. Automated Traveler WhatsApp Booking Confirmation Voucher
+      // Automated side-effects (safe)
       try {
         openTravelerBookingWhatsApp({
           booking: newBooking,
@@ -249,44 +257,49 @@ export default function VehicleDetail() {
         });
       } catch {}
 
-      // 2. Dispatch luxury email to traveler (backup)
-      sendTravelerBookingEmail({
-        booking: newBooking,
-        isDestination: false,
-      }).then(email => setLastEmailSent(email)).catch(() => {});
+      try {
+        sendTravelerBookingEmail({
+          booking: newBooking,
+          isDestination: false,
+        }).then(email => setLastEmailSent(email)).catch(() => {});
+      } catch {}
 
-      // 3. SEND REAL-TIME NOTIFICATION ALERTS TO OWNER, TOURIST & ADMIN
-      const ownerRecipientId = targetVehicle.ownerId || targetVehicle.owner?.id;
-      if (ownerRecipientId) {
+      try {
+        const ownerRecipientId = targetVehicle.ownerId || targetVehicle.owner?.id;
+        if (ownerRecipientId) {
+          sendNotification({
+            recipientId: ownerRecipientId,
+            role: 'VEHICLE_OWNER',
+            type: 'BOOKING_CREATED_OWNER',
+            title: `New Booking Request: ${targetVehicle.make} ${targetVehicle.model}`,
+            message: `Tourist ${user.firstName ?? 'Traveler'} booked your ${targetVehicle.make} ${targetVehicle.model} for ${days} day(s) (Ref: ${finalRef}).`,
+            link: '/dashboard/owner',
+          });
+        }
+
         sendNotification({
-          recipientId: ownerRecipientId,
-          role: 'VEHICLE_OWNER',
-          type: 'BOOKING_CREATED_OWNER',
-          title: `New Booking Request: ${targetVehicle.make} ${targetVehicle.model}`,
-          message: `Tourist ${user.firstName ?? 'Traveler'} booked your ${targetVehicle.make} ${targetVehicle.model} for ${days} day(s) (Ref: ${finalRef}).`,
-          link: '/dashboard/owner',
+          recipientId: user.id,
+          role: 'TOURIST',
+          type: 'BOOKING_CONFIRMED_TOURIST',
+          title: `Trip Booked: ${targetVehicle.make} ${targetVehicle.model}`,
+          message: `Your booking (Ref: ${finalRef}) has been confirmed! Total paid: KES ${grandTotal.toLocaleString()}.`,
+          link: '/dashboard/bookings',
         });
-      }
 
-      sendNotification({
-        recipientId: user.id,
-        role: 'TOURIST',
-        type: 'BOOKING_CONFIRMED_TOURIST',
-        title: `Trip Booked: ${targetVehicle.make} ${targetVehicle.model}`,
-        message: `Your booking (Ref: ${finalRef}) has been confirmed! Total paid: KES ${grandTotal.toLocaleString()}.`,
-        link: '/dashboard/bookings',
-      });
-
-      sendNotification({
-        role: 'ADMIN',
-        type: 'BOOKING_CREATED_ADMIN',
-        title: `System Alert: Booking ${finalRef} Created`,
-        message: `New booking for ${targetVehicle.make} ${targetVehicle.model} by ${user.email} (Amount: KES ${grandTotal.toLocaleString()}).`,
-        link: '/dashboard/admin',
-      });
+        sendNotification({
+          role: 'ADMIN',
+          type: 'BOOKING_CREATED_ADMIN',
+          title: `System Alert: Booking ${finalRef} Created`,
+          message: `New booking for ${targetVehicle.make} ${targetVehicle.model} by ${user.email} (Amount: KES ${grandTotal.toLocaleString()}).`,
+          link: '/dashboard/admin',
+        });
+      } catch {}
+    } catch (err: any) {
+      console.error('Error in handleBooking:', err);
+      setPaymentError(err?.message || 'Failed to complete reservation. Please try again.');
+    } finally {
+      setPaymentLoading(false);
     }
-
-    setPaymentLoading(false);
   };
 
   if (isLoading && !targetVehicle) {
