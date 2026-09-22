@@ -522,6 +522,15 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
         }));
         await supabase.from('vehicle_images').insert(imageRows);
       }
+
+      logAuditEvent(
+        'VEHICLE_REGISTERED',
+        'Vehicle',
+        vehicleId,
+        `Host ${newVehicle.ownerName || 'Host'} submitted ${newVehicle.year} ${newVehicle.make} ${newVehicle.model} for fleet inspection`,
+        newVehicle.ownerName || 'Fleet Host',
+        'VEHICLE_OWNER'
+      );
     } catch (err) {
       console.warn('Supabase real-time vehicle insert notice:', err);
     }

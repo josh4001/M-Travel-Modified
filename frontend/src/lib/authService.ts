@@ -6,6 +6,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { logAuditEvent } from './rentalLifecycleStore';
 
 export interface AuthUser {
   id: string;
@@ -226,6 +227,15 @@ function saveLocalAccount(acc: LocalAccount) {
       if (validId) payload.id = validId;
 
       await supabase.from('users').upsert(payload, { onConflict: 'email' });
+
+      logAuditEvent(
+        'USER_REGISTERED',
+        'User',
+        acc.email,
+        `User profile ${acc.firstName} ${acc.lastName} registered with role ${acc.role}`,
+        `${acc.firstName} ${acc.lastName}`,
+        acc.role
+      );
     } catch (err) {
       console.warn('Supabase user upsert notice:', err);
     }
