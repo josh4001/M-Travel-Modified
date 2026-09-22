@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import {
   Star, ShieldCheck, Phone as PhoneIcon, Mail, Calendar, MapPin,
-  Car, CheckCircle2, CreditCard, Lock, Headset, AlertCircle,
+  Car, CheckCircle2, Lock, Headset, AlertCircle,
   MessageSquare, Sparkles
 } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -44,9 +44,7 @@ export default function VehicleDetail() {
   const [withDriver, setWithDriver] = useState(false);
   const [bookedRef, setBookedRef] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'mpesa' | 'card'>('mpesa');
   const [mpesaPhone, setMpesaPhone] = useState(user?.phone || '');
-  const [cardDetails, setCardDetails] = useState({ number: '', expiry: '', cvc: '', name: '' });
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [lastEmailSent, setLastEmailSent] = useState<DispatchedEmail | null>(null);
@@ -162,13 +160,8 @@ export default function VehicleDetail() {
       return;
     }
 
-    if (paymentMethod === 'mpesa' && (!mpesaPhone || mpesaPhone.length < 9)) {
+    if (!mpesaPhone || mpesaPhone.length < 9) {
       setPaymentError('Please enter a valid M-Pesa phone number.');
-      return;
-    }
-
-    if (paymentMethod === 'card' && (!cardDetails.number || !cardDetails.expiry || !cardDetails.cvc)) {
-      setPaymentError('Please enter complete card details.');
       return;
     }
 
@@ -206,17 +199,10 @@ export default function VehicleDetail() {
       setBookedRef(finalRef);
     }
 
-    // 2. Process Payment (M-Pesa or Card)
-    let paySuccess = false;
-    if (paymentMethod === 'mpesa') {
-      const payResult = await payForBooking(bookingId, mpesaPhone, grandTotal);
-      paySuccess = payResult.success;
-      if (!paySuccess) setPaymentError(payResult.message);
-    } else {
-      // Simulate Card Processing
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-      paySuccess = true;
-    }
+    // 2. Process Payment via M-Pesa
+    const payResult = await payForBooking(bookingId, mpesaPhone, grandTotal);
+    const paySuccess = payResult.success;
+    if (!paySuccess) setPaymentError(payResult.message);
 
     if (paySuccess) {
       setIsSuccess(true);
@@ -737,104 +723,37 @@ export default function VehicleDetail() {
             </div>
           </div>
 
-          {/* PAYMENT GATEWAY SELECTOR (M-PESA OR CARD) */}
+          {/* M-PESA PAYMENT SECTION */}
           <div className="space-y-3 border-t border-slate-200 pt-4">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 font-display">
-              Select Payment Gateway
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('mpesa')}
-                className={`flex items-center justify-center gap-2 rounded-xl border p-2.5 text-xs font-bold transition ${
-                  paymentMethod === 'mpesa'
-                    ? 'border-[#00A859] bg-[#00A859]/10 text-emerald-700 shadow-sm ring-1 ring-[#00A859]'
-                    : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
-              >
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 font-display flex items-center gap-2">
                 <MpesaLogo variant="icon" />
-                <span>M-PESA</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('card')}
-                className={`flex items-center justify-center gap-2 rounded-xl border p-2.5 text-xs font-bold transition ${
-                  paymentMethod === 'card'
-                    ? 'border-amber-500 bg-amber-50 text-amber-800 shadow-sm ring-1 ring-amber-500'
-                    : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <CreditCard className="h-4 w-4 text-amber-600" />
-                <span>Card (Visa/MC)</span>
-              </button>
+                <span>Instant M-PESA Mobile Checkout</span>
+              </label>
+              <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                Safaricom Express Verified
+              </span>
             </div>
 
-            {/* MOBILE CHECKOUT FORM */}
-            {paymentMethod === 'mpesa' && (
-              <div className="space-y-1.5 rounded-xl border border-emerald-300 bg-emerald-50/50 p-3">
-                <label className="block text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
-                  <PhoneIcon className="h-3.5 w-3.5" /> Mobile Number for Reservation
-                </label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="e.g. 0712345678 or 254712345678"
-                  className="input-field text-xs !py-2 bg-white focus:border-emerald-500 font-mono text-slate-900 font-bold"
-                  value={mpesaPhone}
-                  onChange={(e) => {
-                    setMpesaPhone(e.target.value);
-                    setPaymentError(null);
-                  }}
-                />
-                <p className="text-[10px] text-slate-600 font-medium">
-                  A secure authorization prompt will be sent to your phone to confirm reservation of {formatPrice(grandTotal)}
-                </p>
-              </div>
-            )}
-
-            {/* CREDIT CARD FORM */}
-            {paymentMethod === 'card' && (
-              <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 flex items-center gap-1">
-                    <Lock className="h-3 w-3 text-amber-600" /> Encrypted Card Checkout
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-semibold">Visa / Mastercard / Amex</span>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Cardholder Name"
-                  className="input-field text-xs !py-2 bg-white"
-                  value={cardDetails.name}
-                  onChange={(e) => setCardDetails({ ...cardDetails, name: e.target.value })}
-                />
-                <input
-                  type="text"
-                  placeholder="Card Number (4000 0000 0000 0000)"
-                  className="input-field text-xs !py-2 font-mono bg-white"
-                  value={cardDetails.number}
-                  onChange={(e) => setCardDetails({ ...cardDetails, number: e.target.value })}
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    placeholder="MM / YY"
-                    className="input-field text-xs !py-2 font-mono bg-white"
-                    value={cardDetails.expiry}
-                    onChange={(e) => setCardDetails({ ...cardDetails, expiry: e.target.value })}
-                  />
-                  <input
-                    type="password"
-                    maxLength={4}
-                    placeholder="CVC"
-                    className="input-field text-xs !py-2 font-mono bg-white"
-                    value={cardDetails.cvc}
-                    onChange={(e) => setCardDetails({ ...cardDetails, cvc: e.target.value })}
-                  />
-                </div>
-              </div>
-            )}
+            <div className="space-y-1.5 rounded-xl border border-emerald-300 bg-emerald-50/50 p-3">
+              <label className="block text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
+                <PhoneIcon className="h-3.5 w-3.5" /> Mobile Number for Reservation Prompt
+              </label>
+              <input
+                type="tel"
+                required
+                placeholder="e.g. 0712345678 or 254712345678"
+                className="input-field text-xs !py-2 bg-white focus:border-emerald-500 font-mono text-slate-900 font-bold"
+                value={mpesaPhone}
+                onChange={(e) => {
+                  setMpesaPhone(e.target.value);
+                  setPaymentError(null);
+                }}
+              />
+              <p className="text-[10px] text-slate-600 font-medium">
+                A secure M-PESA authorization prompt will be sent to your phone to confirm reservation of {formatPrice(grandTotal)}
+              </p>
+            </div>
           </div>
 
           {paymentError && (
@@ -889,29 +808,12 @@ export default function VehicleDetail() {
                 <Lock className="h-4 w-4" /> Sign In / Create Account to Book
               </button>
             </div>
-          ) : paymentMethod === 'mpesa' ? (
+          ) : (
             <MpesaLogo
               label={`Confirm & Secure Reservation (${formatPrice(grandTotal)})`}
               onClick={handleBooking}
               loading={paymentLoading}
             />
-          ) : (
-            <button
-              onClick={handleBooking}
-              disabled={paymentLoading}
-              className="btn-primary w-full text-sm !py-3 font-bold shadow-md flex items-center justify-center gap-2"
-            >
-              {paymentLoading ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Processing Card Payment…
-                </span>
-              ) : (
-                <span className="flex items-center gap-2 font-display">
-                  <CreditCard className="h-4 w-4" /> Pay {formatPrice(grandTotal)} via Card
-                </span>
-              )}
-            </button>
           )}
         </div>
       </div>
