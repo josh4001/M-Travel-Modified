@@ -19,7 +19,8 @@ import {
   updateStoredVehicle,
   StoredBooking,
   isVehicleBooking,
-  isTripBooking
+  isTripBooking,
+  isValidUUID
 } from './bookingStore';
 
 // ==========================================
@@ -390,9 +391,12 @@ export const executeHandover = async (
   // Supabase background sync
   if (supabase) {
     try {
-      supabase.from('vehicle_handovers').insert([{
-        booking_id: fullHandover.bookingId,
-        vehicle_id: fullHandover.vehicleId,
+      const validBookingId = isValidUUID(fullHandover.bookingId) ? fullHandover.bookingId : null;
+      const validVehicleId = isValidUUID(fullHandover.vehicleId) ? fullHandover.vehicleId : null;
+      
+      await supabase.from('vehicle_handovers').insert([{
+        booking_id: validBookingId,
+        vehicle_id: validVehicleId,
         odometer_reading: fullHandover.odometerReading,
         fuel_level_percent: fullHandover.fuelLevelPercent,
         checklist_exterior_condition: fullHandover.checklist.exteriorOk,
@@ -403,8 +407,10 @@ export const executeHandover = async (
         existing_damage_notes: fullHandover.existingDamageNotes,
         digital_agreement_signed: fullHandover.digitalAgreementSigned,
         agency_agent_name: fullHandover.agencyAgentName
-      }]).then(() => {}, () => {});
-    } catch {}
+      }]);
+    } catch (err) {
+      console.warn('Supabase vehicle_handovers insert notice:', err);
+    }
   }
 
   return fullHandover;

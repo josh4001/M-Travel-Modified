@@ -1093,16 +1093,28 @@ export const updateBookingStatus = (
     );
   }
 
-  if (updatedBooking && isValidUUID((updatedBooking as StoredBooking).id)) {
+  if (updatedBooking) {
     (async () => {
       try {
-        await supabase
-          .from('bookings')
-          .update({
-            status: status.toUpperCase(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', (updatedBooking as StoredBooking).id);
+        const ub = updatedBooking as StoredBooking;
+        if (isValidUUID(ub.id)) {
+          await supabase
+            .from('bookings')
+            .update({
+              status: status.toUpperCase(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', ub.id);
+        }
+        if (ub.bookingRef) {
+          await supabase
+            .from('bookings')
+            .update({
+              status: status.toUpperCase(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('booking_ref', ub.bookingRef);
+        }
       } catch (err) {
         console.warn('Supabase updateBookingStatus notice:', err);
       }

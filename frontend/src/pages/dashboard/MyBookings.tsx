@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Car, MapPin, Calendar, Shield, RefreshCw, Trash2,
+  Car, MapPin, Calendar, Shield, RefreshCw, Trash2, Palmtree,
   Star, Download, RotateCcw, Navigation, Phone, MessageSquare,
   CheckCircle2, Clock, TrendingUp, Zap, Share2, X, AlertTriangle,
   ChevronRight, Sparkles, Heart, Smartphone, ArrowRight, ShieldCheck, FileText,
@@ -14,12 +14,14 @@ import { sendNotification } from '@/lib/notificationService';
 import { api } from '@/lib/api';
 import { OfficialReceiptModal } from '@/components/ui/OfficialReceiptModal';
 import { MpesaStkPushModal } from '@/components/ui/MpesaStkPushModal';
+import { DestinationVoucherModal } from '@/components/ui/DestinationVoucherModal';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
 import {
   getStoredBookings,
   updateBookingStatus,
   deleteBooking,
   bulkDeleteBookings,
+  isTripBooking,
   type StoredBooking,
 } from '@/lib/bookingStore';
 
@@ -509,11 +511,16 @@ function BookingCard({
                 </>
               )}
 
-              <button onClick={() => onTrack(b)} className="btn-primary text-xs !py-2.5 !px-5 flex items-center gap-2 shadow-sm font-bold text-white">
-                <Car className="h-4 w-4" />
-                View Ride Details
-                <ChevronRight className="h-3 w-3" />
-              </button>
+              {(() => {
+                const isTrip = isTripBooking(b.raw || b);
+                return (
+                  <button onClick={() => onTrack(b)} className="btn-primary text-xs !py-2.5 !px-5 flex items-center gap-2 shadow-sm font-bold text-white">
+                    {isTrip ? <Palmtree className="h-4 w-4" /> : <Car className="h-4 w-4" />}
+                    {isTrip ? 'View Destination Details' : 'View Ride Details'}
+                    <ChevronRight className="h-3 w-3" />
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -547,6 +554,7 @@ export default function MyBookings() {
   // M-Pesa payment modal state
   const [showMpesa, setShowMpesa] = useState(false);
   const [mpesaBooking, setMpesaBooking] = useState<UnifiedBooking | null>(null);
+  const [selectedDestVoucher, setSelectedDestVoucher] = useState<StoredBooking | null>(null);
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev =>
@@ -1041,6 +1049,14 @@ export default function MyBookings() {
         </div>
       )}
 
+      {/* Destination Voucher Modal */}
+      {selectedDestVoucher && (
+        <DestinationVoucherModal
+          booking={selectedDestVoucher}
+          onClose={() => setSelectedDestVoucher(null)}
+        />
+      )}
+
       {/* M-Pesa STK Push Payment Modal */}
       {showMpesa && mpesaBooking && (
         <MpesaStkPushModal
@@ -1198,7 +1214,13 @@ export default function MyBookings() {
               b={b}
               isSelected={selectedIds.includes(b.id)}
               onToggleSelect={toggleSelect}
-              onTrack={setActiveTrackingBooking}
+              onTrack={(item) => {
+                if (isTripBooking(item.raw || item)) {
+                  setSelectedDestVoucher((item.raw || item) as StoredBooking);
+                } else {
+                  setActiveTrackingBooking(item);
+                }
+              }}
               onPayNow={handlePayNow}
               onCancel={handleCancelBooking}
               onDelete={handleDeleteBooking}

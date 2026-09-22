@@ -35,16 +35,20 @@ export const MpesaStkPushModal: React.FC<MpesaStkPushModalProps> = ({
 
     setLoading(true);
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
       const token = localStorage.getItem('mt_access_token');
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      // Call NestJS Backend Daraja API
+      // Call NestJS Backend Daraja API with timeout
       const res = await fetch('http://localhost:4000/api/v1/payments/mpesa/stk-push', {
         method: 'POST',
         headers,
+        signal: controller.signal,
         body: JSON.stringify({
           phone,
           amount,
@@ -52,6 +56,7 @@ export const MpesaStkPushModal: React.FC<MpesaStkPushModalProps> = ({
           accountReference: bookingRef,
         }),
       });
+      clearTimeout(timeoutId);
       const data = await res.json();
       // eslint-disable-next-line no-console
       console.log('Safaricom Daraja STK Push Response:', data);
