@@ -212,6 +212,9 @@ export const ensureUUID = (str?: string): string => {
 
 export const isDemoVehicle = (v: any): boolean => {
   if (!v) return false;
+  if (v.id && isValidUUID(v.id) && !DEMO_VEHICLE_IDS.has(v.id)) {
+    return false;
+  }
   if (v.id && (DEMO_VEHICLE_IDS.has(v.id) || String(v.id).startsWith('v-host-') || String(v.id).startsWith('mv-') || String(v.id).startsWith('00000000-'))) {
     return true;
   }
@@ -230,11 +233,146 @@ export const isDemoVehicle = (v: any): boolean => {
     name.includes('rav4 awd') ||
     name.includes('premio executive')
   ) {
-    if (!v.id || DEMO_VEHICLE_IDS.has(v.id) || String(v.id).startsWith('v-host-') || String(v.id).startsWith('00000000-') || v.id === 'v-safari-1' || v.id === 'v-alphard-2' || v.ownerId === 'a0000000-0000-0000-0000-000000000002') {
+    if (!v.id || DEMO_VEHICLE_IDS.has(v.id) || String(v.id).startsWith('v-host-') || String(v.id).startsWith('00000000-') || v.id === 'v-safari-1' || v.id === 'v-alphard-2') {
       return true;
     }
   }
   return false;
+};
+
+/**
+ * Seeds core fleet vehicles to Supabase if the vehicles table is empty,
+ * ensuring all local instances and co-developers see identical live vehicles.
+ */
+export const seedCoreVehiclesToSupabase = async (): Promise<void> => {
+  try {
+    const hostId = 'a0000000-0000-0000-0000-000000000002';
+    await supabase.from('users').upsert({
+      id: hostId,
+      email: 'james.mwangi@mtravel.co.ke',
+      first_name: 'James',
+      last_name: 'Mwangi',
+      role: 'VEHICLE_OWNER',
+      phone: '+254712345678',
+      is_active: true,
+    }, { onConflict: 'id' });
+
+    const coreVehicles = [
+      {
+        id: '11111111-1111-4111-8111-111111111111',
+        owner_id: hostId,
+        make: 'Toyota',
+        model: 'Land Cruiser Prado V8 4x4',
+        type: 'SUV',
+        year: 2024,
+        seats: 7,
+        fuel_type: 'DIESEL',
+        transmission: 'AUTOMATIC',
+        price_per_day: 18000,
+        plate_number: 'KDG 889X',
+        has_insurance: true,
+        latitude: -1.2921,
+        longitude: 36.8219,
+        address: 'Westlands, Nairobi',
+        is_available: true,
+        is_approved: true,
+        rating_average: 4.9,
+        rating_count: 24,
+        images: [
+          'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1000&q=80',
+          'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1000&q=80',
+        ],
+      },
+      {
+        id: '22222222-2222-4222-8222-222222222222',
+        owner_id: hostId,
+        make: 'Toyota',
+        model: 'Hiace Custom Safari Van 4WD',
+        type: 'VAN',
+        year: 2023,
+        seats: 8,
+        fuel_type: 'DIESEL',
+        transmission: 'MANUAL',
+        price_per_day: 12000,
+        plate_number: 'KDF 452Z',
+        has_insurance: true,
+        latitude: -1.286389,
+        longitude: 36.817223,
+        address: 'Nairobi Central, Kenya',
+        is_available: true,
+        is_approved: true,
+        rating_average: 4.8,
+        rating_count: 18,
+        images: [
+          'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=1000&q=80',
+          'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=1000&q=80',
+        ],
+      },
+      {
+        id: '33333333-3333-4333-8333-333333333333',
+        owner_id: hostId,
+        make: 'Toyota',
+        model: 'Alphard Executive Lounge',
+        type: 'LUXURY',
+        year: 2024,
+        seats: 7,
+        fuel_type: 'PETROL',
+        transmission: 'AUTOMATIC',
+        price_per_day: 25000,
+        plate_number: 'KDH 101A',
+        has_insurance: true,
+        latitude: -1.3197,
+        longitude: 36.836,
+        address: 'JKIA Airport, Nairobi',
+        is_available: true,
+        is_approved: true,
+        rating_average: 5.0,
+        rating_count: 15,
+        images: [
+          'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=1000&q=80',
+        ],
+      },
+      {
+        id: '44444444-4444-4444-8444-444444444444',
+        owner_id: hostId,
+        make: 'Mercedes-Benz',
+        model: 'G-Wagon G63 AMG V8',
+        type: 'LUXURY',
+        year: 2024,
+        seats: 5,
+        fuel_type: 'PETROL',
+        transmission: 'AUTOMATIC',
+        price_per_day: 45000,
+        plate_number: 'KDH 777G',
+        has_insurance: true,
+        latitude: -1.2683,
+        longitude: 36.8111,
+        address: 'Kilimani, Nairobi',
+        is_available: true,
+        is_approved: true,
+        rating_average: 4.97,
+        rating_count: 31,
+        images: [
+          'https://images.unsplash.com/photo-1520050206274-a1ae44613e6d?auto=format&fit=crop&w=1000&q=80',
+        ],
+      },
+    ];
+
+    for (const v of coreVehicles) {
+      const { images, ...vData } = v;
+      const { error: vError } = await supabase.from('vehicles').upsert(vData, { onConflict: 'id' });
+      if (!vError && images && images.length > 0) {
+        const imgRows = images.map((url, idx) => ({
+          vehicle_id: v.id,
+          url,
+          is_primary: idx === 0,
+        }));
+        await supabase.from('vehicle_images').upsert(imgRows, { onConflict: 'vehicle_id,url' });
+      }
+    }
+  } catch (err) {
+    console.warn('Error seeding core vehicles to Supabase:', err);
+  }
 };
 
 // Helper Functions
@@ -361,7 +499,7 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
       .order('created_at', { ascending: false });
 
     const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) =>
-      setTimeout(() => resolve({ data: null, error: new Error('Supabase sync timeout') }), 1500)
+      setTimeout(() => resolve({ data: null, error: new Error('Supabase sync timeout') }), 6000)
     );
 
     const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
@@ -372,6 +510,8 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
     }
 
     if (!data || data.length === 0) {
+      // Auto-seed core vehicles to Supabase so all coworkers see identical live vehicles
+      await seedCoreVehiclesToSupabase();
       return getStoredVehicles();
     }
 
