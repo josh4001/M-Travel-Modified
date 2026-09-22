@@ -394,6 +394,9 @@ CREATE TABLE audit_logs (
   action TEXT NOT NULL,
   entity TEXT NOT NULL,
   entity_id TEXT,
+  actor_name TEXT,
+  actor_role TEXT,
+  details TEXT,
   metadata JSONB,
   ip_address TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()

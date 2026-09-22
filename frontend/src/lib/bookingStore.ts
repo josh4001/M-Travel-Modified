@@ -1,4 +1,5 @@
 import { supabase, getVehicleFallbackImage } from './supabaseClient';
+import { logAuditEvent } from './rentalLifecycleStore';
 
 // Centralized persistent store for M-TRAVEL bookings, vehicle registration, and notifications
 export interface StoredBooking {
@@ -297,7 +298,6 @@ export const saveBooking = (booking: Omit<StoredBooking, 'id' | 'createdAt'>): S
         created_at: newBooking.createdAt,
       });
 
-      // Also persist real-time payment log to Supabase payments table
       if (['PAID', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes((booking.status || '').toUpperCase())) {
         await supabase.from('payments').insert({
           booking_id: bookingId,
@@ -308,6 +308,16 @@ export const saveBooking = (booking: Omit<StoredBooking, 'id' | 'createdAt'>): S
           provider_ref: booking.mpesaReceipt || `QK${Math.floor(100000 + Math.random() * 900000)}`,
         });
       }
+
+      // Also persist real-time audit log
+      logAuditEvent(
+        'BOOKING_CREATED',
+        'Booking',
+        newBooking.bookingRef,
+        `New reservation for ${newBooking.vehicleName} (KES ${newBooking.totalAmount.toLocaleString()})`,
+        newBooking.touristName,
+        'TOURIST'
+      );
     } catch (err) {
       console.warn('Supabase real-time booking/payment insert notice:', err);
     }

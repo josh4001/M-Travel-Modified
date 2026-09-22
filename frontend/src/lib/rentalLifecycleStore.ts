@@ -283,14 +283,19 @@ export const logAuditEvent = (
   if (supabase) {
     try {
       supabase.from('audit_logs').insert([{
-        entity_name: entityName,
-        entity_id: entityId,
         action,
+        entity: entityName,
+        entity_id: entityId,
         actor_name: actorName,
         actor_role: actorRole,
-        details
-      }]).then(() => {}, () => {});
-    } catch {}
+        details,
+        created_at: entry.timestamp,
+      }]).then(({ error }) => {
+        if (error) console.warn('Supabase audit_log insert notice:', error);
+      });
+    } catch (err) {
+      console.warn('Supabase audit_log exception:', err);
+    }
   }
 
   return entry;
