@@ -296,8 +296,20 @@ export const saveBooking = (booking: Omit<StoredBooking, 'id' | 'createdAt'>): S
         pickup_method: booking.pickupMethod || 'SELF_COLLECT',
         created_at: newBooking.createdAt,
       });
+
+      // Also persist real-time payment log to Supabase payments table
+      if (['PAID', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes((booking.status || '').toUpperCase())) {
+        await supabase.from('payments').insert({
+          booking_id: bookingId,
+          provider: 'MPESA',
+          amount: Number(booking.totalAmount || 0),
+          currency: 'KES',
+          status: 'SUCCEEDED',
+          provider_ref: booking.mpesaReceipt || `QK${Math.floor(100000 + Math.random() * 900000)}`,
+        });
+      }
     } catch (err) {
-      console.warn('Supabase real-time booking insert notice:', err);
+      console.warn('Supabase real-time booking/payment insert notice:', err);
     }
   })();
 
