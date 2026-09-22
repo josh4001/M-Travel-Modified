@@ -637,58 +637,75 @@ export default function VehicleDetail() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider font-display mb-1.5">
-                  Driving Service Preference
+                <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider font-display mb-1.5 flex items-center justify-between">
+                  <span>Rental Driving Option</span>
+                  <span className="text-[10px] text-amber-700 font-semibold uppercase">Choose before booking</span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div
                     onClick={() => setWithDriver(false)}
-                    className={`p-3 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3 ${
+                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3 ${
                       !withDriver
-                        ? 'border-amber-500 bg-amber-50/70 shadow-xs'
+                        ? 'border-amber-500 bg-amber-50/80 shadow-xs ring-1 ring-amber-400/30'
                         : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
                     }`}
                   >
-                    <div className={`mt-0.5 h-4 w-4 rounded-full border flex items-center justify-center ${
+                    <div className={`mt-0.5 h-4 w-4 rounded-full border flex items-center justify-center shrink-0 ${
                       !withDriver ? 'border-amber-600 bg-amber-600' : 'border-slate-300'
                     }`}>
                       {!withDriver && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                     </div>
                     <div>
-                      <p className="font-bold text-xs text-slate-900">Self-Drive</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Collect keys at station and drive yourself</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-bold text-xs text-slate-900">Self-Drive</p>
+                        <span className="text-[9px] font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded border border-emerald-300">Standard Rate</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">Collect keys at pickup station &amp; drive yourself (Valid license required)</p>
                     </div>
                   </div>
 
                   <div
                     onClick={() => setWithDriver(true)}
-                    className={`p-3 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3 ${
+                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3 ${
                       withDriver
-                        ? 'border-amber-500 bg-amber-50/70 shadow-xs'
+                        ? 'border-amber-500 bg-amber-50/80 shadow-xs ring-1 ring-amber-400/30'
                         : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
                     }`}
                   >
-                    <div className={`mt-0.5 h-4 w-4 rounded-full border flex items-center justify-center ${
+                    <div className={`mt-0.5 h-4 w-4 rounded-full border flex items-center justify-center shrink-0 ${
                       withDriver ? 'border-amber-600 bg-amber-600' : 'border-slate-300'
                     }`}>
                       {withDriver && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                     </div>
                     <div>
-                      <p className="font-bold text-xs text-slate-900">With Chauffeur</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">Stationed chauffeur meets you at the car to drive you</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-bold text-xs text-slate-900">With Driver</p>
+                        <span className="text-[9px] font-bold text-amber-900 bg-amber-200 px-1.5 py-0.2 rounded border border-amber-300">+ KES 2,000 / day</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">Professional certified chauffeur stationed to pilot the vehicle</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* WITH CHAUFFEUR NOTICE */}
-              {withDriver && (
+              {withDriver ? (
                 <div className="flex items-center justify-between border border-amber-300 bg-amber-50/90 rounded-xl p-3 text-xs text-amber-900 shadow-xs">
                   <div>
-                    <span className="font-bold block">Certified Chauffeur Stationed with Vehicle</span>
-                    <span className="text-[11px] text-slate-600">{formatPrice(2000)} / day allowance · Meets you at pickup station</span>
+                    <span className="font-bold block">Certified Chauffeur Included (+{formatPrice(2000)}/day)</span>
+                    <span className="text-[11px] text-slate-600">Stationed driver meets you at vehicle pickup station</span>
                   </div>
-                  <span className="text-[10px] font-bold uppercase bg-amber-600 text-white px-2 py-0.5 rounded-md">
+                  <span className="text-[10px] font-bold uppercase bg-amber-600 text-white px-2 py-0.5 rounded-md shrink-0">
+                    Selected
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between border border-emerald-300 bg-emerald-50/90 rounded-xl p-3 text-xs text-emerald-900 shadow-xs">
+                  <div>
+                    <span className="font-bold block">Self-Drive Rental (Standard Rate)</span>
+                    <span className="text-[11px] text-slate-600">Present original National ID / Passport &amp; Driving License at pickup</span>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase bg-emerald-600 text-white px-2 py-0.5 rounded-md shrink-0">
                     Selected
                   </span>
                 </div>

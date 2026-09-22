@@ -226,6 +226,8 @@ export const getCheckinsByBookingId = (bookingId: string): TripCheckin[] => {
   );
 };
 
+
+
 export const getAllIncidents = (): IncidentReport[] => {
   try {
     const raw = localStorage.getItem(INCIDENTS_KEY);
@@ -367,14 +369,18 @@ export const executeHandover = async (
   }
 
   // 4. Record Initial Trip Checkin (Possession Affirmation)
-  recordTripCheckin({
-    bookingId: fullHandover.bookingId,
-    bookingRef: fullHandover.bookingRef,
-    travelerId: 'traveler-active',
-    travelerName: fullHandover.travelerSignatureName || 'Renter',
-    type: 'POSSESSION',
-    notes: `Pre-rental vehicle handover completed at ${fullHandover.odometerReading} km, Fuel: ${fullHandover.fuelLevelPercent}%. Agreement signed.`
-  });
+  try {
+    recordTripCheckin({
+      bookingId: fullHandover.bookingId,
+      bookingRef: fullHandover.bookingRef,
+      travelerId: 'traveler-active',
+      travelerName: fullHandover.travelerSignatureName || 'Renter',
+      type: 'POSSESSION',
+      notes: `Pre-rental vehicle handover completed at ${fullHandover.odometerReading} km, Fuel: ${fullHandover.fuelLevelPercent}%. Agreement signed.`
+    });
+  } catch (err) {
+    console.warn('recordTripCheckin notice:', err);
+  }
 
   // 5. Log Audit Event
   logAuditEvent(
@@ -535,8 +541,9 @@ export const recordTripCheckin = (
 
   if (supabase) {
     try {
+      const validBookingId = isValidUUID(fullCheckin.bookingId) ? fullCheckin.bookingId : null;
       supabase.from('trip_checkins').insert([{
-        booking_id: fullCheckin.bookingId,
+        booking_id: validBookingId,
         checkin_type: fullCheckin.type.toLowerCase(),
         latitude: fullCheckin.latitude,
         longitude: fullCheckin.longitude,

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Car, MapPin, Calendar, Shield, RefreshCw, Trash2, Palmtree,
-  Star, Download, RotateCcw, Navigation, Phone, MessageSquare,
+  Star, Download, RotateCcw, Navigation,
   CheckCircle2, Clock, TrendingUp, Zap, Share2, X, AlertTriangle,
   ChevronRight, Sparkles, Heart, Smartphone, ArrowRight, ShieldCheck, FileText,
 } from 'lucide-react';
@@ -419,14 +419,6 @@ function BookingCard({
                 <div className="flex items-center gap-1 text-xs text-slate-600 font-medium">
                   <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> 4.9 · Verified Safari Chauffeur
                 </div>
-              </div>
-              <div className="flex gap-2">
-                <a href={`tel:${b.driverPhone || '+254722374535'}`} className="flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-100/70 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-200 transition">
-                  <Phone className="h-3.5 w-3.5" /> Call Driver
-                </a>
-                <a href={`https://wa.me/${(b.driverPhone || '254722374535').replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-xl border border-teal/40 bg-teal/10 px-3 py-2 text-xs font-bold text-teal hover:bg-teal/20 transition">
-                  <MessageSquare className="h-3.5 w-3.5" /> Chat
-                </a>
               </div>
             </div>
           )}
@@ -983,28 +975,7 @@ export default function MyBookings() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3.5 flex items-center justify-between gap-3 text-xs">
-              <div>
-                <p className="font-bold text-slate-900">{activeTrackingBooking.driverName || 'Samuel Omondi'}</p>
-                <p className="text-[11px] text-slate-600 font-medium">Verified Safari Chauffeur &amp; Host</p>
-              </div>
-              <div className="flex gap-2">
-                <a
-                  href={`tel:${activeTrackingBooking.driverPhone || '+254722374535'}`}
-                  className="flex items-center gap-1 rounded-xl bg-emerald-600 text-white px-3 py-1.5 font-bold hover:bg-emerald-700 transition"
-                >
-                  <Phone className="h-3.5 w-3.5" /> Call Driver
-                </a>
-                <a
-                  href={`https://wa.me/${(activeTrackingBooking.driverPhone || '254722374535').replace(/[^0-9]/g, '')}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1 rounded-xl bg-teal-700 text-white px-3 py-1.5 font-bold hover:bg-teal-800 transition"
-                >
-                  <MessageSquare className="h-3.5 w-3.5" /> Chat
-                </a>
-              </div>
-            </div>
+
 
             {/* MANDATORY HANDOVER DOCUMENT VERIFICATION NOTICE */}
             <div className="rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-50/90 via-amber-100/50 to-orange-50 p-4 text-xs space-y-2 shadow-sm">
