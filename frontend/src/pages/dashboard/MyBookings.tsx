@@ -4,7 +4,7 @@ import {
   Car, MapPin, Calendar, Shield, RefreshCw, Trash2, Palmtree,
   Star, Download, RotateCcw, Navigation,
   CheckCircle2, Clock, TrendingUp, Zap, Share2, X, AlertTriangle,
-  ChevronRight, Sparkles, Heart, Smartphone, ArrowRight, ShieldCheck, FileText,
+  ChevronRight, Sparkles, Heart, Smartphone, ArrowRight, ShieldCheck, FileText, UserCheck, User,
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { selectUser } from '@/store/slices/authSlice';
@@ -408,20 +408,49 @@ function BookingCard({
             </div>
           </div>
 
-          {/* Active: driver */}
-          {isActive && (
-            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-300 bg-emerald-50/60 p-3 shadow-sm">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-amber-500 to-amber-700 font-bold text-white text-lg shrink-0 shadow-sm">
-                {(b.driverName || 'D').charAt(0)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-slate-900 text-sm">{b.driverName || 'Samuel Omondi'}</p>
-                <div className="flex items-center gap-1 text-xs text-slate-600 font-medium">
-                  <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> 4.9 · Verified Safari Chauffeur
+          {/* Active: driver / self-drive hirer details */}
+          {isActive && (() => {
+            const isDriverPkg = Boolean(
+              b.raw?.hasDriver ||
+              (b as any).hasDriver ||
+              (b.raw?.pickupMethod && String(b.raw.pickupMethod).toUpperCase() === 'WITH_DRIVER') ||
+              (b.pickupLocation && b.pickupLocation.toLowerCase().includes('driver'))
+            );
+
+            if (isDriverPkg) {
+              return (
+                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-300 bg-emerald-50/60 p-3 shadow-sm">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-amber-500 to-amber-700 font-bold text-white text-lg shrink-0 shadow-sm">
+                    D
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-slate-900 text-sm">Driver <span className="text-xs font-semibold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md ml-1.5">Station Chauffeur</span></p>
+                    <div className="flex items-center gap-1 text-xs text-slate-600 font-medium mt-0.5">
+                      <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> 4.9 · Verified Safari Chauffeur Included
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // Self Drive: Traveler is the primary driver
+            const travelerName = b.touristName || (b.raw?.touristName) || 'Traveler';
+            const initial = travelerName.trim().charAt(0).toUpperCase() || 'T';
+
+            return (
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-300 bg-emerald-50/60 p-3 shadow-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-teal to-emerald-700 font-bold text-white text-lg shrink-0 shadow-sm">
+                  {initial}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-slate-900 text-sm">{travelerName} <span className="text-xs font-semibold text-emerald-800 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md ml-1.5">Self-Drive Hirer</span></p>
+                  <div className="flex items-center gap-1 text-xs text-slate-600 font-medium mt-0.5">
+                    <UserCheck className="h-3.5 w-3.5 text-emerald-600" /> Verified Primary Driver &amp; Hirer
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Completed: rating */}
           {isCompleted && (
@@ -433,7 +462,13 @@ function BookingCard({
           {/* Actions */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
             <span className="text-xs text-slate-600 font-medium">
-              {isActive ? 'Real-time driver GPS & telemetry live' : isCompleted ? 'Trip complete — thank you for exploring with M-Travel' : 'Manage your reservation below'}
+              {isActive
+                ? (Boolean(b.raw?.hasDriver || (b as any).hasDriver)
+                    ? 'Real-time driver GPS & telemetry live'
+                    : 'Real-time vehicle GPS & telemetry live')
+                : isCompleted
+                ? 'Trip complete — thank you for exploring with M-Travel'
+                : 'Manage your reservation below'}
             </span>
             <div className="flex flex-wrap gap-2">
               {/* Pay Now Button (if Pending Payment) */}
@@ -896,8 +931,8 @@ export default function MyBookings() {
                 <div class="val">${b.pickupLocation || 'Westlands Fleet Hub, Nairobi'}</div>
               </div>
               <div>
-                <div class="label">Assigned Chauffeur / Host</div>
-                <div class="val">${b.driverName || 'Samuel Omondi'} (${b.driverPhone || '+254722374535'})</div>
+                <div class="label">Assigned Driver / Service Mode</div>
+                <div class="val">${(b.raw?.hasDriver || (b as any).hasDriver) ? 'Professional Safari Chauffeur (Station Chauffeur Included)' : `${b.touristName || 'Traveler'} (Self-Drive Hirer)`}</div>
               </div>
             </div>
           </div>
