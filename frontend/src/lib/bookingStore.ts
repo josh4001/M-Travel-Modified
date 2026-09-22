@@ -1242,6 +1242,45 @@ export const deleteBooking = (bookingId: string): boolean => {
 };
 
 /**
+ * Bulk deletes multiple bookings from local storage and Supabase DB
+ */
+export const bulkDeleteBookings = (bookingIds: string[]): boolean => {
+  if (!Array.isArray(bookingIds) || bookingIds.length === 0) return false;
+
+  const idSet = new Set(bookingIds);
+  const bookings = getStoredBookings();
+  const filtered = bookings.filter(b => !idSet.has(b.id) && !idSet.has(b.bookingRef));
+
+  try {
+    localStorage.setItem(BOOKINGS_KEY, JSON.stringify(filtered));
+  } catch {}
+
+  window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: { deletedCount: bookingIds.length } }));
+  window.dispatchEvent(new CustomEvent('mt_booking_status_changed', { detail: { deletedCount: bookingIds.length } }));
+
+  logAuditEvent(
+    'BOOKINGS_BULK_DELETED',
+    'Booking',
+    `${bookingIds.length} Bookings`,
+    `Bulk deleted ${bookingIds.length} reservations from traveler account`,
+    'Traveler / Admin',
+    'USER'
+  );
+
+  const uuidIds = bookingIds.filter(id => isValidUUID(id));
+  if (uuidIds.length > 0) {
+    (async () => {
+      try {
+        await supabase.from('bookings').delete().in('id', uuidIds);
+      } catch (err) {
+        console.warn('Supabase bulkDeleteBookings notice:', err);
+      }
+    })();
+  }
+  return true;
+};
+
+/**
  * Rates a completed booking (1 to 5 stars) and recalculates the vehicle or destination average rating.
  */
 export const rateBooking = (
