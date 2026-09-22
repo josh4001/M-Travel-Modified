@@ -11,7 +11,7 @@ import { supabase, cancelBookingInSupabase } from '@/lib/supabaseClient';
 import { useCurrency } from '@/context/CurrencyContext';
 import { fetchNotifications, type AppNotification } from '@/lib/notificationService';
 import {
-  getStoredBookings, updateBookingStatus, isTripBooking,
+  getStoredBookings, syncBookingsFromSupabase, updateBookingStatus, isTripBooking,
   type StoredBooking
 } from '@/lib/bookingStore';
 import { MpesaStkPushModal } from '@/components/ui/MpesaStkPushModal';
@@ -58,6 +58,10 @@ export default function TouristDashboard() {
 
   const refreshData = async () => {
     setLoading(true);
+
+    // Sync remote Supabase bookings first for cross-device parity
+    await syncBookingsFromSupabase().catch(() => []);
+
     const allStored = getStoredBookings();
     // Strict data privacy: Only show bookings that belong to this tourist account
     const relevant = user?.id 
@@ -123,6 +127,7 @@ export default function TouristDashboard() {
     window.addEventListener('mt_booking_updated', handleStoreUpdate);
     window.addEventListener('mt_booking_status_changed', handleStoreUpdate);
     window.addEventListener('mt_notification_received', handleNotifUpdate);
+    window.addEventListener('mt_remote_change', refreshData);
 
     const channel = supabase
       .channel('tourist-bookings')
@@ -133,6 +138,7 @@ export default function TouristDashboard() {
       window.removeEventListener('mt_booking_updated', handleStoreUpdate);
       window.removeEventListener('mt_booking_status_changed', handleStoreUpdate);
       window.removeEventListener('mt_notification_received', handleNotifUpdate);
+      window.removeEventListener('mt_remote_change', refreshData);
       supabase.removeChannel(channel);
     };
   }, [user?.id, user?.email]);

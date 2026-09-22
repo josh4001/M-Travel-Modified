@@ -375,6 +375,100 @@ export const seedCoreVehiclesToSupabase = async (): Promise<void> => {
   }
 };
 
+/**
+ * Automatically syncs any local vehicles and bookings stored in localStorage up to Supabase
+ * so all connected developers and devices receive 100% identical live data.
+ */
+export const syncLocalStoreToSupabase = async (): Promise<void> => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    // 1. Sync local vehicles up to Supabase
+    const localVehicles = getStoredVehicles();
+    for (const v of localVehicles) {
+      if (isDemoVehicle(v)) continue;
+      const vId = isValidUUID(v.id) ? v.id : ensureUUID(v.id);
+      const hostId = isValidUUID(v.ownerId) ? v.ownerId : 'a0000000-0000-0000-0000-000000000002';
+
+      // Ensure host user exists in Supabase users table
+      await supabase.from('users').upsert({
+        id: hostId,
+        email: v.ownerEmail || 'james.mwangi@mtravel.co.ke',
+        first_name: (v.ownerName || 'James').split(' ')[0],
+        last_name: (v.ownerName || 'Mwangi').split(' ').slice(1).join(' ') || 'Mwangi',
+        role: 'VEHICLE_OWNER',
+        is_active: true,
+      }, { onConflict: 'id' });
+
+      const { error: vErr } = await supabase.from('vehicles').upsert({
+        id: vId,
+        owner_id: hostId,
+        type: (v.type || 'SUV').toUpperCase(),
+        make: v.make,
+        model: v.model,
+        year: Number(v.year || 2024),
+        seats: Number(v.seats || 7),
+        fuel_type: (v.fuelType || 'DIESEL').toUpperCase(),
+        transmission: (v.transmission || 'AUTOMATIC').toUpperCase(),
+        price_per_day: Number(v.pricePerDay || 15000),
+        plate_number: v.plateNumber || null,
+        has_insurance: v.hasInsurance !== false,
+        latitude: v.latitude ?? -1.2921,
+        longitude: v.longitude ?? 36.8219,
+        address: v.address || 'Nairobi, Kenya',
+        is_available: true,
+        is_approved: true,
+        rating_average: Number(v.ratingAverage || 4.9),
+        rating_count: Number(v.ratingCount || 12),
+        created_at: v.createdAt || new Date().toISOString(),
+      }, { onConflict: 'id' });
+
+      if (!vErr && Array.isArray(v.images) && v.images.length > 0) {
+        const imgRows = v.images.slice(0, 5).map((url, idx) => ({
+          vehicle_id: vId,
+          url: url.startsWith('data:') ? 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80' : url,
+          is_primary: idx === 0,
+        }));
+        await supabase.from('vehicle_images').upsert(imgRows, { onConflict: 'vehicle_id,url' });
+      }
+    }
+
+    // 2. Sync local bookings up to Supabase
+    const localBookings = getStoredBookings();
+    for (const b of localBookings) {
+      if (['b-101', 'b-102', 'b-103'].includes(b.id) || isDemoVehicle(b)) continue;
+      const bId = isValidUUID(b.id) ? b.id : ensureUUID(b.id);
+      const userId = isValidUUID(b.touristId) ? b.touristId : 'user-tourist-1';
+
+      // Ensure tourist user exists in Supabase users table
+      await supabase.from('users').upsert({
+        id: userId,
+        email: b.touristEmail || 'sarah.ochieng@gmail.com',
+        first_name: (b.touristName || 'Sarah').split(' ')[0],
+        last_name: (b.touristName || 'Ochieng').split(' ').slice(1).join(' ') || 'Ochieng',
+        role: 'TOURIST',
+        is_active: true,
+      }, { onConflict: 'id' });
+
+      await supabase.from('bookings').upsert({
+        id: bId,
+        booking_ref: b.bookingRef || `MT-${bId.slice(0, 8).toUpperCase()}`,
+        user_id: userId,
+        vehicle_id: isValidUUID(b.vehicleId) ? b.vehicleId : null,
+        start_date: b.startDate ? new Date(b.startDate).toISOString() : new Date().toISOString(),
+        end_date: b.endDate ? new Date(b.endDate).toISOString() : new Date().toISOString(),
+        total_amount: Number(b.totalAmount || 0),
+        currency: 'KES',
+        status: (b.status || 'COMPLETED').toUpperCase(),
+        pickup_method: b.pickupMethod || 'SELF_COLLECT',
+        created_at: b.createdAt || new Date().toISOString(),
+      }, { onConflict: 'id' });
+    }
+  } catch (err) {
+    console.warn('syncLocalStoreToSupabase notice:', err);
+  }
+};
+
 // Helper Functions
 export const getStoredBookings = (): StoredBooking[] => {
   try {
