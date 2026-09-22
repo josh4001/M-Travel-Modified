@@ -89,33 +89,37 @@ export class PaymentsService {
           data: { status: PaymentStatus.SUCCEEDED },
         });
 
-        // Update booking
-        await prisma.booking.update({
-          where: { id: payment.bookingId },
-          data: { status: BookingStatus.CONFIRMED },
-        });
+        // Update booking if bookingId exists
+        if (payment.bookingId) {
+          await prisma.booking.update({
+            where: { id: payment.bookingId },
+            data: { status: BookingStatus.CONFIRMED },
+          });
+        }
 
         // Credit owner's wallet if applicable (for vehicle bookings)
-        if (payment.booking.vehicle) {
+        if (payment.booking?.vehicle) {
           const ownerId = payment.booking.vehicle.ownerId;
           const commissionAmount = Number(payment.amount) * 0.1; // 10% platform fee
           const netAmount = Number(payment.amount) - commissionAmount;
 
-          const wallet = await prisma.wallet.findUnique({ where: { userId: ownerId } });
-          if (wallet) {
-            await prisma.wallet.update({
-              where: { id: wallet.id },
-              data: { balance: { increment: netAmount } },
-            });
-            await prisma.transaction.create({
-              data: {
-                walletId: wallet.id,
-                type: TransactionType.BOOKING_PAYOUT,
-                amount: netAmount,
-                status: TransactionStatus.COMPLETED,
-                description: `Payout for booking ${payment.booking.bookingRef}`,
-              },
-            });
+          if (ownerId) {
+            const wallet = await prisma.wallet.findUnique({ where: { userId: ownerId } });
+            if (wallet) {
+              await prisma.wallet.update({
+                where: { id: wallet.id },
+                data: { balance: { increment: netAmount } },
+              });
+              await prisma.transaction.create({
+                data: {
+                  walletId: wallet.id,
+                  type: TransactionType.BOOKING_PAYOUT,
+                  amount: netAmount,
+                  status: TransactionStatus.COMPLETED,
+                  description: `Payout for booking ${payment.booking?.bookingRef || payment.bookingId}`,
+                },
+              });
+            }
           }
         }
       });
@@ -126,10 +130,12 @@ export class PaymentsService {
           where: { id: payment.id },
           data: { status: PaymentStatus.FAILED },
         });
-        await prisma.booking.update({
-          where: { id: payment.bookingId },
-          data: { status: BookingStatus.CANCELLED },
-        });
+        if (payment.bookingId) {
+          await prisma.booking.update({
+            where: { id: payment.bookingId },
+            data: { status: BookingStatus.CANCELLED },
+          });
+        }
       });
     }
   }

@@ -42,7 +42,7 @@ export class AuthService {
       },
     });
 
-    return this.issueTokens(user.id, user.email, user.role);
+    return this.issueTokens(user.id, user.email, user.role ?? 'TRAVELER');
   }
 
   async login(dto: LoginDto) {
@@ -56,7 +56,7 @@ export class AuthService {
 
     if (!user.isActive) throw new UnauthorizedException('This account has been suspended');
 
-    return this.issueTokens(user.id, user.email, user.role);
+    return this.issueTokens(user.id, user.email, user.role ?? 'TRAVELER');
   }
 
   async refresh(refreshToken: string) {
@@ -88,7 +88,7 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('User no longer exists');
 
     await this.prisma.refreshToken.update({ where: { id: stored.id }, data: { revoked: true } });
-    return this.issueTokens(user.id, user.email, user.role);
+    return this.issueTokens(user.id, user.email, user.role ?? 'TRAVELER');
   }
 
   private async issueTokens(userId: string, email: string, role: string) {
