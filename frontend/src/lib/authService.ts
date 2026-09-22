@@ -232,6 +232,40 @@ function saveLocalAccount(acc: LocalAccount) {
   })();
 }
 
+export async function syncDefaultUsersToSupabase() {
+  try {
+    const accounts = getLocalAccounts();
+    for (const acc of accounts) {
+      const validId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(acc.id)
+        ? acc.id
+        : undefined;
+
+      const payload: any = {
+        email: acc.email.toLowerCase(),
+        phone: acc.phone || null,
+        password_hash: '$2a$12$FcgCkt0j41e9vnp7pXSzzeGGZ.VPoec/vZ1N3Xxt1RLU4LC6UDt4u',
+        first_name: acc.firstName || 'User',
+        last_name: acc.lastName || '',
+        avatar_url: acc.avatarUrl || null,
+        role: (acc.role || 'TOURIST').toUpperCase(),
+        is_active: acc.isActive !== false,
+        updated_at: new Date().toISOString(),
+      };
+      if (validId) payload.id = validId;
+
+      await supabase.from('users').upsert(payload, { onConflict: 'email' });
+    }
+  } catch (err) {
+    console.warn('syncDefaultUsersToSupabase notice:', err);
+  }
+}
+
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    syncDefaultUsersToSupabase().catch(() => {});
+  }, 200);
+}
+
 export function updateUserStatus(userIdOrEmail: string, isActive: boolean): void {
   try {
     const accounts = getLocalAccounts();

@@ -468,7 +468,7 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
   // Real-time Supabase push
   (async () => {
     try {
-      const validOwnerId = isValidUUID(vehicle.ownerId) ? vehicle.ownerId : null;
+      const validOwnerId = isValidUUID(vehicle.ownerId) ? vehicle.ownerId : 'a0000000-0000-0000-0000-000000000002';
       const { error: vError } = await supabase.from('vehicles').insert({
         id: vehicleId,
         owner_id: validOwnerId,
