@@ -949,6 +949,7 @@ export const toggleVehicleLiveStatus = (vehicleId: string, forcedState?: boolean
 
   // 4. Dispatch events for instant reactivity
   window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: { id: vehicleId, isLive: nextLive, vehicle: updatedVehicle } }));
+  window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'vehicles' } }));
   window.dispatchEvent(new Event('storage'));
 
   return updatedVehicle;

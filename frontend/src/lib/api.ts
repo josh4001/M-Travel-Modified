@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api/v1',
-  timeout: 3000,
+  timeout: 10000,
 });
 
 // Attach the access token (if present) to every outgoing request.

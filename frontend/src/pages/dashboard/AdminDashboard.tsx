@@ -1260,10 +1260,9 @@ export default function AdminDashboard() {
                         <button
                           type="button"
                           onClick={() => {
-                            const res = toggleVehicleLiveStatus(v.id);
-                            const nextState = res ? res.isLive !== false : !isLive;
+                            const nextState = !isLive;
+                            toggleVehicleLiveStatus(v.id, nextState);
                             setVehicles(prev => prev.map(item => item.id === v.id ? { ...item, isLive: nextState } : item));
-                            fetchAll();
                           }}
                           disabled={hireStatus.isHired}
                           className={`btn-secondary !py-1.5 !px-3 text-xs flex-1 flex items-center justify-center gap-1.5 font-bold transition shadow-xs ${

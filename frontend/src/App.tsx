@@ -104,7 +104,7 @@ export default function App() {
 
     const token = localStorage.getItem('mt_access_token');
     if (token) {
-      api.get('/users/me', { timeout: 2000 })
+      api.get('/users/me', { timeout: 6000 })
         .then(({ data }) => {
           if (data) dispatch(setUser(data));
         })
