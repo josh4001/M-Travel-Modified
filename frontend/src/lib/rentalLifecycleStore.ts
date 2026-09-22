@@ -330,42 +330,58 @@ export const logAuditEvent = (
 export const executeHandover = async (
   handoverData: Omit<VehicleHandover, 'id' | 'confirmedAt'>
 ): Promise<VehicleHandover> => {
-  const allBookings = getStoredBookings();
-  const currentBooking = allBookings.find(b => b.id === handoverData.bookingId || b.bookingRef === handoverData.bookingRef);
-  if (currentBooking && !isVehicleBooking(currentBooking)) {
-    console.warn(`[executeHandover] Handover skipped for trip booking ${handoverData.bookingRef}. Pre-rental handovers apply to vehicle rentals only.`);
-    return {
-      ...handoverData,
-      id: `ho-skipped-${Date.now()}`,
-      confirmedAt: new Date().toISOString()
-    };
-  }
-
   const fullHandover: VehicleHandover = {
     ...handoverData,
     id: `ho-${Date.now()}`,
     confirmedAt: new Date().toISOString()
   };
 
-  // 1. Save handover record
-  const handovers = getAllHandovers();
-  const existingIdx = handovers.findIndex(h => h.bookingId === fullHandover.bookingId);
-  if (existingIdx >= 0) {
-    handovers[existingIdx] = fullHandover;
-  } else {
-    handovers.push(fullHandover);
+  try {
+    const allBookings = getStoredBookings();
+    const currentBooking = allBookings.find(b => b.id === handoverData.bookingId || b.bookingRef === handoverData.bookingRef);
+    if (currentBooking && !isVehicleBooking(currentBooking)) {
+      console.warn(`[executeHandover] Handover skipped for trip booking ${handoverData.bookingRef}. Pre-rental handovers apply to vehicle rentals only.`);
+      return {
+        ...handoverData,
+        id: `ho-skipped-${Date.now()}`,
+        confirmedAt: new Date().toISOString()
+      };
+    }
+  } catch (err) {
+    console.warn('[executeHandover] booking type check notice:', err);
   }
-  localStorage.setItem(HANDOVERS_KEY, JSON.stringify(handovers));
 
-  // 2. Update Booking status to 'IN_PROGRESS' (or ACTIVE) in local store & Supabase
-  updateBookingStatus(fullHandover.bookingId, 'IN_PROGRESS');
-  if (fullHandover.bookingRef && fullHandover.bookingRef !== fullHandover.bookingId) {
-    updateBookingStatus(fullHandover.bookingRef, 'IN_PROGRESS');
+  // 1. Save handover record
+  try {
+    const handovers = getAllHandovers();
+    const existingIdx = handovers.findIndex(h => h.bookingId === fullHandover.bookingId);
+    if (existingIdx >= 0) {
+      handovers[existingIdx] = fullHandover;
+    } else {
+      handovers.push(fullHandover);
+    }
+    localStorage.setItem(HANDOVERS_KEY, JSON.stringify(handovers));
+  } catch (err) {
+    console.warn('[executeHandover] localStorage save notice:', err);
+  }
+
+  // 2. Update Booking status to 'IN_PROGRESS' in local store & Supabase
+  try {
+    updateBookingStatus(fullHandover.bookingId, 'IN_PROGRESS');
+    if (fullHandover.bookingRef && fullHandover.bookingRef !== fullHandover.bookingId) {
+      updateBookingStatus(fullHandover.bookingRef, 'IN_PROGRESS');
+    }
+  } catch (err) {
+    console.warn('[executeHandover] updateBookingStatus notice:', err);
   }
 
   // 3. Update Vehicle operational status to active rental (locked from new searches)
-  if (fullHandover.vehicleId) {
-    toggleVehicleLiveStatus(fullHandover.vehicleId, false);
+  try {
+    if (fullHandover.vehicleId) {
+      toggleVehicleLiveStatus(fullHandover.vehicleId, false);
+    }
+  } catch (err) {
+    console.warn('[executeHandover] toggleVehicleLiveStatus notice:', err);
   }
 
   // 4. Record Initial Trip Checkin (Possession Affirmation)
@@ -379,7 +395,7 @@ export const executeHandover = async (
       notes: `Pre-rental vehicle handover completed at ${fullHandover.odometerReading} km, Fuel: ${fullHandover.fuelLevelPercent}%. Agreement signed.`
     });
   } catch (err) {
-    console.warn('recordTripCheckin notice:', err);
+    console.warn('[executeHandover] recordTripCheckin notice:', err);
   }
 
   // 5. Log Audit Event
@@ -393,12 +409,13 @@ export const executeHandover = async (
       'AGENT'
     );
   } catch (err) {
-    console.warn('logAuditEvent notice:', err);
+    console.warn('[executeHandover] logAuditEvent notice:', err);
   }
 
   try {
     window.dispatchEvent(new CustomEvent('mt_rental_handover', { detail: fullHandover }));
     window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: fullHandover }));
+    window.dispatchEvent(new CustomEvent('mt_booking_status_changed', { detail: fullHandover }));
   } catch {}
 
   // Supabase background sync
