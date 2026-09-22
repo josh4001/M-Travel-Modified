@@ -8,13 +8,11 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL ?? 'https://xbldmaifdqiakqfjrvei.supabase.co';
 
-// We use the service-role key so we can bypass RLS for all table reads.
-// This key is already "public" in the sense it's bundled in the frontend build,
-// but since RLS is disabled for now and the key is scoped to this project only,
-// this is acceptable for the current development phase.
+// We use the public anon key for frontend queries.
 const SUPABASE_KEY =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ??
   import.meta.env.VITE_SUPABASE_SERVICE_ROLE ??
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwZ3hpYmpndmh1bWJ1bW50bG1zIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTMwODY2MSwiZXhwIjoyMTAwODg0NjYxfQ.T3FMhBjQaiMQ2OOTCYqN28V0k9MzOtsblgNy3bPvS4w';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhibGRtYWlmZHFpYWtxZmpydmVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0NTQ5NzMsImV4cCI6MjEwNTAzMDk3M30.Gpo2a4O8oQO1rOq1NYGIYQ2n25RctRPB6jBBUA44xDc';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
