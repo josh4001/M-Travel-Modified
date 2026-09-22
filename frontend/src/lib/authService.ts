@@ -204,6 +204,32 @@ function saveLocalAccount(acc: LocalAccount) {
       window.dispatchEvent(new Event('mt_accounts_updated'));
     }
   } catch {}
+
+  // Real-time Supabase users table upsert
+  (async () => {
+    try {
+      const validId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(acc.id)
+        ? acc.id
+        : undefined;
+
+      const payload: any = {
+        email: acc.email.toLowerCase(),
+        phone: acc.phone || null,
+        password_hash: '$2a$12$FcgCkt0j41e9vnp7pXSzzeGGZ.VPoec/vZ1N3Xxt1RLU4LC6UDt4u',
+        first_name: acc.firstName || 'User',
+        last_name: acc.lastName || '',
+        avatar_url: acc.avatarUrl || null,
+        role: (acc.role || 'TOURIST').toUpperCase(),
+        is_active: acc.isActive !== false,
+        updated_at: new Date().toISOString(),
+      };
+      if (validId) payload.id = validId;
+
+      await supabase.from('users').upsert(payload, { onConflict: 'email' });
+    } catch (err) {
+      console.warn('Supabase user upsert notice:', err);
+    }
+  })();
 }
 
 export function updateUserStatus(userIdOrEmail: string, isActive: boolean): void {

@@ -196,6 +196,19 @@ const DEMO_VEHICLE_IDS = new Set([
   'mv-005',
 ]);
 
+export const isValidUUID = (str?: string): boolean =>
+  typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
+export const ensureUUID = (str?: string): string => {
+  if (isValidUUID(str)) return str!;
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    try {
+      return crypto.randomUUID();
+    } catch {}
+  }
+  return 'b' + Math.random().toString(36).substring(2, 9) + '-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0').slice(-12);
+};
+
 export const isDemoVehicle = (v: any): boolean => {
   if (!v) return false;
   if (v.id && (DEMO_VEHICLE_IDS.has(v.id) || String(v.id).startsWith('v-host-') || String(v.id).startsWith('mv-') || String(v.id).startsWith('00000000-'))) {
@@ -253,16 +266,41 @@ export const getStoredBookings = (): StoredBooking[] => {
 
 export const saveBooking = (booking: Omit<StoredBooking, 'id' | 'createdAt'>): StoredBooking => {
   const existing = getStoredBookings();
+  const bookingId = ensureUUID();
   const newBooking: StoredBooking = {
     ...booking,
     pickupMethod: booking.pickupMethod || 'SELF_COLLECT',
     vehicleName: booking.vehicleName || `${booking.vehicleMake} ${booking.vehicleModel}`,
-    id: `b-${Date.now()}`,
+    id: bookingId,
     createdAt: new Date().toISOString(),
   };
   const updated = [newBooking, ...existing];
   localStorage.setItem(BOOKINGS_KEY, JSON.stringify(updated));
   window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: newBooking }));
+
+  // Real-time Supabase push
+  (async () => {
+    try {
+      const validUserId = isValidUUID(booking.touristId) ? booking.touristId : null;
+      const validVehicleId = isValidUUID(booking.vehicleId) ? booking.vehicleId : null;
+      await supabase.from('bookings').insert({
+        id: bookingId,
+        booking_ref: booking.bookingRef || `MT-${bookingId.slice(0, 8).toUpperCase()}`,
+        user_id: validUserId,
+        vehicle_id: validVehicleId,
+        start_date: booking.startDate ? new Date(booking.startDate).toISOString() : new Date().toISOString(),
+        end_date: booking.endDate ? new Date(booking.endDate).toISOString() : new Date().toISOString(),
+        total_amount: Number(booking.totalAmount || 0),
+        currency: 'KES',
+        status: (booking.status || 'PENDING').toUpperCase(),
+        pickup_method: booking.pickupMethod || 'SELF_COLLECT',
+        created_at: newBooking.createdAt,
+      });
+    } catch (err) {
+      console.warn('Supabase real-time booking insert notice:', err);
+    }
+  })();
+
   return newBooking;
 };
 
@@ -402,9 +440,10 @@ if (typeof window !== 'undefined') {
 
 export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'ratingAverage' | 'ratingCount' | 'status'>): StoredVehicle => {
   const existing = getStoredVehicles();
+  const vehicleId = ensureUUID();
   const newVehicle: StoredVehicle = {
     ...vehicle,
-    id: `v-${Date.now()}`,
+    id: vehicleId,
     status: 'PENDING_APPROVAL',
     isLive: false, // Starts offline; Admin must inspect, approve, and push live
     ratingAverage: 5.0,
@@ -416,7 +455,6 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
     localStorage.setItem(VEHICLES_KEY, JSON.stringify(updated));
   } catch (err) {
     console.warn('LocalStorage quota warning in saveVehicle, saving with pruned images:', err);
-    // Fallback: If quota exceeded, sanitize images to standard fallback URLs
     const sanitized = updated.map(v => ({
       ...v,
       images: v.images.map((img, i) => img.startsWith('data:') ? (i === 0 ? 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80' : 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80') : img)
@@ -426,6 +464,47 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
     } catch {}
   }
   window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: newVehicle }));
+
+  // Real-time Supabase push
+  (async () => {
+    try {
+      const validOwnerId = isValidUUID(vehicle.ownerId) ? vehicle.ownerId : null;
+      const { error: vError } = await supabase.from('vehicles').insert({
+        id: vehicleId,
+        owner_id: validOwnerId,
+        type: (vehicle.type || 'SUV').toUpperCase(),
+        make: vehicle.make,
+        model: vehicle.model,
+        year: Number(vehicle.year || 2024),
+        seats: Number(vehicle.seats || 7),
+        fuel_type: (vehicle.fuelType || 'DIESEL').toUpperCase(),
+        transmission: (vehicle.transmission || 'AUTOMATIC').toUpperCase(),
+        price_per_day: Number(vehicle.pricePerDay || 15000),
+        plate_number: vehicle.plateNumber || null,
+        has_insurance: vehicle.hasInsurance !== false,
+        latitude: vehicle.latitude ?? -1.2921,
+        longitude: vehicle.longitude ?? 36.8219,
+        address: vehicle.address || 'Nairobi, Kenya',
+        is_available: false,
+        is_approved: false,
+        rating_average: 5.0,
+        rating_count: 0,
+        created_at: newVehicle.createdAt,
+      });
+
+      if (!vError && Array.isArray(vehicle.images) && vehicle.images.length > 0) {
+        const imageRows = vehicle.images.slice(0, 5).map((url, idx) => ({
+          vehicle_id: vehicleId,
+          url: url.startsWith('data:') ? 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80' : url,
+          is_primary: idx === 0,
+        }));
+        await supabase.from('vehicle_images').insert(imageRows);
+      }
+    } catch (err) {
+      console.warn('Supabase real-time vehicle insert notice:', err);
+    }
+  })();
+
   return newVehicle;
 };
 
@@ -435,10 +514,20 @@ export const deleteVehicle = (vehicleId: string): boolean => {
   try {
     localStorage.setItem(VEHICLES_KEY, JSON.stringify(filtered));
     window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: { id: vehicleId, deleted: true } }));
-    return true;
   } catch {
     return false;
   }
+
+  if (isValidUUID(vehicleId)) {
+    (async () => {
+      try {
+        await supabase.from('vehicles').delete().eq('id', vehicleId);
+      } catch (err) {
+        console.warn('Supabase deleteVehicle notice:', err);
+      }
+    })();
+  }
+  return true;
 };
 
 export const approveVehicle = (vehicleId: string, pushLive = true): StoredVehicle | null => {
@@ -456,6 +545,23 @@ export const approveVehicle = (vehicleId: string, pushLive = true): StoredVehicl
   } catch {}
   window.dispatchEvent(new CustomEvent('mt_vehicle_approved', { detail: updatedVehicle }));
   window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: updatedVehicle }));
+
+  if (isValidUUID(vehicleId)) {
+    (async () => {
+      try {
+        await supabase
+          .from('vehicles')
+          .update({
+            is_approved: true,
+            is_available: pushLive,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', vehicleId);
+      } catch (err) {
+        console.warn('Supabase approveVehicle notice:', err);
+      }
+    })();
+  }
   return updatedVehicle;
 };
 
@@ -485,6 +591,23 @@ export const rejectVehicle = (
     window.dispatchEvent(new CustomEvent('mt_vehicle_rejected', { detail: updatedVehicle }));
     window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: updatedVehicle }));
   } catch {}
+
+  if (isValidUUID(vehicleId)) {
+    (async () => {
+      try {
+        await supabase
+          .from('vehicles')
+          .update({
+            is_approved: false,
+            is_available: false,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', vehicleId);
+      } catch (err) {
+        console.warn('Supabase rejectVehicle notice:', err);
+      }
+    })();
+  }
   return updatedVehicle;
 };
 
@@ -689,6 +812,23 @@ export const updateBookingStatus = (
   } catch {}
   window.dispatchEvent(new CustomEvent('mt_booking_status_changed', { detail: updatedBooking }));
   window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: updatedBooking }));
+
+  if (updatedBooking && isValidUUID((updatedBooking as StoredBooking).id)) {
+    (async () => {
+      try {
+        await supabase
+          .from('bookings')
+          .update({
+            status: status.toUpperCase(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', (updatedBooking as StoredBooking).id);
+      } catch (err) {
+        console.warn('Supabase updateBookingStatus notice:', err);
+      }
+    })();
+  }
+
   return updatedBooking;
 };
 
@@ -700,6 +840,16 @@ export const deleteBooking = (bookingId: string): boolean => {
   } catch {}
   window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: { id: bookingId, deleted: true } }));
   window.dispatchEvent(new CustomEvent('mt_booking_status_changed', { detail: { id: bookingId, deleted: true } }));
+
+  if (isValidUUID(bookingId)) {
+    (async () => {
+      try {
+        await supabase.from('bookings').delete().eq('id', bookingId);
+      } catch (err) {
+        console.warn('Supabase deleteBooking notice:', err);
+      }
+    })();
+  }
   return true;
 };
 
@@ -765,7 +915,41 @@ export const rateBooking = (
         localStorage.setItem(VEHICLES_KEY, JSON.stringify(updatedVehicles));
       } catch {}
       window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: updatedVehicle }));
+
+      if (isValidUUID(vId)) {
+        (async () => {
+          try {
+            await supabase
+              .from('vehicles')
+              .update({
+                rating_average: (updatedVehicle as StoredVehicle).ratingAverage,
+                rating_count: (updatedVehicle as StoredVehicle).ratingCount,
+              })
+              .eq('id', vId);
+          } catch (err) {
+            console.warn('Supabase rateBooking vehicle rating notice:', err);
+          }
+        })();
+      }
     }
+  }
+
+  // Insert review row to Supabase `reviews` table
+  if (updatedBooking && isValidUUID((updatedBooking as StoredBooking).id)) {
+    (async () => {
+      try {
+        const ub = updatedBooking as StoredBooking;
+        await supabase.from('reviews').insert({
+          author_id: isValidUUID(ub.touristId) ? ub.touristId : null,
+          vehicle_id: isValidUUID(ub.vehicleId) ? ub.vehicleId : null,
+          booking_id: ub.id,
+          rating,
+          comment: comment || null,
+        });
+      } catch (err) {
+        console.warn('Supabase review insert notice:', err);
+      }
+    })();
   }
 
   return { booking: updatedBooking, vehicle: updatedVehicle };
