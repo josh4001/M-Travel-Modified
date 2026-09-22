@@ -550,6 +550,10 @@ export const saveBooking = (booking: Omit<StoredBooking, 'id' | 'createdAt'>): S
         newBooking.touristName,
         'TOURIST'
       );
+
+      // Dispatch real-time remote change notification to all dashboards
+      window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'bookings' } }));
+      window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: newBooking }));
     } catch (err) {
       console.warn('Supabase real-time booking/payment insert notice:', err);
     }
@@ -570,7 +574,13 @@ export const getStoredVehicles = (): StoredVehicle[] => {
       localStorage.setItem(VEHICLES_KEY, JSON.stringify([]));
       return [];
     }
-    const sanitized = parsed.filter((v: StoredVehicle) => !isDemoVehicle(v));
+    const overrides = getVehicleLiveOverrides();
+    const sanitized = parsed
+      .filter((v: StoredVehicle) => !isDemoVehicle(v))
+      .map((v: StoredVehicle) => ({
+        ...v,
+        isLive: overrides[v.id] !== undefined ? overrides[v.id] : (v.isLive !== false),
+      }));
     if (sanitized.length !== parsed.length) {
       localStorage.setItem(VEHICLES_KEY, JSON.stringify(sanitized));
     }

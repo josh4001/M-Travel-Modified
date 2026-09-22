@@ -1260,7 +1260,9 @@ export default function AdminDashboard() {
                         <button
                           type="button"
                           onClick={() => {
-                            toggleVehicleLiveStatus(v.id);
+                            const res = toggleVehicleLiveStatus(v.id);
+                            const nextState = res ? res.isLive !== false : !isLive;
+                            setVehicles(prev => prev.map(item => item.id === v.id ? { ...item, isLive: nextState } : item));
                             fetchAll();
                           }}
                           disabled={hireStatus.isHired}

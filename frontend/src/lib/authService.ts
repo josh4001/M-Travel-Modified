@@ -236,6 +236,11 @@ function saveLocalAccount(acc: LocalAccount) {
         `${acc.firstName} ${acc.lastName}`,
         acc.role
       );
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('mt_accounts_updated'));
+        window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'users' } }));
+      }
     } catch (err) {
       console.warn('Supabase user upsert notice:', err);
     }
