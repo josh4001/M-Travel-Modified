@@ -35,31 +35,30 @@ export const MpesaStkPushModal: React.FC<MpesaStkPushModalProps> = ({
 
     setLoading(true);
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-
       const token = localStorage.getItem('mt_access_token');
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      // Call NestJS Backend Daraja API with timeout
-      const res = await fetch('http://localhost:4000/api/v1/payments/mpesa/stk-push', {
+      const stkPromise = fetch('http://localhost:4000/api/v1/payments/mpesa/stk-push', {
         method: 'POST',
         headers,
-        signal: controller.signal,
         body: JSON.stringify({
           phone,
           amount,
           bookingId: bookingId || undefined,
           accountReference: bookingRef,
         }),
-      });
-      clearTimeout(timeoutId);
-      const data = await res.json();
+      }).then(res => res.json()).catch(err => ({ success: false, error: err?.message }));
+
+      const timeoutPromise = new Promise((resolve) =>
+        setTimeout(() => resolve({ timeout: true, status: 'Simulated STK Sent' }), 1500)
+      );
+
+      const result = await Promise.race([stkPromise, timeoutPromise]);
       // eslint-disable-next-line no-console
-      console.log('Safaricom Daraja STK Push Response:', data);
+      console.log('Safaricom Daraja STK Push Response:', result);
     } catch (err) {
       // eslint-disable-next-line no-console
       console.warn('Daraja API connection fallback to simulator:', err);

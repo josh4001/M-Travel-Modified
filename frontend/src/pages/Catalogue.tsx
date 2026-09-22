@@ -482,7 +482,13 @@ export default function Catalogue() {
                         </button>
                       ) : (
                         <button
-                          onClick={() => setSelectedItem(item)}
+                          onClick={() => {
+                            if (isVehicle) {
+                              navigate(`/vehicles/${item.id}`);
+                            } else {
+                              setSelectedItem(item);
+                            }
+                          }}
                           className="btn-primary !px-5 !py-2 text-xs flex items-center gap-1.5 font-bold shadow-sm"
                         >
                           {activeTab === 'buses' ? 'Reserve Bus Seat' : 'Book Vehicle'}
@@ -702,11 +708,16 @@ export default function Catalogue() {
                       ) : (
                         <button
                           onClick={() => {
-                            setShowMpesaModal(true);
+                            if (isSelectedVehicle) {
+                              setSelectedItem(null);
+                              navigate(`/vehicles/${selectedItem.id}`);
+                            } else {
+                              setShowMpesaModal(true);
+                            }
                           }}
                           className="btn-primary w-full font-bold !py-3 shadow-md text-sm flex items-center justify-center gap-2"
                         >
-                          <ShieldCheck className="h-5 w-5" /> Confirm Reservation
+                          <ShieldCheck className="h-5 w-5" /> {isSelectedVehicle ? 'Select Travel Dates & Driver Options' : 'Confirm Reservation'}
                         </button>
                       )}
                     </div>
