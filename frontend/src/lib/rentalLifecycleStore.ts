@@ -383,22 +383,29 @@ export const executeHandover = async (
   }
 
   // 5. Log Audit Event
-  logAuditEvent(
-    'PRE_RENTAL_HANDOVER_CONFIRMED',
-    'Booking',
-    fullHandover.bookingRef,
-    `Vehicle handed over to ${fullHandover.travelerSignatureName}. Initial odometer: ${fullHandover.odometerReading} km, fuel: ${fullHandover.fuelLevelPercent}%.`,
-    fullHandover.agencyAgentName || 'Agent',
-    'AGENT'
-  );
+  try {
+    logAuditEvent(
+      'PRE_RENTAL_HANDOVER_CONFIRMED',
+      'Booking',
+      fullHandover.bookingRef,
+      `Vehicle handed over to ${fullHandover.travelerSignatureName}. Initial odometer: ${fullHandover.odometerReading} km, fuel: ${fullHandover.fuelLevelPercent}%.`,
+      fullHandover.agencyAgentName || 'Agent',
+      'AGENT'
+    );
+  } catch (err) {
+    console.warn('logAuditEvent notice:', err);
+  }
 
-  window.dispatchEvent(new CustomEvent('mt_rental_handover', { detail: fullHandover }));
+  try {
+    window.dispatchEvent(new CustomEvent('mt_rental_handover', { detail: fullHandover }));
+    window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: fullHandover }));
+  } catch {}
 
   // Supabase background sync
   if (supabase) {
     try {
-      const validBookingId = isValidUUID(fullHandover.bookingId) ? fullHandover.bookingId : null;
-      const validVehicleId = isValidUUID(fullHandover.vehicleId) ? fullHandover.vehicleId : null;
+      const validBookingId = typeof isValidUUID === 'function' && isValidUUID(fullHandover.bookingId) ? fullHandover.bookingId : null;
+      const validVehicleId = typeof isValidUUID === 'function' && isValidUUID(fullHandover.vehicleId) ? fullHandover.vehicleId : null;
       
       await supabase.from('vehicle_handovers').insert([{
         booking_id: validBookingId,
