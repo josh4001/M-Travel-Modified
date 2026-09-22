@@ -180,6 +180,19 @@ const DEMO_VEHICLE_IDS = new Set([
   '00000000-0000-0000-0000-000000000002',
   '00000000-0000-0000-0000-000000000003',
   '00000000-0000-0000-0000-000000000004',
+  '11111111-1111-4111-8111-111111111111',
+  '22222222-2222-4222-8222-222222222222',
+  '33333333-3333-4333-8333-333333333333',
+  '44444444-4444-4444-8444-444444444444',
+  '55555555-5555-4555-8555-555555555555',
+  '66666666-6666-4666-8666-666666666666',
+  '77777777-7777-4777-8777-777777777777',
+  '88888888-8888-4888-8888-888888888888',
+  '99999999-9999-4999-8999-999999999999',
+  'b0000000-0000-0000-0000-000000000001',
+  'b0000000-0000-0000-0000-000000000002',
+  'b0000000-0000-0000-0000-000000000003',
+  'b0000000-0000-0000-0000-000000000004',
   'ab0dd85b-15bc-45d9-8fb8-1b3f7908b904',
   '35d3ca61-971e-434c-ae2f-cb6601fd7376',
   'c53e7096-a526-4101-8c8c-10838d828545',
@@ -212,14 +225,20 @@ export const ensureUUID = (str?: string): string => {
 
 export const isDemoVehicle = (v: any): boolean => {
   if (!v) return false;
-  if (v.id && isValidUUID(v.id) && !DEMO_VEHICLE_IDS.has(v.id)) {
-    return false;
+  if (v.id && DEMO_VEHICLE_IDS.has(v.id)) {
+    return true;
   }
-  if (v.id && (DEMO_VEHICLE_IDS.has(v.id) || String(v.id).startsWith('v-host-') || String(v.id).startsWith('mv-') || String(v.id).startsWith('00000000-'))) {
+  if (v.id && (String(v.id).startsWith('v-host-') || String(v.id).startsWith('mv-') || String(v.id).startsWith('00000000-'))) {
     return true;
   }
   const name = `${v.make || ''} ${v.model || ''} ${v.vehicleName || ''} ${v.title || ''}`.toLowerCase();
   if (
+    name.includes('defender') ||
+    name.includes('land rover') ||
+    name.includes('wrangler') ||
+    name.includes('coaster') ||
+    name.includes('79 series') ||
+    name.includes('patrol') ||
     name.includes('toyota land cruiser prado v8 4x4') ||
     name.includes('toyota hiace custom safari van') ||
     name.includes('toyota alphard executive lounge') ||
@@ -241,232 +260,10 @@ export const isDemoVehicle = (v: any): boolean => {
 };
 
 /**
- * Seeds core fleet vehicles to Supabase if the vehicles table is empty,
- * ensuring all local instances and co-developers see identical live vehicles.
+ * Seeds core fleet vehicles to Supabase if empty (No-op: strictly only host-registered vehicles allowed).
  */
 export const seedCoreVehiclesToSupabase = async (): Promise<void> => {
-  try {
-    const hostId = 'a0000000-0000-0000-0000-000000000002';
-    await supabase.from('users').upsert({
-      id: hostId,
-      email: 'james.mwangi@mtravel.co.ke',
-      first_name: 'James',
-      last_name: 'Mwangi',
-      role: 'VEHICLE_OWNER',
-      phone: '+254712345678',
-      is_active: true,
-    }, { onConflict: 'id' });
-
-    const coreVehicles = [
-      {
-        id: '11111111-1111-4111-8111-111111111111',
-        owner_id: hostId,
-        make: 'Toyota',
-        model: 'Land Cruiser Prado V8 4x4',
-        type: 'SUV',
-        year: 2024,
-        seats: 7,
-        fuel_type: 'DIESEL',
-        transmission: 'AUTOMATIC',
-        price_per_day: 18000,
-        plate_number: 'KDG 889X',
-        has_insurance: true,
-        latitude: -1.2921,
-        longitude: 36.8219,
-        address: 'Westlands, Nairobi',
-        is_available: true,
-        is_approved: true,
-        rating_average: 4.9,
-        rating_count: 24,
-        images: [
-          'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1000&q=80',
-        ],
-      },
-      {
-        id: '22222222-2222-4222-8222-222222222222',
-        owner_id: hostId,
-        make: 'Jeep',
-        model: 'Wrangler',
-        type: 'SUV',
-        year: 2013,
-        seats: 7,
-        fuel_type: 'DIESEL',
-        transmission: 'AUTOMATIC',
-        price_per_day: 10000,
-        plate_number: 'KDC 313J',
-        has_insurance: true,
-        latitude: -1.0333,
-        longitude: 37.0693,
-        address: 'Thika, Cascade Parking',
-        is_available: true,
-        is_approved: true,
-        rating_average: 5.0,
-        rating_count: 12,
-        images: [
-          'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1000&q=80',
-        ],
-      },
-      {
-        id: '33333333-3333-4333-8333-333333333333',
-        owner_id: hostId,
-        make: 'Toyota',
-        model: 'Prado 4x4',
-        type: 'SUV',
-        year: 2022,
-        seats: 4,
-        fuel_type: 'DIESEL',
-        transmission: 'AUTOMATIC',
-        price_per_day: 15000,
-        plate_number: 'KDD 552P',
-        has_insurance: true,
-        latitude: -1.286389,
-        longitude: 36.817223,
-        address: 'Nairobi',
-        is_available: true,
-        is_approved: true,
-        rating_average: 5.0,
-        rating_count: 12,
-        images: [
-          'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1000&q=80',
-        ],
-      },
-      {
-        id: '44444444-4444-4444-8444-444444444444',
-        owner_id: hostId,
-        make: 'Toyota',
-        model: 'Premio',
-        type: 'CAR',
-        year: 2021,
-        seats: 4,
-        fuel_type: 'DIESEL',
-        transmission: 'AUTOMATIC',
-        price_per_day: 7000,
-        plate_number: 'KDC 449A',
-        has_insurance: true,
-        latitude: -1.0333,
-        longitude: 37.0693,
-        address: 'Thika',
-        is_available: true,
-        is_approved: true,
-        rating_average: 5.0,
-        rating_count: 12,
-        images: [
-          'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1000&q=80',
-        ],
-      },
-      {
-        id: '55555555-5555-4555-8555-555555555555',
-        owner_id: hostId,
-        make: 'Nissan',
-        model: 'Patrol',
-        type: 'SUV',
-        year: 2019,
-        seats: 4,
-        fuel_type: 'DIESEL',
-        transmission: 'AUTOMATIC',
-        price_per_day: 14000,
-        plate_number: 'KDA 911N',
-        has_insurance: true,
-        latitude: -1.286389,
-        longitude: 36.817223,
-        address: 'Nairobi',
-        is_available: true,
-        is_approved: true,
-        rating_average: 5.0,
-        rating_count: 12,
-        images: [
-          'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1000&q=80',
-        ],
-      },
-      {
-        id: '66666666-6666-4666-8666-666666666666',
-        owner_id: hostId,
-        make: 'Toyota',
-        model: 'Landcruiser 79 series V8',
-        type: 'SUV',
-        year: 2020,
-        seats: 4,
-        fuel_type: 'DIESEL',
-        transmission: 'AUTOMATIC',
-        price_per_day: 15000,
-        plate_number: 'KDF 790V',
-        has_insurance: true,
-        latitude: -1.0333,
-        longitude: 37.0693,
-        address: 'Thika',
-        is_available: true,
-        is_approved: true,
-        rating_average: 5.0,
-        rating_count: 12,
-        images: [
-          'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1000&q=80',
-        ],
-      },
-      {
-        id: '77777777-7777-4777-8777-777777777777',
-        owner_id: hostId,
-        make: 'Toyota',
-        model: 'Coaster',
-        type: 'VAN',
-        year: 2020,
-        seats: 18,
-        fuel_type: 'DIESEL',
-        transmission: 'AUTOMATIC',
-        price_per_day: 9500,
-        plate_number: 'KDC 200C',
-        has_insurance: true,
-        latitude: -1.0333,
-        longitude: 37.0693,
-        address: 'Thika',
-        is_available: true,
-        is_approved: true,
-        rating_average: 5.0,
-        rating_count: 12,
-        images: [
-          'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1000&q=80',
-        ],
-      },
-      {
-        id: '88888888-8888-4888-8888-888888888888',
-        owner_id: hostId,
-        make: 'Toyota',
-        model: 'Land Cruiser Prado',
-        type: 'SUV',
-        year: 2021,
-        seats: 5,
-        fuel_type: 'DIESEL',
-        transmission: 'AUTOMATIC',
-        price_per_day: 15000,
-        plate_number: 'KDE 505P',
-        has_insurance: true,
-        latitude: -1.3197,
-        longitude: 36.836,
-        address: 'Nairobi/JKIA',
-        is_available: true,
-        is_approved: true,
-        rating_average: 5.0,
-        rating_count: 12,
-        images: [
-          'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1000&q=80',
-        ],
-      },
-    ];
-
-    for (const v of coreVehicles) {
-      const { images, ...vData } = v;
-      const { error: vError } = await supabase.from('vehicles').upsert(vData, { onConflict: 'id' });
-      if (!vError && images && images.length > 0) {
-        const imgRows = images.map((url, idx) => ({
-          vehicle_id: v.id,
-          url,
-          is_primary: idx === 0,
-        }));
-        await supabase.from('vehicle_images').upsert(imgRows, { onConflict: 'vehicle_id,url' });
-      }
-    }
-  } catch (err) {
-    console.warn('Error seeding core vehicles to Supabase:', err);
-  }
+  // Empty implementation: static demo vehicles purged per system requirements
 };
 
 /**
