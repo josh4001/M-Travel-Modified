@@ -59,9 +59,10 @@ export const DestinationVoucherModal: React.FC<DestinationVoucherModalProps> = (
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 rounded-full bg-black/50 p-2 text-white/80 hover:bg-black/70 hover:text-white backdrop-blur-xs transition"
+            className="absolute top-4 right-4 z-10 rounded-full bg-slate-950/80 hover:bg-black text-white px-3.5 py-1.5 text-xs font-bold border border-white/20 backdrop-blur-md shadow-lg transition flex items-center gap-1.5"
+            title="Close Page"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" /> Close Page
           </button>
 
           {/* Badge & Ref */}
@@ -174,14 +175,24 @@ export const DestinationVoucherModal: React.FC<DestinationVoucherModalProps> = (
               </a>
             </div>
 
-            <button
-              type="button"
-              onClick={handleWhatsApp}
-              className="rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white px-5 py-2.5 text-xs font-bold transition shadow-md flex items-center gap-2"
-            >
-              <MessageSquare className="h-4 w-4 fill-white" />
-              Chat with Concierge on WhatsApp
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleWhatsApp}
+                className="rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white px-4 py-2.5 text-xs font-bold transition shadow-md flex items-center gap-2"
+              >
+                <MessageSquare className="h-4 w-4 fill-white" />
+                Concierge WhatsApp
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 text-xs font-bold transition shadow-md flex items-center gap-2"
+              >
+                <X className="h-4 w-4" />
+                Close Page
+              </button>
+            </div>
           </div>
         </div>
       </div>

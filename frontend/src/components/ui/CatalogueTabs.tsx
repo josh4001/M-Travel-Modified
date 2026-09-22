@@ -21,32 +21,6 @@ interface CatalogueItem {
 }
 
 const CATALOGUE_ITEMS: CatalogueItem[] = [
-  // BUS RESERVATIONS
-  {
-    id: 'b-1',
-    category: 'buses',
-    title: 'Scania Marco Polo VIP Coach',
-    subtitle: 'Nairobi ⇄ Mombasa Highway Express (Reclining Leather Seats & WiFi)',
-    badge: 'Luxury Coach',
-    priceKES: 2500,
-    priceUnit: '/ seat',
-    imageUrl: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=800&q=80',
-    location: 'Nairobi CBD → Mombasa Stage',
-    specs: ['49 Seats', 'AC & Power Outlets', 'Onboard Toilet', 'Live Tracking'],
-  },
-  {
-    id: 'b-2',
-    category: 'buses',
-    title: 'Executive Intercity Shuttle',
-    subtitle: 'Nairobi ⇄ Nakuru / Kisumu VIP Express Van with luggage bay',
-    badge: 'Express Bus',
-    priceKES: 1800,
-    priceUnit: '/ seat',
-    imageUrl: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80',
-    location: 'Nairobi → Kisumu Express',
-    specs: ['14 Luxury Seats', 'Free WiFi', 'Leather Recliners', 'Express Route'],
-  },
-
   // TOURS & TRAVEL
   {
     id: 't-1',
@@ -183,11 +157,15 @@ export const CatalogueTabs: React.FC = () => {
           {currentItems.length === 0 ? (
             <div className="col-span-full rounded-3xl bg-white border border-slate-200/90 p-12 text-center space-y-3 shadow-sm">
               <div className="h-12 w-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto">
-                <Car className="h-6 w-6" />
+                {activeTab === 'buses' ? <Bus className="h-6 w-6" /> : <Car className="h-6 w-6" />}
               </div>
-              <h3 className="font-serif text-lg font-bold text-slate-900">No vehicles available at the moment</h3>
+              <h3 className="font-serif text-lg font-bold text-slate-900">
+                {activeTab === 'buses' ? 'No buses at the moment' : 'No vehicles available at the moment'}
+              </h3>
               <p className="text-xs text-slate-500 font-medium max-w-md mx-auto">
-                Fleet hosts have not yet listed any approved vehicles for hire. Check back soon or register as a host.
+                {activeTab === 'buses'
+                  ? 'There are currently no buses registered into the system. Admin and hosts can register buses under live fleet.'
+                  : 'Fleet hosts have not yet listed any approved vehicles for hire. Check back soon or register as a host.'}
               </p>
               <div className="pt-2">
                 <Link to="/register" className="btn-primary !py-2 !px-4 text-xs font-bold text-white shadow-sm inline-flex items-center gap-1.5">

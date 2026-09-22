@@ -42,56 +42,7 @@ interface CatalogueItem {
   };
 }
 
-const CATALOGUE_ITEMS: CatalogueItem[] = [
-  // BUS RESERVATIONS ONLY (Tours & Holiday Homes moved to dedicated Holidays & Tours page)
-  {
-    id: 'b-1',
-    category: 'buses',
-    title: 'Scania Marco Polo VIP Coach',
-    subtitle: 'Nairobi ⇄ Mombasa Highway Express (Reclining Leather Seats & Onboard WiFi)',
-    badge: 'Luxury Highway Coach',
-    priceKES: 2500,
-    priceUnit: '/ seat',
-    imageUrl: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=800&q=80',
-    location: 'Nairobi CBD → Mombasa Stage',
-    specs: ['49 Seats', 'AC & Outlets', 'Onboard Toilet', 'Live Tracking'],
-    rating: 4.8,
-    reviews: 210,
-    details: {
-      overview: 'Daily express luxury coach service between Nairobi and Mombasa. Non-stop highway service with onboard restroom, high-speed 5G WiFi, and USB ports.',
-      highlights: ['Daily Departures at 07:00 AM & 10:30 PM', 'Reclining leather seats with leg rests', 'Onboard restroom & air conditioning', 'Instant SMS & QR E-Ticket'],
-      scheduleOrItinerary: [
-        '06:30 AM — Boarding at Nairobi CBD Stage',
-        '07:00 AM — Departure via Mombasa Highway',
-        '11:30 AM — Midpoint Refreshment Break (Mtito Andei)',
-        '02:30 PM — Arrival at Mombasa Mwembe Tayari Stage',
-      ],
-    },
-  },
-  {
-    id: 'b-2',
-    category: 'buses',
-    title: 'Executive Intercity Express Shuttle',
-    subtitle: 'Nairobi ⇄ Nakuru / Kisumu VIP Express Van with dedicated luggage bay',
-    badge: 'Intercity Express',
-    priceKES: 1800,
-    priceUnit: '/ seat',
-    imageUrl: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80',
-    location: 'Nairobi → Kisumu Express',
-    specs: ['14 Seats', 'Free WiFi', 'Leather Recliners', 'Express Route'],
-    rating: 4.75,
-    reviews: 145,
-    details: {
-      overview: 'VIP intercity shuttle operating hourly departures between Nairobi, Nakuru, and Kisumu. Guaranteed seat reservation with no midway stops.',
-      highlights: ['Hourly Departures from 06:00 AM to 06:00 PM', 'Maximum 14 passengers for speedy transit', 'Dedicated luggage compartment', 'Real-time route & schedule monitoring'],
-      scheduleOrItinerary: [
-        'Departure — Every hour on the hour',
-        'Nairobi CBD → Nakuru (2 Hours Transit)',
-        'Nakuru → Kisumu (3 Hours Transit)',
-      ],
-    },
-  },
-];
+const CATALOGUE_ITEMS: CatalogueItem[] = [];
 
 export default function Catalogue() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -348,8 +299,30 @@ export default function Catalogue() {
                 </div>
               </div>
             ) : (
-              <div className="col-span-full text-center py-12 text-slate-400 font-mono">
-                No listings found matching "{searchTerm}" under {TABS.find(t => t.id === activeTab)?.label}.
+              <div className="col-span-full rounded-3xl bg-white border border-slate-200/90 p-12 md:p-16 text-center space-y-4 shadow-sm">
+                <div className="h-16 w-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mx-auto">
+                  <Bus className="h-8 w-8 stroke-[1.75]" />
+                </div>
+                <div className="space-y-1.5 max-w-md mx-auto">
+                  <h3 className="font-serif text-2xl font-bold text-slate-900">
+                    No buses at the moment
+                  </h3>
+                  <p className="text-xs md:text-sm text-slate-500 font-medium leading-relaxed">
+                    {searchTerm
+                      ? `No buses match "${searchTerm}". Try searching for another route or keyword.`
+                      : 'There are currently no buses registered into the system. Admin and hosts can register buses under live fleet.'}
+                  </p>
+                </div>
+                {searchTerm && (
+                  <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="btn-secondary !py-2 !px-4 text-xs font-bold border-slate-200 text-slate-700"
+                    >
+                      Clear Search
+                    </button>
+                  </div>
+                )}
               </div>
             )
           ) : (

@@ -12,7 +12,9 @@
 import { supabase } from './supabaseClient';
 import { 
   getStoredBookings, 
-  updateStoredBooking, 
+  updateStoredBooking,
+  updateBookingStatus,
+  toggleVehicleLiveStatus,
   getStoredVehicles, 
   updateStoredVehicle,
   StoredBooking,
@@ -352,16 +354,15 @@ export const executeHandover = async (
   }
   localStorage.setItem(HANDOVERS_KEY, JSON.stringify(handovers));
 
-  // 2. Update Booking status to 'IN_PROGRESS' (or ACTIVE)
-  updateStoredBooking(fullHandover.bookingId, {
-    status: 'IN_PROGRESS'
-  });
+  // 2. Update Booking status to 'IN_PROGRESS' (or ACTIVE) in local store & Supabase
+  updateBookingStatus(fullHandover.bookingId, 'IN_PROGRESS');
+  if (fullHandover.bookingRef && fullHandover.bookingRef !== fullHandover.bookingId) {
+    updateBookingStatus(fullHandover.bookingRef, 'IN_PROGRESS');
+  }
 
-  // 3. Update Vehicle operational status to active rental and set odometer
+  // 3. Update Vehicle operational status to active rental (locked from new searches)
   if (fullHandover.vehicleId) {
-    updateStoredVehicle(fullHandover.vehicleId, {
-      isLive: false // not available for new search while active
-    });
+    toggleVehicleLiveStatus(fullHandover.vehicleId, false);
   }
 
   // 4. Record Initial Trip Checkin (Possession Affirmation)

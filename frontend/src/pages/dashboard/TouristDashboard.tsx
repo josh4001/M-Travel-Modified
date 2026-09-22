@@ -372,7 +372,7 @@ export default function TouristDashboard() {
                             className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-700 px-4 py-2 text-xs font-bold text-white hover:from-purple-800 hover:to-indigo-800 transition shadow"
                           >
                             <Palmtree className="h-3.5 w-3.5 text-amber-300" />
-                            View Destination Voucher &amp; Itinerary
+                            View Destination
                           </button>
                         ) : (
                           <Link

@@ -194,10 +194,25 @@ export function getLocalAccounts(): LocalAccount[] {
   return result;
 }
 
+function generateUserUUID(str?: string): string {
+  if (str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)) {
+    return str;
+  }
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    try {
+      return crypto.randomUUID();
+    } catch {}
+  }
+  return 'a' + Math.random().toString(36).substring(2, 9) + '-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0').slice(-12);
+}
+
 function saveLocalAccount(acc: LocalAccount) {
+  const accountId = generateUserUUID(acc.id);
+  const normalizedAccount: LocalAccount = { ...acc, id: accountId };
+
   const accounts = getLocalAccounts();
-  const filtered = accounts.filter(a => a.email?.toLowerCase() !== acc.email?.toLowerCase());
-  const updated = [acc, ...filtered];
+  const filtered = accounts.filter(a => a.email?.toLowerCase() !== normalizedAccount.email?.toLowerCase());
+  const updated = [normalizedAccount, ...filtered];
   try {
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(updated));
     localStorage.setItem('mt_user_credentials', JSON.stringify(updated));
@@ -209,32 +224,28 @@ function saveLocalAccount(acc: LocalAccount) {
   // Real-time Supabase users table upsert
   (async () => {
     try {
-      const validId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(acc.id)
-        ? acc.id
-        : undefined;
-
       const payload: any = {
-        email: acc.email.toLowerCase(),
-        phone: acc.phone || null,
+        id: accountId,
+        email: normalizedAccount.email.toLowerCase(),
+        phone: normalizedAccount.phone || null,
         password_hash: '$2a$12$FcgCkt0j41e9vnp7pXSzzeGGZ.VPoec/vZ1N3Xxt1RLU4LC6UDt4u',
-        first_name: acc.firstName || 'User',
-        last_name: acc.lastName || '',
-        avatar_url: acc.avatarUrl || null,
-        role: (acc.role || 'TOURIST').toUpperCase(),
-        is_active: acc.isActive !== false,
+        first_name: normalizedAccount.firstName || 'User',
+        last_name: normalizedAccount.lastName || '',
+        avatar_url: normalizedAccount.avatarUrl || null,
+        role: (normalizedAccount.role || 'TOURIST').toUpperCase(),
+        is_active: normalizedAccount.isActive !== false,
         updated_at: new Date().toISOString(),
       };
-      if (validId) payload.id = validId;
 
       await supabase.from('users').upsert(payload, { onConflict: 'email' });
 
       logAuditEvent(
         'USER_REGISTERED',
         'User',
-        acc.email,
-        `User profile ${acc.firstName} ${acc.lastName} registered with role ${acc.role}`,
-        `${acc.firstName} ${acc.lastName}`,
-        acc.role
+        normalizedAccount.email,
+        `User profile ${normalizedAccount.firstName} ${normalizedAccount.lastName} registered with role ${normalizedAccount.role}`,
+        `${normalizedAccount.firstName} ${normalizedAccount.lastName}`,
+        normalizedAccount.role
       );
 
       if (typeof window !== 'undefined') {
@@ -367,7 +378,7 @@ export async function register(payload: {
   const role = roleMap[payload.role ?? 'TOURIST'] ?? 'TOURIST';
 
   const existing = getLocalAccounts().find(a => a.email.toLowerCase() === cleanEmail);
-  const effectiveId = existing ? existing.id : `user-${Date.now()}`;
+  const effectiveId = generateUserUUID(existing?.id);
 
   const accountRecord: LocalAccount = {
     id: effectiveId,
