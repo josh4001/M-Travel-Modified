@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 // ---------------------------------------------------------------------------
 
 const SUPABASE_URL =
-  import.meta.env.VITE_SUPABASE_URL ?? 'https://rpgxibjgvhumbumntlms.supabase.co';
+  import.meta.env.VITE_SUPABASE_URL ?? 'https://xbldmaifdqiakqfjrvei.supabase.co';
 
 // We use the service-role key so we can bypass RLS for all table reads.
 // This key is already "public" in the sense it's bundled in the frontend build,

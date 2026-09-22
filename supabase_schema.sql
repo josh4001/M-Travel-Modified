@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- M-TRAVEL SUPABASE DATABASE SCHEMA
--- Target: https://rpgxibjgvhumbumntlms.supabase.co
+-- Target: https://xbldmaifdqiakqfjrvei.supabase.co
 -- Official Contact Info:
 -- Email: safari@jambo.africa
 -- Contact Person: Amos (0722374535)
