@@ -844,6 +844,19 @@ export const updateBookingStatus = (
   window.dispatchEvent(new CustomEvent('mt_booking_status_changed', { detail: updatedBooking }));
   window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: updatedBooking }));
 
+  if (updatedBooking) {
+    const ub = updatedBooking as StoredBooking;
+    const actionName = status === 'CANCELLED' ? 'BOOKING_CANCELLED' : `BOOKING_${status.toUpperCase()}`;
+    logAuditEvent(
+      actionName,
+      'Booking',
+      ub.bookingRef || ub.id,
+      `Booking ${ub.bookingRef || ub.id} status updated to ${status}`,
+      ub.touristName || 'Traveler',
+      'USER'
+    );
+  }
+
   if (updatedBooking && isValidUUID((updatedBooking as StoredBooking).id)) {
     (async () => {
       try {
@@ -871,6 +884,15 @@ export const deleteBooking = (bookingId: string): boolean => {
   } catch {}
   window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: { id: bookingId, deleted: true } }));
   window.dispatchEvent(new CustomEvent('mt_booking_status_changed', { detail: { id: bookingId, deleted: true } }));
+
+  logAuditEvent(
+    'BOOKING_DELETED',
+    'Booking',
+    bookingId,
+    `Booking ${bookingId} deleted from system records`,
+    'Traveler / Admin',
+    'USER'
+  );
 
   if (isValidUUID(bookingId)) {
     (async () => {

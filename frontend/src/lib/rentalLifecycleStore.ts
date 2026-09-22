@@ -279,23 +279,40 @@ export const logAuditEvent = (
     console.error('Failed to write audit log:', err);
   }
 
-  // Asynchronous sync to Supabase if available
+  // Real-time sync to Supabase audit_logs (compatible with both metadata and custom columns)
   if (supabase) {
-    try {
-      supabase.from('audit_logs').insert([{
-        action,
-        entity: entityName,
-        entity_id: entityId,
-        actor_name: actorName,
-        actor_role: actorRole,
-        details,
-        created_at: entry.timestamp,
-      }]).then(({ error }) => {
-        if (error) console.warn('Supabase audit_log insert notice:', error);
-      });
-    } catch (err) {
-      console.warn('Supabase audit_log exception:', err);
-    }
+    (async () => {
+      try {
+        const payload: any = {
+          action: action.toUpperCase(),
+          entity: entityName,
+          entity_id: String(entityId || ''),
+          metadata: {
+            actor_name: actorName,
+            actor_role: actorRole,
+            details: details,
+          },
+          created_at: entry.timestamp,
+        };
+
+        const { error } = await supabase.from('audit_logs').insert([payload]);
+        if (error) {
+          // If metadata or custom column mismatch occurs, retry with fallback payload
+          const fallback: any = {
+            action: action.toUpperCase(),
+            entity: entityName,
+            entity_id: String(entityId || ''),
+            actor_name: actorName,
+            actor_role: actorRole,
+            details: details,
+            created_at: entry.timestamp,
+          };
+          await supabase.from('audit_logs').insert([fallback]);
+        }
+      } catch (err) {
+        console.warn('Supabase audit_log insert notice:', err);
+      }
+    })();
   }
 
   return entry;
