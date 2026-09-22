@@ -9,12 +9,13 @@ import { supabase } from '@/lib/supabaseClient';
 import { useCurrency } from '@/context/CurrencyContext';
 import { sendNotification } from '@/lib/notificationService';
 import {
-  getStoredBookings, getStoredVehicles, syncVehiclesFromSupabase,
+  getStoredBookings, getStoredVehicles, syncVehiclesFromSupabase, syncBookingsFromSupabase,
   approveVehicle as approveVehicleInStore, updateBookingStatus,
   toggleVehicleLiveStatus, getVehicleHireStatus, deleteVehicle, isVehicleLive, rejectVehicle,
   isTripBooking,
   type StoredBooking, type StoredVehicle
 } from '@/lib/bookingStore';
+import { syncUsersFromSupabase } from '@/lib/authService';
 import {
   getStoredDestinations, saveDestination, updateDestination,
   deleteDestination as deleteDestinationInStore, toggleDestinationLiveStatus,
@@ -179,9 +180,14 @@ export default function AdminDashboard() {
       console.warn('Admin background fetch notice:', e);
     }
 
-    // 3. Background sync vehicles from Supabase
-    syncVehiclesFromSupabase().then((synced) => {
-      if (synced) setVehicles(synced);
+    // 3. Background sync vehicles, bookings, and users from Supabase for cross-device parity
+    Promise.all([
+      syncVehiclesFromSupabase().catch(() => []),
+      syncBookingsFromSupabase().catch(() => []),
+      syncUsersFromSupabase().catch(() => []),
+    ]).then(([syncedV, syncedB]) => {
+      if (syncedV && syncedV.length > 0) setVehicles(syncedV);
+      if (syncedB && syncedB.length > 0) setBookings(syncedB);
     }).catch(() => {});
   };
 
@@ -201,6 +207,7 @@ export default function AdminDashboard() {
     window.addEventListener('mt_incident_updated', handleUpdate);
     window.addEventListener('mt_audit_logged', handleUpdate);
     window.addEventListener('mt_accounts_updated', handleUpdate);
+    window.addEventListener('mt_remote_change', handleUpdate);
     return () => {
       window.removeEventListener('mt_vehicle_updated', handleUpdate);
       window.removeEventListener('mt_booking_updated', handleUpdate);
@@ -214,6 +221,7 @@ export default function AdminDashboard() {
       window.removeEventListener('mt_incident_updated', handleUpdate);
       window.removeEventListener('mt_audit_logged', handleUpdate);
       window.removeEventListener('mt_accounts_updated', handleUpdate);
+      window.removeEventListener('mt_remote_change', handleUpdate);
     };
   }, []);
 

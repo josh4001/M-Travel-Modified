@@ -270,9 +270,52 @@ export async function syncDefaultUsersToSupabase() {
   }
 }
 
+export async function syncUsersFromSupabase(): Promise<LocalAccount[]> {
+  try {
+    const { data, error } = await supabase.from('users').select('*');
+    if (error || !Array.isArray(data)) return getLocalAccounts();
+
+    const currentLocal = getLocalAccounts();
+    const localMap = new Map<string, LocalAccount>();
+    for (const a of currentLocal) {
+      localMap.set(a.email.toLowerCase(), a);
+    }
+
+    for (const u of data) {
+      if (u.email) {
+        const clean = u.email.toLowerCase();
+        const existing = localMap.get(clean);
+        localMap.set(clean, {
+          id: u.id || existing?.id || `user-${Date.now()}`,
+          email: u.email,
+          password: existing?.password || 'Tourist@2026',
+          role: (u.role || existing?.role || 'TOURIST').toUpperCase(),
+          firstName: u.first_name || existing?.firstName || 'Explorer',
+          lastName: u.last_name || existing?.lastName || '',
+          phone: u.phone || existing?.phone,
+          avatarUrl: u.avatar_url || existing?.avatarUrl,
+          isActive: u.is_active !== false,
+        });
+      }
+    }
+
+    const merged = Array.from(localMap.values());
+    try {
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(merged));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('mt_accounts_updated'));
+      }
+    } catch {}
+    return merged;
+  } catch {
+    return getLocalAccounts();
+  }
+}
+
 if (typeof window !== 'undefined') {
   setTimeout(() => {
     syncDefaultUsersToSupabase().catch(() => {});
+    syncUsersFromSupabase().catch(() => {});
   }, 200);
 }
 

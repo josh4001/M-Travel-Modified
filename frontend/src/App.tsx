@@ -27,6 +27,10 @@ import HolidaysAndTours from '@/pages/HolidaysAndTours';
 import NotFound from '@/pages/NotFound';
 import UberLocationPrompt from '@/components/common/UberLocationPrompt';
 
+import { setupGlobalRealtimeSubscription } from '@/lib/supabaseClient';
+import { syncVehiclesFromSupabase, syncBookingsFromSupabase } from '@/lib/bookingStore';
+import { syncUsersFromSupabase } from '@/lib/authService';
+
 /** Ensures every route transition and refresh starts at the very top (0, 0) */
 function ScrollToTop() {
   const { pathname, search } = useLocation();
@@ -68,9 +72,29 @@ function NonHostRoute({ children }: { children: JSX.Element }) {
 export default function App() {
   const dispatch = useDispatch();
 
-  // Restore session on load if user exists in local cache
+  // Restore session on load and establish cross-device real-time sync
   useEffect(() => {
-    // 1. Instant local rehydration (0ms paint on refresh)
+    // 1. Initial background synchronization with Supabase
+    syncVehiclesFromSupabase().catch(() => {});
+    syncBookingsFromSupabase().catch(() => {});
+    syncUsersFromSupabase().catch(() => {});
+
+    // 2. Setup real-time WebSocket subscription for live cross-device updates
+    const cleanupSubscription = setupGlobalRealtimeSubscription(() => {
+      syncVehiclesFromSupabase().catch(() => {});
+      syncBookingsFromSupabase().catch(() => {});
+      syncUsersFromSupabase().catch(() => {});
+    });
+
+    const handleRemoteChange = () => {
+      syncVehiclesFromSupabase().catch(() => {});
+      syncBookingsFromSupabase().catch(() => {});
+      syncUsersFromSupabase().catch(() => {});
+    };
+
+    window.addEventListener('mt_remote_change', handleRemoteChange);
+
+    // 3. Instant local rehydration (0ms paint on refresh)
     const cached = localStorage.getItem('mt_user');
     if (cached) {
       try {
@@ -79,16 +103,18 @@ export default function App() {
     }
 
     const token = localStorage.getItem('mt_access_token');
-    if (!token) return;
+    if (token) {
+      api.get('/users/me', { timeout: 2000 })
+        .then(({ data }) => {
+          if (data) dispatch(setUser(data));
+        })
+        .catch(() => {});
+    }
 
-    // 2. Background verification (non-blocking, fast 2s timeout)
-    api.get('/users/me', { timeout: 2000 })
-      .then(({ data }) => {
-        if (data) dispatch(setUser(data));
-      })
-      .catch(() => {
-        // Backend offline or timeout; session safely remains on cached user
-      });
+    return () => {
+      if (cleanupSubscription) cleanupSubscription();
+      window.removeEventListener('mt_remote_change', handleRemoteChange);
+    };
   }, [dispatch]);
 
   return (

@@ -289,3 +289,43 @@ export async function cancelBookingInSupabase(idOrRef: string): Promise<boolean>
     return false;
   }
 }
+
+/**
+ * Subscribes to real-time postgres_changes across all core tables (vehicles, bookings, users, payments, audit_logs).
+ * Dispatches 'mt_remote_change' event so all active components and browser tabs auto-sync instantly across devices.
+ */
+export function setupGlobalRealtimeSubscription(onUpdate?: () => void) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const channel = supabase
+      .channel('public:mtravel_realtime_v2')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicles' }, () => {
+        window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'vehicles' } }));
+        if (onUpdate) onUpdate();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => {
+        window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'bookings' } }));
+        if (onUpdate) onUpdate();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+        window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'users' } }));
+        if (onUpdate) onUpdate();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+        window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'payments' } }));
+        if (onUpdate) onUpdate();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, () => {
+        window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'audit_logs' } }));
+        if (onUpdate) onUpdate();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  } catch (err) {
+    console.warn('Realtime subscription setup notice:', err);
+  }
+}

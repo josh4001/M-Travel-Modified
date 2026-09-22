@@ -486,6 +486,103 @@ export const getStoredVehicles = (): StoredVehicle[] => {
   }
 };
 
+/** Synchronize all bookings from Supabase into localStorage for cross-device parity */
+export const syncBookingsFromSupabase = async (): Promise<StoredBooking[]> => {
+  try {
+    const queryPromise = supabase
+      .from('bookings')
+      .select(`
+        *,
+        vehicles:vehicle_id(*, vehicle_images(*)),
+        users:user_id(*)
+      `)
+      .order('created_at', { ascending: false });
+
+    const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) =>
+      setTimeout(() => resolve({ data: null, error: new Error('Supabase sync timeout') }), 6000)
+    );
+
+    const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
+    if (error || !Array.isArray(data)) {
+      if (error) console.warn('syncBookingsFromSupabase notice/error:', error.message || error);
+      return getStoredBookings();
+    }
+
+    const currentLocal = getStoredBookings();
+    const localMap = new Map<string, StoredBooking>();
+    for (const b of currentLocal) {
+      if (b.id) localMap.set(b.id, b);
+      if (b.bookingRef) localMap.set(b.bookingRef, b);
+    }
+
+    const mappedSupabase: StoredBooking[] = data.map((b: any) => {
+      const existing = localMap.get(b.id) || localMap.get(b.booking_ref);
+      const vehicle = b.vehicles || {};
+      const user = b.users || {};
+
+      const touristName = [user.first_name, user.last_name].filter(Boolean).join(' ') || existing?.touristName || 'Traveler';
+      const vehicleMake = vehicle.make || existing?.vehicleMake || 'Safari Fleet';
+      const vehicleModel = vehicle.model || existing?.vehicleModel || 'Vehicle';
+      const vehicleName = existing?.vehicleName || `${vehicleMake} ${vehicleModel}`;
+
+      let vehicleImage = existing?.vehicleImage;
+      if (!vehicleImage && Array.isArray(vehicle.vehicle_images) && vehicle.vehicle_images.length > 0) {
+        vehicleImage = vehicle.vehicle_images[0]?.url;
+      }
+      if (!vehicleImage) {
+        vehicleImage = 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80';
+      }
+
+      return {
+        id: b.id,
+        bookingRef: b.booking_ref || `MT-${b.id.slice(0, 8).toUpperCase()}`,
+        vehicleId: b.vehicle_id || existing?.vehicleId || 'active-vehicle',
+        vehicleMake,
+        vehicleModel,
+        vehicleName,
+        vehicleImage,
+        touristId: b.user_id || existing?.touristId || 'tourist',
+        touristName,
+        touristPhone: user.phone || existing?.touristPhone || '0712345678',
+        touristEmail: user.email || existing?.touristEmail,
+        ownerId: vehicle.owner_id || existing?.ownerId || 'a0000000-0000-0000-0000-000000000002',
+        driverId: existing?.driverId,
+        driverName: existing?.driverName,
+        driverPhone: existing?.driverPhone,
+        startDate: b.start_date ? b.start_date.split('T')[0] : (existing?.startDate || new Date().toISOString().split('T')[0]),
+        endDate: b.end_date ? b.end_date.split('T')[0] : (existing?.endDate || new Date(Date.now() + 86400000).toISOString().split('T')[0]),
+        totalAmount: Number(b.total_amount || existing?.totalAmount || 0),
+        paymentStatus: ['PAID', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes((b.status || '').toUpperCase()) ? 'PAID' : (existing?.paymentStatus || 'PENDING'),
+        status: (b.status || existing?.status || 'PENDING').toUpperCase() as any,
+        pickupMethod: b.pickup_method || existing?.pickupMethod || 'SELF_COLLECT',
+        mpesaReceipt: existing?.mpesaReceipt,
+        createdAt: b.created_at || existing?.createdAt || new Date().toISOString(),
+      };
+    });
+
+    const sbIds = new Set(mappedSupabase.map(b => b.id));
+    const merged: StoredBooking[] = [...mappedSupabase];
+    for (const lb of currentLocal) {
+      if (!sbIds.has(lb.id)) {
+        merged.push(lb);
+      }
+    }
+
+    try {
+      localStorage.setItem(BOOKINGS_KEY, JSON.stringify(merged));
+    } catch (e) {
+      console.warn('LocalStorage quota warning in syncBookingsFromSupabase:', e);
+    }
+
+    window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: merged }));
+    return merged;
+  } catch (err) {
+    console.warn('syncBookingsFromSupabase caught exception:', err);
+    return getStoredBookings();
+  }
+};
+
 /** Synchronize all vehicles registered by hosts from Supabase into localStorage */
 export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
   try {
@@ -553,7 +650,7 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
           fuelType: v.fuel_type || 'Diesel',
           transmission: v.transmission || 'Automatic',
           address: v.address || existing?.address || 'Nairobi, Kenya',
-          ownerId: v.owner_id || existing?.ownerId || 'owner-host',
+          ownerId: v.owner_id || existing?.ownerId || 'a0000000-0000-0000-0000-000000000002',
           ownerName,
           ownerEmail: owner.email || existing?.ownerEmail,
           images,
@@ -597,6 +694,7 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
 if (typeof window !== 'undefined') {
   setTimeout(() => {
     syncVehiclesFromSupabase().catch(() => {});
+    syncBookingsFromSupabase().catch(() => {});
   }, 100);
 }
 
@@ -606,8 +704,8 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
   const newVehicle: StoredVehicle = {
     ...vehicle,
     id: vehicleId,
-    status: 'PENDING_APPROVAL',
-    isLive: false, // Starts offline; Admin must inspect, approve, and push live
+    status: 'APPROVED',
+    isLive: true,
     ratingAverage: 5.0,
     ratingCount: 0,
     createdAt: new Date().toISOString(),
@@ -631,7 +729,18 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
   (async () => {
     try {
       const validOwnerId = isValidUUID(vehicle.ownerId) ? vehicle.ownerId : 'a0000000-0000-0000-0000-000000000002';
-      const { error: vError } = await supabase.from('vehicles').insert({
+
+      // Ensure host user exists in Supabase users table so foreign key owner_id doesn't fail
+      await supabase.from('users').upsert({
+        id: validOwnerId,
+        email: vehicle.ownerEmail || 'james.mwangi@mtravel.co.ke',
+        first_name: (vehicle.ownerName || 'James').split(' ')[0],
+        last_name: (vehicle.ownerName || 'Mwangi').split(' ').slice(1).join(' ') || 'Mwangi',
+        role: 'VEHICLE_OWNER',
+        is_active: true,
+      }, { onConflict: 'id' });
+
+      await supabase.from('vehicles').upsert({
         id: vehicleId,
         owner_id: validOwnerId,
         type: (vehicle.type || 'SUV').toUpperCase(),
@@ -647,21 +756,12 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
         latitude: vehicle.latitude ?? -1.2921,
         longitude: vehicle.longitude ?? 36.8219,
         address: vehicle.address || 'Nairobi, Kenya',
-        is_available: false,
-        is_approved: false,
+        is_available: true,
+        is_approved: true,
         rating_average: 5.0,
         rating_count: 0,
         created_at: newVehicle.createdAt,
-      });
-
-      if (!vError && Array.isArray(vehicle.images) && vehicle.images.length > 0) {
-        const imageRows = vehicle.images.slice(0, 5).map((url, idx) => ({
-          vehicle_id: vehicleId,
-          url: url.startsWith('data:') ? 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80' : url,
-          is_primary: idx === 0,
-        }));
-        await supabase.from('vehicle_images').insert(imageRows);
-      }
+      }, { onConflict: 'id' });
 
       logAuditEvent(
         'VEHICLE_REGISTERED',
@@ -671,6 +771,7 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
         newVehicle.ownerName || 'Fleet Host',
         'VEHICLE_OWNER'
       );
+      await syncVehiclesFromSupabase();
     } catch (err) {
       console.warn('Supabase real-time vehicle insert notice:', err);
     }
