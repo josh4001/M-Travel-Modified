@@ -399,81 +399,106 @@ CREATE TABLE audit_logs (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 14. ROW LEVEL SECURITY (RLS) & POLICIES
+-- 14. ROW LEVEL SECURITY (RLS) & POLICIES (Full Access for System Operations)
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Users Operations" ON users;
+CREATE POLICY "Allow All Users Operations" ON users FOR ALL USING (true) WITH CHECK (true);
+
 ALTER TABLE vehicles ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public Read Vehicles" ON vehicles;
-CREATE POLICY "Public Read Vehicles" ON vehicles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow All Vehicles Operations" ON vehicles;
+CREATE POLICY "Allow All Vehicles Operations" ON vehicles FOR ALL USING (true) WITH CHECK (true);
 
 ALTER TABLE vehicle_images ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public Read Vehicle Images" ON vehicle_images;
-CREATE POLICY "Public Read Vehicle Images" ON vehicle_images FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow All Vehicle Images Operations" ON vehicle_images;
+CREATE POLICY "Allow All Vehicle Images Operations" ON vehicle_images FOR ALL USING (true) WITH CHECK (true);
 
 ALTER TABLE vehicle_availability ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public Read Vehicle Availability" ON vehicle_availability;
-CREATE POLICY "Public Read Vehicle Availability" ON vehicle_availability FOR SELECT USING (true);
-
-ALTER TABLE bus_companies ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public Read Bus Companies" ON bus_companies;
-CREATE POLICY "Public Read Bus Companies" ON bus_companies FOR SELECT USING (true);
-
-ALTER TABLE buses ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public Read Buses" ON buses;
-CREATE POLICY "Public Read Buses" ON buses FOR SELECT USING (true);
-
-ALTER TABLE routes ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public Read Routes" ON routes;
-CREATE POLICY "Public Read Routes" ON routes FOR SELECT USING (true);
-
-ALTER TABLE tour_operator_profiles ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public Read Tour Operators" ON tour_operator_profiles;
-CREATE POLICY "Public Read Tour Operators" ON tour_operator_profiles FOR SELECT USING (true);
-
-ALTER TABLE tours ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public Read Tours" ON tours;
-CREATE POLICY "Public Read Tours" ON tours FOR SELECT USING (true);
-
-ALTER TABLE holiday_homes ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public Read Holiday Homes" ON holiday_homes;
-CREATE POLICY "Public Read Holiday Homes" ON holiday_homes FOR SELECT USING (true);
-
-ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public Read Reviews" ON reviews;
-CREATE POLICY "Public Read Reviews" ON reviews FOR SELECT USING (true);
-
-ALTER TABLE coupons ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public Read Active Coupons" ON coupons;
-CREATE POLICY "Public Read Active Coupons" ON coupons FOR SELECT USING (is_active = true);
-
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow Public Read Users" ON users;
-CREATE POLICY "Allow Public Read Users" ON users FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow All Vehicle Availability Operations" ON vehicle_availability;
+CREATE POLICY "Allow All Vehicle Availability Operations" ON vehicle_availability FOR ALL USING (true) WITH CHECK (true);
 
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow Public Read Bookings" ON bookings;
-CREATE POLICY "Allow Public Read Bookings" ON bookings FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow All Bookings Operations" ON bookings;
+CREATE POLICY "Allow All Bookings Operations" ON bookings FOR ALL USING (true) WITH CHECK (true);
 
-ALTER TABLE driver_live_locations ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public Read Driver Live Locations" ON driver_live_locations;
-CREATE POLICY "Public Read Driver Live Locations" ON driver_live_locations FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Allow Upsert Driver Live Locations" ON driver_live_locations;
-CREATE POLICY "Allow Upsert Driver Live Locations" ON driver_live_locations FOR ALL USING (true);
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Reviews Operations" ON reviews;
+CREATE POLICY "Allow All Reviews Operations" ON reviews FOR ALL USING (true) WITH CHECK (true);
 
-ALTER TABLE trip_history ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public Read Trip History" ON trip_history;
-CREATE POLICY "Public Read Trip History" ON trip_history FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Allow Insert Trip History" ON trip_history;
-CREATE POLICY "Allow Insert Trip History" ON trip_history FOR ALL USING (true);
+ALTER TABLE wallets ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Wallets Operations" ON wallets;
+CREATE POLICY "Allow All Wallets Operations" ON wallets FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Transactions Operations" ON transactions;
+CREATE POLICY "Allow All Transactions Operations" ON transactions FOR ALL USING (true) WITH CHECK (true);
 
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE wallets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Payments Operations" ON payments;
+CREATE POLICY "Allow All Payments Operations" ON payments FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE driver_live_locations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Driver Live Locations Operations" ON driver_live_locations;
+CREATE POLICY "Allow All Driver Live Locations Operations" ON driver_live_locations FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE trip_history ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Trip History Operations" ON trip_history;
+CREATE POLICY "Allow All Trip History Operations" ON trip_history FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE bus_companies ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Bus Companies Operations" ON bus_companies;
+CREATE POLICY "Allow All Bus Companies Operations" ON bus_companies FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE buses ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Buses Operations" ON buses;
+CREATE POLICY "Allow All Buses Operations" ON buses FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE routes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Routes Operations" ON routes;
+CREATE POLICY "Allow All Routes Operations" ON routes FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE tour_operator_profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Tour Operators Operations" ON tour_operator_profiles;
+CREATE POLICY "Allow All Tour Operators Operations" ON tour_operator_profiles FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE tours ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Tours Operations" ON tours;
+CREATE POLICY "Allow All Tours Operations" ON tours FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE holiday_homes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Holiday Homes Operations" ON holiday_homes;
+CREATE POLICY "Allow All Holiday Homes Operations" ON holiday_homes FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE coupons ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Coupons Operations" ON coupons;
+CREATE POLICY "Allow All Coupons Operations" ON coupons FOR ALL USING (true) WITH CHECK (true);
+
 ALTER TABLE refresh_tokens ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Refresh Tokens Operations" ON refresh_tokens;
+CREATE POLICY "Allow All Refresh Tokens Operations" ON refresh_tokens FOR ALL USING (true) WITH CHECK (true);
+
 ALTER TABLE device_logins ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Device Logins Operations" ON device_logins;
+CREATE POLICY "Allow All Device Logins Operations" ON device_logins FOR ALL USING (true) WITH CHECK (true);
+
 ALTER TABLE vehicle_alerts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Vehicle Alerts Operations" ON vehicle_alerts;
+CREATE POLICY "Allow All Vehicle Alerts Operations" ON vehicle_alerts FOR ALL USING (true) WITH CHECK (true);
+
 ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Support Tickets Operations" ON support_tickets;
+CREATE POLICY "Allow All Support Tickets Operations" ON support_tickets FOR ALL USING (true) WITH CHECK (true);
+
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Notifications Operations" ON notifications;
+CREATE POLICY "Allow All Notifications Operations" ON notifications FOR ALL USING (true) WITH CHECK (true);
+
 ALTER TABLE favorites ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Favorites Operations" ON favorites;
+CREATE POLICY "Allow All Favorites Operations" ON favorites FOR ALL USING (true) WITH CHECK (true);
+
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All Audit Logs Operations" ON audit_logs;
+CREATE POLICY "Allow All Audit Logs Operations" ON audit_logs FOR ALL USING (true) WITH CHECK (true);
 
 -- ==============================================================================
 -- INITIAL SEED DATA
