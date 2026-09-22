@@ -88,7 +88,7 @@ export const CatalogueTabs: React.FC = () => {
   const [storedVehicles] = useState(() => getStoredVehicles());
 
   const approvedVehicles: CatalogueItem[] = storedVehicles
-    .filter((v) => v.status === 'APPROVED' && isVehicleLive(v.id))
+    .filter((v) => v.status === 'APPROVED')
     .map((v) => ({
       id: v.id,
       category: 'vehicles' as TabType,

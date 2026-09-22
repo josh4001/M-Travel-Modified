@@ -115,9 +115,9 @@ export default function Catalogue() {
     { id: 'buses',    label: 'Bus Reservations',  icon: Bus, desc: 'VIP Highway Coaches & Intercity Shuttles' },
   ];
 
-  // Dynamic approved vehicles strictly from registered hosts that are currently LIVE
+  // Dynamic approved vehicles from registered hosts (including currently hired ones with in-use status)
   const approvedHostVehicles: CatalogueItem[] = storedVehicles
-    .filter((v) => v.status === 'APPROVED' && isVehicleLive(v.id))
+    .filter((v) => v.status === 'APPROVED')
     .map((v) => ({
       id: v.id,
       category: 'vehicles' as TabType,

@@ -165,7 +165,7 @@ export default function Search() {
           map.set(v.id, v);
         }
 
-        let combined = Array.from(map.values()).filter((v) => isVehicleLive(v.id));
+        let combined = Array.from(map.values()).filter((v) => (v as any).status !== 'REJECTED' && (v as any).status !== 'PENDING');
 
         // Apply filters
         if (type) {
