@@ -489,17 +489,17 @@ INSERT INTO users (id, email, phone, password_hash, first_name, last_name, role)
 
 -- SEED VEHICLES
 INSERT INTO vehicles (id, owner_id, type, make, model, year, seats, fuel_type, transmission, price_per_day, has_insurance, latitude, longitude, address, rating_average, rating_count) VALUES
-('v0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002', 'SUV', 'Toyota', 'Land Cruiser Prado', 2022, 7, 'DIESEL', 'AUTOMATIC', 14000.00, true, -1.2921, 36.8219, 'Westlands, Nairobi', 4.9, 87),
-('v0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000002', 'SUV', 'Toyota', 'RAV4', 2023, 5, 'PETROL', 'AUTOMATIC', 9500.00, true, -1.3000, 36.8100, 'Karen, Nairobi', 4.8, 52),
-('v0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000002', 'VAN', 'Toyota', 'Hiace (Safari Van)', 2021, 9, 'DIESEL', 'MANUAL', 11500.00, true, -1.2833, 36.8167, 'Kilimani, Nairobi', 4.7, 134),
-('v0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000002', 'CAR', 'Toyota', 'Premio', 2022, 5, 'PETROL', 'AUTOMATIC', 5500.00, false, -1.2700, 36.8300, 'Upperhill, Nairobi', 4.6, 41);
+('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002', 'SUV', 'Toyota', 'Land Cruiser Prado', 2022, 7, 'DIESEL', 'AUTOMATIC', 14000.00, true, -1.2921, 36.8219, 'Westlands, Nairobi', 4.9, 87),
+('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000002', 'SUV', 'Toyota', 'RAV4', 2023, 5, 'PETROL', 'AUTOMATIC', 9500.00, true, -1.3000, 36.8100, 'Karen, Nairobi', 4.8, 52),
+('b0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000002', 'VAN', 'Toyota', 'Hiace (Safari Van)', 2021, 9, 'DIESEL', 'MANUAL', 11500.00, true, -1.2833, 36.8167, 'Kilimani, Nairobi', 4.7, 134),
+('b0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000002', 'CAR', 'Toyota', 'Premio', 2022, 5, 'PETROL', 'AUTOMATIC', 5500.00, false, -1.2700, 36.8300, 'Upperhill, Nairobi', 4.6, 41);
 
 -- SEED VEHICLE IMAGES
 INSERT INTO vehicle_images (vehicle_id, url, is_primary) VALUES
-('v0000000-0000-0000-0000-000000000001', 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80', true),
-('v0000000-0000-0000-0000-000000000002', 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80', true),
-('v0000000-0000-0000-0000-000000000003', 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80', true),
-('v0000000-0000-0000-0000-000000000004', 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80', true);
+('b0000000-0000-0000-0000-000000000001', 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80', true),
+('b0000000-0000-0000-0000-000000000002', 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80', true),
+('b0000000-0000-0000-0000-000000000003', 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80', true),
+('b0000000-0000-0000-0000-000000000004', 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80', true);
 
 -- SEED WALLETS
 INSERT INTO wallets (user_id, balance) VALUES
@@ -511,5 +511,5 @@ INSERT INTO wallets (user_id, balance) VALUES
 
 -- SEED DRIVER LIVE TELEMETRY
 INSERT INTO driver_live_locations (driver_id, trip_id, vehicle_id, latitude, longitude, speed, heading, accuracy, status) VALUES
-('a0000000-0000-0000-0000-000000000004', 'TRIP-DEMO-01', 'v0000000-0000-0000-0000-000000000001', -1.2921, 36.8219, 45.0, 110.0, 5, 'AVAILABLE'),
-('a0000000-0000-0000-0000-000000000005', 'TRIP-DEMO-02', 'v0000000-0000-0000-0000-000000000003', -1.2833, 36.8167, 52.0, 225.0, 6, 'DRIVING_TO_PICKUP');
+('a0000000-0000-0000-0000-000000000004', 'TRIP-DEMO-01', 'b0000000-0000-0000-0000-000000000001', -1.2921, 36.8219, 45.0, 110.0, 5, 'AVAILABLE'),
+('a0000000-0000-0000-0000-000000000005', 'TRIP-DEMO-02', 'b0000000-0000-0000-0000-000000000003', -1.2833, 36.8167, 52.0, 225.0, 6, 'DRIVING_TO_PICKUP');
