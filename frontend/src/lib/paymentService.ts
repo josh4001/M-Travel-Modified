@@ -1,10 +1,8 @@
-import { api } from './api';
 import { supabase } from './supabaseClient';
 import { getStoredBookings, getStoredVehicles } from './bookingStore';
 
 // ─── M-Pesa Payment Gateway Service ─────────────────────────────────────────
-// Connects to backend NestJS M-Pesa Daraja endpoints.
-// Falls back to direct Supabase wallet mutations if backend is offline.
+// Demo Mode implementation simulating instant M-Pesa STK push & B2C transactions.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface StkPushResponse {
@@ -23,94 +21,46 @@ export interface PaymentResult {
 }
 
 /**
- * Initiate M-Pesa STK Push for booking payment.
- * Sends STK push to the customer's phone for the booking amount.
+ * Initiate M-Pesa STK Push for booking payment (Demo Mode).
+ * Simulates real-time Safaricom M-Pesa STK prompt and authorization.
  */
 export async function payForBooking(
-  bookingId: string,
-  phone: string,
+  _bookingId: string,
+  _phone: string,
   amount: number,
 ): Promise<PaymentResult> {
-  const callApi = async () => {
-    const { data } = await api.post<StkPushResponse>('/payments/mpesa/stk-push', {
-      phone: formatKenyanPhone(phone),
-      amount,
-      bookingId,
-      accountReference: `MT-${bookingId.slice(0, 8).toUpperCase()}`,
-    });
-    return data;
+  await new Promise((resolve) => setTimeout(resolve, 800));
+  const receipt = `QK${Math.floor(100000 + Math.random() * 900000)}`;
+  return {
+    success: true,
+    message: `Payment of KES ${amount.toLocaleString()} processed successfully via M-Pesa (Demo).`,
+    reference: receipt,
+    checkoutRequestId: `ws_CO_${Date.now()}`,
   };
-
-  const timeoutPromise = new Promise((resolve) =>
-    setTimeout(() => resolve(null), 1500)
-  );
-
-  try {
-    const res: any = await Promise.race([callApi(), timeoutPromise]);
-    if (res && (res.ResponseCode === '0' || res.CheckoutRequestID)) {
-      return {
-        success: true,
-        message: res.CustomerMessage || 'STK Push sent to phone.',
-        checkoutRequestId: res.CheckoutRequestID,
-        reference: res.MerchantRequestID,
-      };
-    }
-  } catch (err) {
-    console.warn('Backend M-Pesa STK call notice:', err);
-  }
-
-  // Fallback simulator response immediately after 1.5s
-  return simulatePayment('BOOKING', amount);
 }
 
 /**
- * Initiate M-Pesa STK Push for wallet top-up.
+ * Initiate M-Pesa STK Push for wallet top-up (Demo Mode).
  */
 export async function topUpWallet(
   userId: string,
-  phone: string,
+  _phone: string,
   amount: number,
 ): Promise<PaymentResult> {
-  try {
-    const { data } = await api.post('/payments/wallet/topup', {
-      phone: formatKenyanPhone(phone),
-      amount,
-    });
-
-    return {
-      success: true,
-      message: data.CustomerMessage || 'Top-up STK Push sent. Check your phone.',
-      checkoutRequestId: data.CheckoutRequestID,
-    };
-  } catch {
-    // Backend offline — credit wallet directly via Supabase
-    return directWalletTopUp(userId, amount);
-  }
+  await new Promise((resolve) => setTimeout(resolve, 800));
+  return directWalletTopUp(userId, amount);
 }
 
 /**
- * Initiate M-Pesa B2C withdrawal from wallet to owner's phone.
+ * Initiate M-Pesa B2C withdrawal from wallet to owner's phone (Demo Mode).
  */
 export async function withdrawFromWallet(
   userId: string,
-  phone: string,
+  _phone: string,
   amount: number,
 ): Promise<PaymentResult> {
-  try {
-    const { data } = await api.post('/payments/mpesa/withdraw', {
-      phone: formatKenyanPhone(phone),
-      amount,
-    });
-
-    return {
-      success: true,
-      message: data.message || 'Withdrawal initiated. Check your M-Pesa.',
-      reference: data.reference,
-    };
-  } catch {
-    // Backend offline — debit wallet directly via Supabase
-    return directWalletWithdraw(userId, amount);
-  }
+  await new Promise((resolve) => setTimeout(resolve, 800));
+  return directWalletWithdraw(userId, amount);
 }
 
 // ─── Supabase Direct Wallet Operations (Fallback) ────────────────────────────
@@ -288,24 +238,4 @@ async function directWalletWithdraw(userId: string, amount: number): Promise<Pay
     message: `KES ${amount.toLocaleString()} sent to your M-Pesa.`,
     reference: ref,
   };
-}
-
-function simulatePayment(type: string, amount: number): PaymentResult {
-  return {
-    success: true,
-    message: `Payment of KES ${amount.toLocaleString()} processed successfully via M-Pesa.`,
-    reference: `${type}-${Date.now()}`,
-    checkoutRequestId: `ws_CO_${Date.now()}`,
-  };
-}
-
-// ─── Utilities ───────────────────────────────────────────────────────────────
-
-/** Normalize Kenyan phone numbers to 254XXXXXXXXX format for Daraja API */
-function formatKenyanPhone(phone: string): string {
-  let cleaned = phone.replace(/[\s\-\(\)]/g, '');
-  if (cleaned.startsWith('+')) cleaned = cleaned.slice(1);
-  if (cleaned.startsWith('0')) cleaned = '254' + cleaned.slice(1);
-  if (!cleaned.startsWith('254')) cleaned = '254' + cleaned;
-  return cleaned;
 }

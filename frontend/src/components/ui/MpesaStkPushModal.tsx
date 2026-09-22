@@ -15,7 +15,7 @@ interface MpesaStkPushModalProps {
 
 export const MpesaStkPushModal: React.FC<MpesaStkPushModalProps> = ({
   amount,
-  bookingId,
+  bookingId: _bookingId,
   bookingRef,
   vehicleName,
   userPhone,
@@ -29,43 +29,15 @@ export const MpesaStkPushModal: React.FC<MpesaStkPushModalProps> = ({
   const [receipt, setReceipt] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSendStk = async (e: React.FormEvent) => {
+  const handleSendStk = (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone || phone.length < 9) return;
 
     setLoading(true);
-    try {
-      const token = localStorage.getItem('mt_access_token');
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const stkPromise = fetch('http://localhost:4000/api/v1/payments/mpesa/stk-push', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          phone,
-          amount,
-          bookingId: bookingId || undefined,
-          accountReference: bookingRef,
-        }),
-      }).then(res => res.json()).catch(err => ({ success: false, error: err?.message }));
-
-      const timeoutPromise = new Promise((resolve) =>
-        setTimeout(() => resolve({ timeout: true, status: 'Simulated STK Sent' }), 1500)
-      );
-
-      const result = await Promise.race([stkPromise, timeoutPromise]);
-      // eslint-disable-next-line no-console
-      console.log('Safaricom Daraja STK Push Response:', result);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn('Daraja API connection fallback to simulator:', err);
-    } finally {
+    setTimeout(() => {
       setLoading(false);
       setStep('ENTER_PIN');
-    }
+    }, 800);
   };
 
   const handleKeyPress = (num: string) => {
