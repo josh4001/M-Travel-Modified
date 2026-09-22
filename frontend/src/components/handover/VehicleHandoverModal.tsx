@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   X, CheckSquare, ShieldCheck, Gauge, Fuel,
-  FileCheck, Camera, KeyRound
+  FileCheck, Camera, KeyRound, Crown, Award, Sparkles
 } from 'lucide-react';
 import { StoredBooking, StoredVehicle, isTripBooking } from '@/lib/bookingStore';
 import { executeHandover, VehicleHandover } from '@/lib/rentalLifecycleStore';
@@ -422,10 +422,10 @@ export const VehicleHandoverModal: React.FC<VehicleHandoverModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-2 disabled:opacity-50 transition-all cursor-pointer text-xs"
+              className="px-6 py-2.5 bg-gradient-to-r from-amber-500 via-emerald-600 to-teal-700 hover:from-amber-600 hover:to-teal-800 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-2 disabled:opacity-50 transition-all cursor-pointer text-xs"
             >
-              <KeyRound className="w-4 h-4 text-emerald-200" />
-              {isSubmitting ? 'Activating Rental...' : 'Complete Handover & Activate Rental'}
+              <Crown className="w-4 h-4 text-amber-300 animate-pulse fill-amber-300/30" />
+              {isSubmitting ? 'Activating Executive Rental...' : '👑 Complete Handover & Activate Rental'}
             </button>
           </div>
         </form>

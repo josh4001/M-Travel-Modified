@@ -452,6 +452,8 @@ export const saveBooking = (booking: Omit<StoredBooking, 'id' | 'createdAt'>): S
   return newBooking;
 };
 
+
+
 export const getStoredVehicles = (): StoredVehicle[] => {
   try {
     const raw = localStorage.getItem(VEHICLES_KEY);
@@ -987,22 +989,45 @@ export const getVehicleHireStatus = (vehicleId: string): VehicleHireStatus => {
   };
 };
 
-export const updateStoredBooking = (bookingId: string, partial: Partial<StoredBooking>): StoredBooking | null => {
+export const updateStoredBooking = (
+  bookingIdOrObj: string | StoredBooking,
+  partial?: Partial<StoredBooking>
+): StoredBooking | null => {
   const bookings = getStoredBookings();
+  let bookingId: string;
+  let partialObj: Partial<StoredBooking>;
+
+  if (typeof bookingIdOrObj === 'string') {
+    bookingId = bookingIdOrObj;
+    partialObj = partial || {};
+  } else {
+    bookingId = bookingIdOrObj.id || bookingIdOrObj.bookingRef;
+    partialObj = bookingIdOrObj;
+  }
+
   let updatedBooking: StoredBooking | null = null;
   const updated = bookings.map(b => {
     if (b.id === bookingId || b.bookingRef === bookingId) {
-      updatedBooking = { ...b, ...partial };
+      updatedBooking = { ...b, ...partialObj };
       return updatedBooking;
     }
     return b;
   });
+
   if (updatedBooking) {
     try {
       localStorage.setItem(BOOKINGS_KEY, JSON.stringify(updated));
       window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: updatedBooking }));
     } catch {}
+  } else if (typeof bookingIdOrObj === 'object') {
+    updated.unshift(bookingIdOrObj);
+    try {
+      localStorage.setItem(BOOKINGS_KEY, JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: bookingIdOrObj }));
+    } catch {}
+    return bookingIdOrObj;
   }
+
   return updatedBooking;
 };
 
