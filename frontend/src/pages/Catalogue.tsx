@@ -13,7 +13,6 @@ import {
   saveBooking, getStoredVehicles, syncVehiclesFromSupabase, getVehicleHireStatus, toggleVehicleLiveStatus, isVehicleLive,
   type StoredVehicle
 } from '@/lib/bookingStore';
-import { supabase } from '@/lib/supabaseClient';
 import { sendNotification } from '@/lib/notificationService';
 import { sendTravelerBookingEmail } from '@/lib/communicationService';
 import { VehicleStatusBadge } from '@/components/ui/LuxuryVehicleBadges';
@@ -757,12 +756,12 @@ export default function Catalogue() {
           bookingRef={`MT-${selectedItem.category.substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`}
           vehicleName={selectedItem.title}
           touristPhone={user?.phone || '0712345678'}
-          onSuccess={async (receipt) => {
+          onSuccess={(receipt) => {
             const bookingRef = `MT-${selectedItem.category.substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
             const startDate = new Date().toISOString().split('T')[0];
             const endDate = new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0];
 
-            // 1. Centralized Stored Booking (Real-time across all dashboards)
+            // 1. Centralized Stored Booking (Saves locally & syncs to Supabase in background)
             const newBooking = saveBooking({
               bookingRef,
               bookingType: selectedItem.category === 'vehicles' ? 'VEHICLE' : 'VEHICLE',
@@ -791,23 +790,7 @@ export default function Catalogue() {
               isDestination: false,
             }).catch(() => {});
 
-            // 2. Persist in Supabase Postgres Database
-            try {
-              await supabase.from('bookings').insert({
-                booking_ref: bookingRef,
-                user_id: user?.id || 'a0000000-0000-0000-0000-000000000003',
-                bookable_type: selectedItem.category === 'vehicles' ? 'VEHICLE' : 'BUS_SEAT',
-                start_date: new Date().toISOString(),
-                end_date: new Date(Date.now() + 86400000 * 3).toISOString(),
-                total_amount: selectedItem.priceKES,
-                currency: 'KES',
-                status: 'CONFIRMED',
-              });
-            } catch (e) {
-              console.warn('Supabase DB booking sync error:', e);
-            }
-
-            // 3. Send system notifications (strictly isolated to respective recipients)
+            // 2. Send system notifications (strictly isolated to respective recipients)
             if (selectedItem.ownerId) {
               sendNotification({
                 recipientId: selectedItem.ownerId,
@@ -826,7 +809,7 @@ export default function Catalogue() {
                 type: 'BOOKING_CONFIRMED_TOURIST',
                 title: `Booking Confirmed: ${selectedItem.title}`,
                 message: `Your booking ${bookingRef} has been confirmed. Total paid: KES ${selectedItem.priceKES.toLocaleString()}`,
-                link: '/dashboard/tourist',
+                link: '/dashboard/bookings',
               });
             }
 
@@ -838,9 +821,10 @@ export default function Catalogue() {
               link: '/dashboard/admin',
             });
 
+            // 3. Immediately close modal & redirect traveler to My Bookings
             setShowMpesaModal(false);
             setSelectedItem(null);
-            navigate('/dashboard/tourist');
+            navigate('/dashboard/bookings');
           }}
         />
       )}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,7 +14,6 @@ import {
   type TravelDestinationItem,
 } from '@/lib/destinationsStore';
 import { saveBooking } from '@/lib/bookingStore';
-import { supabase } from '@/lib/supabaseClient';
 import { sendNotification } from '@/lib/notificationService';
 import {
   sendTravelerBookingEmail,
@@ -27,6 +26,7 @@ import { LuxuryEmailPreviewModal } from '@/components/ui/LuxuryEmailPreviewModal
 type TabFilter = 'ALL' | 'TOUR' | 'HOLIDAY_HOME';
 
 export default function HolidaysAndTours() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const user = useSelector((s: RootState) => s.auth.user);
   const { formatPrice } = useCurrency();
@@ -165,22 +165,9 @@ export default function HolidaysAndTours() {
     }).then((email) => {
       setLastEmailSent(email);
     }).catch(() => {});
-
-    try {
-      await supabase.from('bookings').insert({
-        booking_ref: bookingRef,
-        user_id: user?.id || 'a0000000-0000-0000-0000-000000000003',
-        bookable_type: selectedItem.category === 'TOUR' ? 'TOUR' : 'HOLIDAY_HOME',
-        start_date: new Date().toISOString(),
-        end_date: new Date(Date.now() + 86400000 * 3).toISOString(),
-        total_amount: selectedItem.priceKES,
-        currency: 'KES',
-        status: 'CONFIRMED',
-      });
-    } catch { /* ignore */ }
-
     setBookingSuccessRef(bookingRef);
     setShowMpesaModal(false);
+    navigate('/dashboard/bookings');
   };
 
   return (
