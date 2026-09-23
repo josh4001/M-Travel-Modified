@@ -741,22 +741,35 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
   // Real-time Supabase push
   (async () => {
     try {
-      const validOwnerId = isValidUUID(vehicle.ownerId) ? vehicle.ownerId : 'a0000000-0000-0000-0000-000000000002';
+      let validOwnerId = isValidUUID(vehicle.ownerId) ? vehicle.ownerId : null;
 
-      // Ensure host user exists in Supabase users table so foreign key owner_id doesn't fail
-      await supabase.from('users').upsert({
-        id: validOwnerId,
-        email: vehicle.ownerEmail || 'james.mwangi@mtravel.co.ke',
-        first_name: (vehicle.ownerName || 'James').split(' ')[0],
-        last_name: (vehicle.ownerName || 'Mwangi').split(' ').slice(1).join(' ') || 'Mwangi',
-        role: 'VEHICLE_OWNER',
-        is_active: true,
-      }, { onConflict: 'id' });
+      if (vehicle.ownerEmail) {
+        const { data: dbUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', vehicle.ownerEmail.trim().toLowerCase())
+          .maybeSingle();
+        if (dbUser?.id) {
+          validOwnerId = dbUser.id;
+        }
+      }
 
-      await supabase.from('vehicles').upsert({
+      if (!validOwnerId) {
+        validOwnerId = 'a0000000-0000-0000-0000-000000000002';
+        await supabase.from('users').upsert({
+          id: validOwnerId,
+          email: vehicle.ownerEmail || 'james.mwangi@mtravel.co.ke',
+          first_name: (vehicle.ownerName || 'James').split(' ')[0],
+          last_name: (vehicle.ownerName || 'Mwangi').split(' ').slice(1).join(' ') || 'Mwangi',
+          role: 'VEHICLE_OWNER',
+          is_active: true,
+        }, { onConflict: 'id' });
+      }
+
+      const { error: vErr } = await supabase.from('vehicles').upsert({
         id: vehicleId,
         owner_id: validOwnerId,
-        type: (vehicle.type || 'SUV').toUpperCase(),
+        type: (vehicle.type || 'BUS').toUpperCase(),
         make: vehicle.make,
         model: vehicle.model,
         year: Number(vehicle.year || 2024),
@@ -776,11 +789,15 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
         created_at: newVehicle.createdAt,
       }, { onConflict: 'id' });
 
+      if (vErr) {
+        console.warn('Supabase vehicle upsert warning:', vErr);
+      }
+
       if (Array.isArray(vehicle.images) && vehicle.images.length > 0) {
         await supabase.from('vehicle_images').delete().eq('vehicle_id', vehicleId);
         const imgRows = vehicle.images.slice(0, 5).map((url, idx) => ({
           vehicle_id: vehicleId,
-          url: url.startsWith('data:') ? '/vehicles/prado-front.jpg' : url,
+          url: url,
           is_primary: idx === 0,
         }));
         await supabase.from('vehicle_images').insert(imgRows);
