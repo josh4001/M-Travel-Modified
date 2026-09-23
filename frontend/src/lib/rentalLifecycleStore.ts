@@ -292,6 +292,9 @@ export const logAuditEvent = (
           action: action.toUpperCase(),
           entity: entityName,
           entity_id: String(entityId || ''),
+          actor_name: actorName,
+          actor_role: actorRole,
+          details: details,
           metadata: {
             actor_name: actorName,
             actor_role: actorRole,
@@ -302,14 +305,16 @@ export const logAuditEvent = (
 
         const { error } = await supabase.from('audit_logs').insert([payload]);
         if (error) {
-          // If metadata or custom column mismatch occurs, retry with fallback payload
+          // If custom column mismatch occurs, retry with metadata fallback payload
           const fallback: any = {
             action: action.toUpperCase(),
             entity: entityName,
             entity_id: String(entityId || ''),
-            actor_name: actorName,
-            actor_role: actorRole,
-            details: details,
+            metadata: {
+              actor_name: actorName,
+              actor_role: actorRole,
+              details: details,
+            },
             created_at: entry.timestamp,
           };
           await supabase.from('audit_logs').insert([fallback]);

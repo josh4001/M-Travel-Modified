@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { getStoredBookings, getStoredVehicles, isValidUUID } from './bookingStore';
+import { logAuditEvent } from './rentalLifecycleStore';
 
 // ─── M-Pesa Payment Gateway Service ─────────────────────────────────────────
 // Demo Mode implementation simulating instant M-Pesa STK push & B2C transactions.
@@ -218,6 +219,28 @@ async function directWalletTopUp(userId: string, amount: number): Promise<Paymen
   });
   saveLocalWallet(userId, localW);
 
+  let actorName = 'Traveler';
+  let actorRole = 'TOURIST';
+  try {
+    const raw = localStorage.getItem('mt_user');
+    if (raw) {
+      const u = JSON.parse(raw);
+      if (u) {
+        actorName = `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Traveler';
+        actorRole = u.role || 'TOURIST';
+      }
+    }
+  } catch {}
+
+  logAuditEvent(
+    'WALLET_TOPUP',
+    'Wallet',
+    ref,
+    `Traveler ${actorName} topped up KES ${amount.toLocaleString()} to wallet via M-Pesa (Ref: ${ref})`,
+    actorName,
+    actorRole
+  );
+
   return {
     success: true,
     message: `KES ${amount.toLocaleString()} credited to your wallet via M-Pesa.`,
@@ -358,6 +381,41 @@ async function directWalletWithdraw(userId: string, amount: number): Promise<Pay
     created_at: new Date().toISOString(),
   });
   saveLocalWallet(userId, localW);
+
+  let actorName = 'User';
+  let actorRole = 'USER';
+  try {
+    const raw = localStorage.getItem('mt_user');
+    if (raw) {
+      const u = JSON.parse(raw);
+      if (u) {
+        actorName = `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'User';
+        actorRole = u.role || 'USER';
+      }
+    }
+  } catch {}
+
+  let actionName = 'WALLET_WITHDRAWAL';
+  let roleLabel = 'User';
+  if (actorRole === 'ADMIN') {
+    actionName = 'ADMIN_WALLET_WITHDRAWAL';
+    roleLabel = 'Admin';
+  } else if (actorRole === 'VEHICLE_OWNER' || actorRole === 'OWNER') {
+    actionName = 'FLEET_HOST_WALLET_WITHDRAWAL';
+    roleLabel = 'Fleet Host';
+  } else {
+    actionName = 'TRAVELER_WALLET_WITHDRAWAL';
+    roleLabel = 'Traveler';
+  }
+
+  logAuditEvent(
+    actionName,
+    'Wallet',
+    ref,
+    `${roleLabel} ${actorName} withdrew KES ${amount.toLocaleString()} from wallet via M-Pesa (Ref: ${ref})`,
+    actorName,
+    actorRole
+  );
 
   return {
     success: true,

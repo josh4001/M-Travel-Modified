@@ -465,6 +465,15 @@ export async function login(
       };
       localStorage.setItem('mt_user', JSON.stringify(authUser));
 
+      logAuditEvent(
+        'USER_LOGIN',
+        'User',
+        matched.email,
+        `User ${matched.firstName} ${matched.lastName || ''} (${matched.email}) logged into system with role ${matched.role}`,
+        `${matched.firstName} ${matched.lastName || ''}`.trim() || 'User',
+        matched.role
+      );
+
       return {
         ...mockTokens,
         user: authUser,
@@ -521,6 +530,15 @@ export async function login(
       persistTokens(mockTokens.accessToken, mockTokens.refreshToken);
       localStorage.setItem('mt_user', JSON.stringify(authUser));
 
+      logAuditEvent(
+        'USER_LOGIN',
+        'User',
+        user.email,
+        `User ${user.first_name || 'Explorer'} ${user.last_name || ''} (${user.email}) logged into system with role ${role}`,
+        `${user.first_name || 'Explorer'} ${user.last_name || ''}`.trim(),
+        role
+      );
+
       return {
         ...mockTokens,
         user: authUser,
@@ -566,6 +584,15 @@ export async function login(
     };
     localStorage.setItem('mt_user', JSON.stringify(authUser));
 
+    logAuditEvent(
+      'USER_LOGIN',
+      'User',
+      autoAccount.email,
+      `User ${autoAccount.firstName} (${autoAccount.email}) logged into system with role ${autoAccount.role}`,
+      autoAccount.firstName,
+      autoAccount.role
+    );
+
     return {
       ...mockTokens,
       user: authUser,
@@ -604,6 +631,22 @@ export async function enrichUserProfile(baseUser: AuthUser): Promise<AuthUser> {
 // Logout
 // ---------------------------------------------------------------------------
 export function logout() {
+  try {
+    const raw = localStorage.getItem('mt_user');
+    if (raw) {
+      const u = JSON.parse(raw);
+      if (u && u.email) {
+        logAuditEvent(
+          'USER_LOGOUT',
+          'User',
+          u.email,
+          `User ${u.firstName || ''} ${u.lastName || ''} (${u.email}) logged out of system`,
+          `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'User',
+          u.role || 'USER'
+        );
+      }
+    }
+  } catch {}
   localStorage.removeItem('mt_access_token');
   localStorage.removeItem('mt_refresh_token');
   localStorage.removeItem('mt_user');
