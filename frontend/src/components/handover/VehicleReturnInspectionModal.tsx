@@ -55,7 +55,7 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
   const [conditionStatus, setConditionStatus] = useState<'EXCELLENT' | 'GOOD' | 'FAIR' | 'DAMAGED'>('GOOD');
   const [damageFound, setDamageFound] = useState(false);
   const [damageDescription, setDamageDescription] = useState('');
-  const [damageCharge, setDamageCharge] = useState<number>(0);
+  const [damageCharge, setDamageCharge] = useState<number | string>('');
   const [damagePhotos, setDamagePhotos] = useState<string[]>([]);
   const [inspectorName, setInspectorName] = useState('Amos (Operations Lead)');
   const [settlementNotes, setSettlementNotes] = useState('');
@@ -86,7 +86,7 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
   }, [returnFuel, initialFuel]);
 
   const depositHeld = 10000;
-  const effectiveDamageCharge = damageFound ? Number(damageCharge) : 0;
+  const effectiveDamageCharge = damageFound ? (Number(damageCharge) || 0) : 0;
   const totalDeductions = calculatedFuelCharge + effectiveDamageCharge + lateReturnCharge;
   const depositRefunded = Math.max(0, depositHeld - totalDeductions);
 
@@ -359,8 +359,17 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
                       type="number"
                       min="0"
                       max={depositHeld}
+                      placeholder="0"
                       value={damageCharge}
-                      onChange={e => setDamageCharge(Number(e.target.value))}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setDamageCharge(val === '' ? '' : Math.max(0, Number(val)));
+                      }}
+                      onFocus={() => {
+                        if (String(damageCharge) === '0') {
+                          setDamageCharge('');
+                        }
+                      }}
                       className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg font-mono font-bold text-red-700 focus:ring-2 focus:ring-red-500"
                     />
                   </div>
