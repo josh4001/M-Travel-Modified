@@ -31,21 +31,24 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 export function getVehicleFallbackImage(make: string = '', model: string = '', type: string = '', id: string = ''): string {
   const text = `${make} ${model} ${type} ${id}`.toLowerCase();
   if (id === '22222222-2222-4222-8222-222222222222' || text.includes('wrangler') || text.includes('jeep')) {
-    return 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80';
+    return 'https://images.unsplash.com/photo-1506015391300-4802dc74de2e?auto=format&fit=crop&w=1000&q=80';
+  }
+  if (id === '33333333-3333-4333-8333-333333333333' || (text.includes('prado') && !text.includes('land cruiser prado'))) {
+    return 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=1000&q=80';
   }
   if (id === '44444444-4444-4444-8444-444444444444' || text.includes('premio')) {
-    return 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80';
+    return 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1000&q=80';
+  }
+  if (id === '55555555-5555-4555-8555-555555555555' || text.includes('patrol')) {
+    return 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1000&q=80';
   }
   if (id === '77777777-7777-4777-8777-777777777777' || text.includes('coaster') || text.includes('bus')) {
-    return 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80';
+    return 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1000&q=80';
   }
-  if (id === '88888888-8888-4888-8888-888888888888' || text.includes('land cruiser prado')) {
-    return 'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=800&q=80';
+  if (id === '88888888-8888-4888-8888-888888888888' || text.includes('land cruiser prado') || text.includes('79 series')) {
+    return 'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1000&q=80';
   }
-  if (id === '33333333-3333-4333-8333-333333333333' || id === '55555555-5555-4555-8555-555555555555' || text.includes('patrol') || text.includes('prado')) {
-    return 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80';
-  }
-  return 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80';
+  return 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=1000&q=80';
 }
 
 export function formatDbVehicle(v: any): any {

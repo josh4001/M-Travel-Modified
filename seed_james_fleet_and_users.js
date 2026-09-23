@@ -98,7 +98,7 @@ const jamesVehicles = [
     rating_average: 5.0,
     rating_count: 12,
     images: [
-      'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1000&q=80',
+      'https://images.unsplash.com/photo-1506015391300-4802dc74de2e?auto=format&fit=crop&w=1000&q=80',
     ],
   },
   {
@@ -122,7 +122,7 @@ const jamesVehicles = [
     rating_average: 5.0,
     rating_count: 12,
     images: [
-      'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1000&q=80',
+      'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=1000&q=80',
     ],
   },
   {
@@ -218,7 +218,7 @@ const jamesVehicles = [
     rating_average: 5.0,
     rating_count: 12,
     images: [
-      'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1000&q=80',
+      'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1000&q=80',
     ],
   },
 ];
