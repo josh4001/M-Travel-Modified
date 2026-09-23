@@ -202,8 +202,8 @@ export default function OwnerDashboard() {
     const ownerVehicles = currentUserId
       ? allVehicles.filter(v => 
           v.ownerId === currentUserId || 
-          (user?.email && v.ownerEmail === user.email) ||
-          (user?.email?.toLowerCase().includes('james') && (v.ownerEmail?.toLowerCase().includes('james') || v.ownerId === 'a0000000-0000-0000-0000-000000000002'))
+          (user?.email && v.ownerEmail && v.ownerEmail.toLowerCase() === user.email.toLowerCase()) ||
+          (user?.email?.toLowerCase().includes('james') && (v.ownerEmail?.toLowerCase().includes('james') || v.ownerId === 'a0000000-0000-0000-0000-000000000002' || v.ownerName?.toLowerCase().includes('james')))
         )
       : allVehicles;
     const ownerVehicleIds = new Set(ownerVehicles.map(v => v.id));
@@ -229,8 +229,8 @@ export default function OwnerDashboard() {
       const updatedOwnerVehicles = currentUserId
         ? refreshedVehicles.filter(v => 
             v.ownerId === currentUserId || 
-            (user?.email && v.ownerEmail === user.email) ||
-            (user?.email?.toLowerCase().includes('james') && (v.ownerEmail?.toLowerCase().includes('james') || v.ownerId === 'a0000000-0000-0000-0000-000000000002'))
+            (user?.email && v.ownerEmail && v.ownerEmail.toLowerCase() === user.email.toLowerCase()) ||
+            (user?.email?.toLowerCase().includes('james') && (v.ownerEmail?.toLowerCase().includes('james') || v.ownerId === 'a0000000-0000-0000-0000-000000000002' || v.ownerName?.toLowerCase().includes('james')))
           )
         : refreshedVehicles;
       const updatedVehicleIds = new Set(updatedOwnerVehicles.map(v => v.id));

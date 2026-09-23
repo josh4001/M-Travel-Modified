@@ -633,10 +633,12 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
         const existing = localMap.get(v.id);
         const owner = v.users || {};
         const ownerName = [owner.first_name, owner.last_name].filter(Boolean).join(' ') || existing?.ownerName || 'Fleet Host';
+        const ownerEmail = owner.email || existing?.ownerEmail || (ownerName.toLowerCase().includes('james') ? 'james.mwangi@mtravel.co.ke' : undefined);
+        const ownerId = existing?.ownerId || v.owner_id || 'a0000000-0000-0000-0000-000000000002';
 
         const images: string[] = (Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0)
           ? v.vehicle_images.map((img: any) => img.url).filter(Boolean)
-          : [getVehicleFallbackImage(v.make, v.model, v.type, v.id)];
+          : (existing?.images && existing.images.length > 0 ? existing.images : [getVehicleFallbackImage(v.make, v.model, v.type, v.id)]);
 
         const isApprovedInDb = Boolean(v.is_approved);
         const adminLiveOverride = overrides[v.id];
@@ -644,20 +646,22 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
           ? adminLiveOverride
           : (isApprovedInDb && v.is_available !== false);
 
+        const inferredType = existing?.type || (v.model?.toLowerCase().includes('bus') || v.make?.toLowerCase().includes('bus') ? 'BUS' : v.type);
+
         return {
           id: v.id,
           make: (v.make || 'Toyota').trim(),
           model: (v.model || 'Cruiser').trim(),
           year: v.year || 2024,
-          type: (v.type || 'SUV').toUpperCase(),
+          type: (inferredType || 'SUV').toUpperCase(),
           pricePerDay: Number(v.price_per_day || 15000),
           seats: Number(v.seats || 7),
           fuelType: v.fuel_type ? (v.fuel_type.charAt(0).toUpperCase() + v.fuel_type.slice(1).toLowerCase()) : 'Diesel',
           transmission: v.transmission ? (v.transmission.charAt(0).toUpperCase() + v.transmission.slice(1).toLowerCase()) : 'Automatic',
           address: v.address || existing?.address || 'Nairobi, Kenya',
-          ownerId: v.owner_id || existing?.ownerId || 'a0000000-0000-0000-0000-000000000002',
+          ownerId,
           ownerName,
-          ownerEmail: owner.email || existing?.ownerEmail,
+          ownerEmail,
           images,
           status: isApprovedInDb ? 'APPROVED' : (existing?.status === 'REJECTED' ? 'REJECTED' : 'PENDING_APPROVAL') as any,
           isLive,
@@ -697,14 +701,6 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
 
 // Automatic initial sync in browser environment
 if (typeof window !== 'undefined') {
-  try {
-    ['mt_vehicles', 'mt_shared_vehicles', 'mt_shared_vehicles_v1', 'mt_shared_vehicles_v2', 'mt_shared_bookings_v2', 'mt_demo_vehicles', 'mt_vehicle_live_overrides', 'mt_rental_handovers'].forEach((k) => {
-      const raw = localStorage.getItem(k);
-      if (raw && (raw.includes('22222222-2222') || raw.includes('33333333-3333') || raw.includes('44444444-4444') || raw.includes('55555555-5555') || raw.includes('77777777-7777') || raw.includes('88888888-8888') || raw.includes('b-101'))) {
-        localStorage.removeItem(k);
-      }
-    });
-  } catch {}
   setTimeout(() => {
     getStoredVehicles();
     syncVehiclesFromSupabase().catch(() => {});
@@ -766,10 +762,13 @@ export const saveVehicle = async (vehicle: Omit<StoredVehicle, 'id' | 'createdAt
       }, { onConflict: 'id' });
     }
 
+    const dbType = (vehicle.type || 'VAN').toUpperCase();
+    const safeDbType = ['SUV', 'VAN', 'SEDAN', 'LUXURY'].includes(dbType) ? dbType : 'VAN';
+
     const { error: vErr } = await supabase.from('vehicles').upsert({
       id: vehicleId,
       owner_id: validOwnerId,
-      type: (vehicle.type || 'BUS').toUpperCase(),
+      type: safeDbType,
       make: vehicle.make,
       model: vehicle.model,
       year: Number(vehicle.year || 2024),
