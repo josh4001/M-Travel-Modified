@@ -3,7 +3,7 @@ import {
   Users, Car, Shield, DollarSign, Activity, CheckCircle,
   RefreshCw, BarChart3, TrendingUp, AlertTriangle, ArrowDownLeft, ArrowUpRight, FileCheck, Landmark,
   XCircle, Trash2, Server, Wifi, HardDrive, Clock, MapPin, Lock,
-  Palmtree, Plus, Edit2, Check, ExternalLink, Sparkles, Crown, Award
+  Palmtree, Plus, Edit2, Check, ExternalLink, Sparkles, Award
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useCurrency } from '@/context/CurrencyContext';

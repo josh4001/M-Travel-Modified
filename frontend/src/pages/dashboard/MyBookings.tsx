@@ -4,7 +4,7 @@ import {
   Car, MapPin, Calendar, Shield, RefreshCw, Trash2, Palmtree,
   Star, Download, RotateCcw, Navigation,
   CheckCircle2, Clock, TrendingUp, Zap, Share2, X, AlertTriangle,
-  ChevronRight, Sparkles, Heart, Smartphone, ArrowRight, ShieldCheck, FileText, UserCheck, User,
+  ChevronRight, Sparkles, Heart, Smartphone, ArrowRight, ShieldCheck, FileText, UserCheck,
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { selectUser } from '@/store/slices/authSlice';

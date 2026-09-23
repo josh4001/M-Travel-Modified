@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Car, Bus, Palmtree, Home, MapPin, ArrowRight, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCurrency } from '@/context/CurrencyContext';
-import { getStoredVehicles, isVehicleLive } from '@/lib/bookingStore';
+import { getStoredVehicles } from '@/lib/bookingStore';
 
 type TabType = 'vehicles' | 'buses' | 'tours' | 'homes';
 

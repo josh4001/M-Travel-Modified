@@ -28,48 +28,47 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 // Typed helpers for common queries
 // ---------------------------------------------------------------------------
 
-export function getVehicleFallbackImage(make: string = '', model: string = '', type: string = ''): string {
-  const text = `${make} ${model} ${type}`.toLowerCase();
-  if (text.includes('g-wagon') || text.includes('gwagon') || text.includes('mercedes')) {
-    return 'https://images.unsplash.com/photo-1520031441872-265e4ff70366?auto=format&fit=crop&w=800&q=80';
-  }
-  if (text.includes('coaster') || text.includes('coach') || text.includes('bus')) {
-    return 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=800&q=80';
-  }
-  if (text.includes('hiace') || text.includes('safari van')) {
-    return 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80';
-  }
-  if (text.includes('rav4') || text.includes('rav-4')) {
+export function getVehicleFallbackImage(make: string = '', model: string = '', type: string = '', id: string = ''): string {
+  const text = `${make} ${model} ${type} ${id}`.toLowerCase();
+  if (id === '22222222-2222-4222-8222-222222222222' || text.includes('wrangler') || text.includes('jeep')) {
     return 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80';
   }
-  if (text.includes('alphard')) {
-    return 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80';
+  if (id === '44444444-4444-4444-8444-444444444444' || text.includes('premio')) {
+    return 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80';
   }
-  if (text.includes('premio') || text.includes('sedan') || text.includes('car')) {
-    return 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80';
+  if (id === '77777777-7777-4777-8777-777777777777' || text.includes('coaster') || text.includes('bus')) {
+    return 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80';
+  }
+  if (id === '88888888-8888-4888-8888-888888888888' || text.includes('land cruiser prado')) {
+    return 'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=800&q=80';
+  }
+  if (id === '33333333-3333-4333-8333-333333333333' || id === '55555555-5555-4555-8555-555555555555' || text.includes('patrol') || text.includes('prado')) {
+    return 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80';
   }
   return 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80';
 }
 
 export function formatDbVehicle(v: any): any {
-  const images: { id: string; url: string; isPrimary: boolean }[] =
-    Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0
-      ? v.vehicle_images.map((img: any, idx: number) => ({
-          id: img.id || `img-${idx}`,
-          url: img.url,
-          isPrimary: Boolean(img.is_primary || idx === 0),
-        }))
-      : [
-          {
-            id: `img-default-${v.id}`,
-            url: getVehicleFallbackImage(v.make, v.model, v.type),
-            isPrimary: true,
-          },
-        ];
+  const hostImage = getVehicleFallbackImage(v.make, v.model, v.type, v.id);
+
+  let images: { id: string; url: string; isPrimary: boolean }[] = [];
+  if (Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0) {
+    images = v.vehicle_images.map((img: any, idx: number) => ({
+      id: img.id || `img-${idx}`,
+      url: img.url,
+      isPrimary: Boolean(img.is_primary || idx === 0),
+    }));
+  }
+
+  if (images.length === 0 || !images[0].url) {
+    images = [{ id: `img-default-${v.id}`, url: hostImage, isPrimary: true }];
+  } else if (['22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333', '44444444-4444-4444-8444-444444444444', '55555555-5555-4555-8555-555555555555', '77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888'].includes(v.id)) {
+    images[0].url = hostImage;
+  }
 
   const owner = v.users || {};
-  const firstName = owner.first_name || 'Fleet';
-  const lastName = owner.last_name || 'Host';
+  const firstName = owner.first_name || 'James';
+  const lastName = owner.last_name || 'Mwangi';
 
   return {
     id: v.id,
@@ -85,11 +84,11 @@ export function formatDbVehicle(v: any): any {
     latitude: v.latitude ?? -1.2921,
     longitude: v.longitude ?? 36.8219,
     address: v.address || 'Nairobi, Kenya',
-    ratingAverage: Number(v.rating_average || 4.9),
+    ratingAverage: Number(v.rating_average || 5.0),
     ratingCount: Number(v.rating_count || 12),
     images,
     owner: {
-      id: owner.id || v.owner_id || 'owner-host',
+      id: owner.id || v.owner_id || 'a0000000-0000-0000-0000-000000000002',
       firstName,
       lastName,
       avatarUrl: owner.avatar_url,

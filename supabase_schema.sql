@@ -516,18 +516,22 @@ INSERT INTO users (id, email, phone, password_hash, first_name, last_name, role)
 ('a0000000-0000-0000-0000-000000000005', 'driver.john@mtravel.co.ke', '0788776655', '$2a$12$FcgCkt0j41e9vnp7pXSzzeGGZ.VPoec/vZ1N3Xxt1RLU4LC6UDt4u', 'John', 'Gitau', 'DRIVER');
 
 -- SEED VEHICLES
-INSERT INTO vehicles (id, owner_id, type, make, model, year, seats, fuel_type, transmission, price_per_day, has_insurance, latitude, longitude, address, rating_average, rating_count) VALUES
-('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002', 'SUV', 'Toyota', 'Land Cruiser Prado', 2022, 7, 'DIESEL', 'AUTOMATIC', 14000.00, true, -1.2921, 36.8219, 'Westlands, Nairobi', 4.9, 87),
-('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000002', 'SUV', 'Toyota', 'RAV4', 2023, 5, 'PETROL', 'AUTOMATIC', 9500.00, true, -1.3000, 36.8100, 'Karen, Nairobi', 4.8, 52),
-('b0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000002', 'VAN', 'Toyota', 'Hiace (Safari Van)', 2021, 9, 'DIESEL', 'MANUAL', 11500.00, true, -1.2833, 36.8167, 'Kilimani, Nairobi', 4.7, 134),
-('b0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000002', 'CAR', 'Toyota', 'Premio', 2022, 5, 'PETROL', 'AUTOMATIC', 5500.00, false, -1.2700, 36.8300, 'Upperhill, Nairobi', 4.6, 41);
+INSERT INTO vehicles (id, owner_id, type, make, model, year, seats, fuel_type, transmission, price_per_day, plate_number, has_insurance, latitude, longitude, address, rating_average, rating_count) VALUES
+('22222222-2222-4222-8222-222222222222', 'a0000000-0000-0000-0000-000000000002', 'SUV', 'Jeep', 'Wrangler', 2013, 7, 'DIESEL', 'AUTOMATIC', 10000.00, 'KDC 313J', true, -1.0333, 37.0693, 'Thika, Cascade Parking', 5.0, 12),
+('33333333-3333-4333-8333-333333333333', 'a0000000-0000-0000-0000-000000000002', 'SUV', 'Toyota', 'Prado 4x4', 2022, 4, 'DIESEL', 'AUTOMATIC', 15000.00, 'KDD 552P', true, -1.286389, 36.817223, 'Nairobi', 5.0, 12),
+('44444444-4444-4444-8444-444444444444', 'a0000000-0000-0000-0000-000000000002', 'CAR', 'Toyota', 'Premio', 2021, 4, 'DIESEL', 'AUTOMATIC', 7000.00, 'KDC 449A', true, -1.0333, 37.0693, 'Thika', 5.0, 12),
+('55555555-5555-4555-8555-555555555555', 'a0000000-0000-0000-0000-000000000002', 'SUV', 'Nissan', 'Patrol', 2019, 4, 'DIESEL', 'AUTOMATIC', 14000.00, 'KDA 911N', true, -1.286389, 36.817223, 'Nairobi', 5.0, 12),
+('77777777-7777-4777-8777-777777777777', 'a0000000-0000-0000-0000-000000000002', 'VAN', 'Toyota', 'Coaster', 2020, 18, 'DIESEL', 'AUTOMATIC', 9500.00, 'KDC 200C', true, -1.0333, 37.0693, 'Thika', 5.0, 12),
+('88888888-8888-4888-8888-888888888888', 'a0000000-0000-0000-0000-000000000002', 'SUV', 'Toyota', 'Land Cruiser Prado', 2021, 5, 'DIESEL', 'AUTOMATIC', 15000.00, 'KDE 505P', true, -1.3197, 36.836, 'Nairobi/JKIA', 5.0, 12);
 
 -- SEED VEHICLE IMAGES
 INSERT INTO vehicle_images (vehicle_id, url, is_primary) VALUES
-('b0000000-0000-0000-0000-000000000001', 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80', true),
-('b0000000-0000-0000-0000-000000000002', 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80', true),
-('b0000000-0000-0000-0000-000000000003', 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80', true),
-('b0000000-0000-0000-0000-000000000004', 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80', true);
+('22222222-2222-4222-8222-222222222222', 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1000&q=80', true),
+('33333333-3333-4333-8333-333333333333', 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1000&q=80', true),
+('44444444-4444-4444-8444-444444444444', 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1000&q=80', true),
+('55555555-5555-4555-8555-555555555555', 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1000&q=80', true),
+('77777777-7777-4777-8777-777777777777', 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1000&q=80', true),
+('88888888-8888-4888-8888-888888888888', 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1000&q=80', true);
 
 -- SEED WALLETS
 INSERT INTO wallets (user_id, balance) VALUES

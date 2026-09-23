@@ -117,7 +117,7 @@ export const PinterestThemes: React.FC = () => {
           </p>
         </div>
         <Link
-          to="/search"
+          to="/catalogue"
           className="btn-ghost text-xs !px-4 !py-2 flex items-center gap-1.5 border border-slate-200 text-slate-700 hover:text-slate-900"
         >
           View All Trips <ArrowUpRight className="h-3.5 w-3.5" />

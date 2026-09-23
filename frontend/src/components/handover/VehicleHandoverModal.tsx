@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   X, CheckSquare, ShieldCheck, Gauge, Fuel,
-  FileCheck, Camera, KeyRound, Crown, Award, Sparkles
+  FileCheck, Camera, Crown
 } from 'lucide-react';
 import { StoredBooking, StoredVehicle, isTripBooking } from '@/lib/bookingStore';
 import { executeHandover, VehicleHandover } from '@/lib/rentalLifecycleStore';

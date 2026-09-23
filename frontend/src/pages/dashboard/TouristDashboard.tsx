@@ -198,15 +198,9 @@ export default function TouristDashboard() {
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                to="/search"
-                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-mtravel-gold to-mtravel-lightGold px-6 py-2.5 text-sm font-bold text-mtravel-obsidian shadow-md transition hover:shadow-lg hover:-translate-y-0.5"
-              >
-                <Search className="h-4 w-4" /> Find a Vehicle <ArrowRight className="h-4 w-4" />
-              </Link>
               <button
                 onClick={() => setShowProfileModal(true)}
-                className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/20 transition backdrop-blur-xs"
+                className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/20 transition backdrop-blur-xs cursor-pointer"
               >
                 <User className="h-4 w-4 text-mtravel-lightGold" /> My Profile &amp; Credit Score
               </button>
@@ -264,12 +258,6 @@ export default function TouristDashboard() {
             <p className="mt-1 text-sm text-white/70 max-w-xs">
               Nairobi · Maasai Mara · Diani Beach · Amboseli · Nakuru
             </p>
-            <Link
-              to="/search"
-              className="mt-4 inline-flex w-fit items-center gap-2 rounded-full bg-mtravel-gold px-5 py-2 text-xs font-bold text-mtravel-obsidian shadow hover:bg-mtravel-lightGold transition"
-            >
-              <Search className="h-3.5 w-3.5" /> Browse Fleet
-            </Link>
           </div>
         </div>
 
@@ -302,12 +290,6 @@ export default function TouristDashboard() {
                 <Car className="mx-auto h-12 w-12 text-slate-300" />
                 <p className="mt-4 font-serif text-lg text-slate-700">No bookings yet</p>
                 <p className="mt-1 text-sm text-slate-500">Start your East African adventure today.</p>
-                <Link
-                  to="/search"
-                  className="mt-5 inline-flex items-center gap-2 rounded-full bg-mtravel-burgundy px-6 py-2.5 text-sm font-bold text-white shadow-md hover:bg-mtravel-darkBurgundy transition"
-                >
-                  Browse Vehicles <ArrowRight className="h-4 w-4" />
-                </Link>
               </div>
             )}
 
@@ -551,7 +533,6 @@ export default function TouristDashboard() {
             <div className="rounded-2xl bg-white border border-slate-200/80 p-5 shadow-sm">
               <h3 className="font-display font-semibold text-slate-500 text-xs uppercase tracking-wider mb-3">Quick Actions</h3>
               {[
-                { to: '/search',             icon: Search,   label: 'Browse Vehicles',   accent: '#17A398' },
                 { to: '/dashboard/bookings', icon: Calendar, label: 'All Bookings & Rides', accent: '#F5A623' },
                 { to: '/dashboard/wallet',   icon: Wallet,   label: 'Wallet & Payments',  accent: '#059669' },
                 { to: '/contact',            icon: Star,     label: 'Contact Support',    accent: '#5C0632' },

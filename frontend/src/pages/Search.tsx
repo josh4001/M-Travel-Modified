@@ -7,8 +7,8 @@ import {
 import type { Vehicle } from '@/types';
 import { Card3D } from '@/components/ui/Card3D';
 import { useCurrency } from '@/context/CurrencyContext';
-import { fetchVehicles } from '@/lib/supabaseClient';
-import { getStoredVehicles, syncVehiclesFromSupabase, isVehicleLive, type StoredVehicle } from '@/lib/bookingStore';
+import { getVehicleFallbackImage } from '@/lib/supabaseClient';
+import { getStoredVehicles, syncVehiclesFromSupabase, isDemoVehicle, type StoredVehicle } from '@/lib/bookingStore';
 
 const TYPES = ['CAR', 'SUV', 'VAN', 'PICKUP'];
 
@@ -37,30 +37,35 @@ function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: num
   return Math.round(R * c * 10) / 10;
 }
 
-const mapStoredToVehicle = (v: StoredVehicle): Vehicle => ({
-  id: v.id,
-  type: v.type as any,
-  make: v.make,
-  model: v.model,
-  year: v.year,
-  seats: v.seats,
-  fuelType: v.fuelType as any,
-  transmission: v.transmission as any,
-  pricePerDay: String(v.pricePerDay),
-  hasInsurance: v.hasInsurance,
-  latitude: v.latitude ?? -1.2921,
-  longitude: v.longitude ?? 36.8219,
-  address: v.address,
-  ratingAverage: v.ratingAverage,
-  ratingCount: v.ratingCount,
-  images: (v.images || []).map((url, i) => ({ id: `img-${i}`, url, isPrimary: i === 0 })),
-  owner: {
-    id: v.ownerId,
-    firstName: v.ownerName.split(' ')[0] || 'Fleet',
-    lastName: v.ownerName.split(' ').slice(1).join(' ') || 'Host',
-  },
-  plateNumber: v.plateNumber,
-});
+const mapStoredToVehicle = (v: StoredVehicle): Vehicle => {
+  const hostImage = getVehicleFallbackImage(v.make, v.model, v.type, v.id);
+  const primaryUrl = (Array.isArray(v.images) && v.images.length > 0 && v.images[0]) ? v.images[0] : hostImage;
+
+  return {
+    id: v.id,
+    type: v.type as any,
+    make: v.make,
+    model: v.model,
+    year: v.year,
+    seats: v.seats,
+    fuelType: v.fuelType as any,
+    transmission: v.transmission as any,
+    pricePerDay: String(v.pricePerDay),
+    hasInsurance: v.hasInsurance,
+    latitude: v.latitude ?? -1.2921,
+    longitude: v.longitude ?? 36.8219,
+    address: v.address,
+    ratingAverage: v.ratingAverage,
+    ratingCount: v.ratingCount,
+    images: [{ id: `img-${v.id}`, url: hostImage || primaryUrl, isPrimary: true }],
+    owner: {
+      id: v.ownerId || 'a0000000-0000-0000-0000-000000000002',
+      firstName: v.ownerName ? v.ownerName.split(' ')[0] : 'James',
+      lastName: v.ownerName ? v.ownerName.split(' ').slice(1).join(' ') : 'Mwangi',
+    },
+    plateNumber: v.plateNumber,
+  };
+};
 
 export default function Search() {
   const { formatPrice } = useCurrency();
@@ -71,7 +76,7 @@ export default function Search() {
   const [viewMode, setViewMode] = useState<'grid' | 'card3d'>('card3d');
   const [vehicles, setVehicles] = useState<Vehicle[]>(() => {
     return getStoredVehicles()
-      .filter((v) => v.status === 'APPROVED' && v.isLive !== false)
+      .filter((v) => v.status === 'APPROVED' && v.isLive !== false && !isDemoVehicle(v))
       .map(mapStoredToVehicle);
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -145,27 +150,12 @@ export default function Search() {
         // Sync latest vehicles from Supabase in background
         await syncVehiclesFromSupabase().catch(() => {});
 
-        // 1. Fetch from Supabase
-        const sbVehicles = await fetchVehicles({
-          type: type || undefined,
-          maxPrice: maxPrice ? Number(maxPrice) : undefined,
-        });
-
-        // 2. Read stored vehicles (synced from host registrations)
+        // Read synchronized stored vehicles (strict host fleet parity with Catalogue)
         const stored = getStoredVehicles()
-          .filter((v) => v.status === 'APPROVED' && v.isLive !== false)
+          .filter((v) => v.status === 'APPROVED' && v.isLive !== false && !isDemoVehicle(v))
           .map(mapStoredToVehicle);
 
-        // Merge Supabase vehicles with stored vehicles (Supabase takes precedence by ID)
-        const map = new Map<string, Vehicle>();
-        for (const v of stored) {
-          map.set(v.id, v);
-        }
-        for (const v of sbVehicles) {
-          map.set(v.id, v);
-        }
-
-        let combined = Array.from(map.values()).filter((v) => (v as any).status !== 'REJECTED' && (v as any).status !== 'PENDING');
+        let combined = stored;
 
         // Apply filters
         if (type) {
@@ -181,7 +171,7 @@ export default function Search() {
       } catch (err) {
         console.warn('Error loading search vehicles:', err);
         const fallbackStored = getStoredVehicles()
-          .filter((v) => v.status === 'APPROVED' && v.isLive !== false)
+          .filter((v) => v.status === 'APPROVED' && v.isLive !== false && !isDemoVehicle(v))
           .map(mapStoredToVehicle);
         let filtered = fallbackStored;
         if (type) filtered = filtered.filter((v) => v.type?.toUpperCase() === type.toUpperCase());

@@ -174,20 +174,188 @@ export const isVehicleLive = (vehicleId: string): boolean => {
   return true;
 };
 
-// --- INITIAL DEFAULT SEED DATA (STRICTLY EMPTY: ONLY HOST-REGISTERED CARS ALLOWED) ---
+// --- STRICT REGISTERED HOST FLEET (EXCLUSIVELY APPROVED VEHICLES) ---
+export const APPROVED_HOST_VEHICLE_IDS = new Set([
+  '22222222-2222-4222-8222-222222222222',
+  '33333333-3333-4333-8333-333333333333',
+  '44444444-4444-4444-8444-444444444444',
+  '55555555-5555-4555-8555-555555555555',
+  '77777777-7777-4777-8777-777777777777',
+  '88888888-8888-4888-8888-888888888888',
+]);
+
+export const REGISTERED_HOST_VEHICLES: StoredVehicle[] = [
+  {
+    id: '22222222-2222-4222-8222-222222222222',
+    make: 'Jeep',
+    model: 'Wrangler',
+    year: 2013,
+    type: 'SUV',
+    pricePerDay: 10000,
+    seats: 7,
+    fuelType: 'DIESEL',
+    transmission: 'AUTOMATIC',
+    address: 'Thika, Cascade Parking',
+    ownerId: 'a0000000-0000-0000-0000-000000000002',
+    ownerName: 'James Mwangi',
+    ownerEmail: 'james.mwangi@mtravel.co.ke',
+    isSelfDriveAvailable: true,
+    isWithDriverAvailable: true,
+    images: ['https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80'],
+    status: 'APPROVED',
+    isLive: true,
+    ratingAverage: 5.0,
+    ratingCount: 12,
+    hasInsurance: true,
+    plateNumber: 'KCC 123X',
+    latitude: -1.0333,
+    longitude: 37.0693,
+    createdAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: '33333333-3333-4333-8333-333333333333',
+    make: 'toyota',
+    model: 'prado',
+    year: 2022,
+    type: 'SUV',
+    pricePerDay: 15000,
+    seats: 4,
+    fuelType: 'DIESEL',
+    transmission: 'AUTOMATIC',
+    address: 'nairobi',
+    ownerId: 'a0000000-0000-0000-0000-000000000002',
+    ownerName: 'James Mwangi',
+    ownerEmail: 'james.mwangi@mtravel.co.ke',
+    isSelfDriveAvailable: true,
+    isWithDriverAvailable: true,
+    images: ['https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80'],
+    status: 'APPROVED',
+    isLive: true,
+    ratingAverage: 5.0,
+    ratingCount: 12,
+    hasInsurance: true,
+    plateNumber: 'KDD 456Y',
+    latitude: -1.2921,
+    longitude: 36.8219,
+    createdAt: '2026-01-02T00:00:00.000Z',
+  },
+  {
+    id: '44444444-4444-4444-8444-444444444444',
+    make: 'Toyota',
+    model: 'Premio',
+    year: 2021,
+    type: 'CAR',
+    pricePerDay: 7000,
+    seats: 4,
+    fuelType: 'DIESEL',
+    transmission: 'AUTOMATIC',
+    address: 'Thika',
+    ownerId: 'a0000000-0000-0000-0000-000000000002',
+    ownerName: 'James Mwangi',
+    ownerEmail: 'james.mwangi@mtravel.co.ke',
+    isSelfDriveAvailable: true,
+    isWithDriverAvailable: true,
+    images: ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80'],
+    status: 'APPROVED',
+    isLive: true,
+    ratingAverage: 5.0,
+    ratingCount: 12,
+    hasInsurance: true,
+    plateNumber: 'KEE 789Z',
+    latitude: -1.0333,
+    longitude: 37.0693,
+    createdAt: '2026-01-03T00:00:00.000Z',
+  },
+  {
+    id: '55555555-5555-4555-8555-555555555555',
+    make: 'Nissan',
+    model: 'Patrol',
+    year: 2019,
+    type: 'SUV',
+    pricePerDay: 14000,
+    seats: 4,
+    fuelType: 'DIESEL',
+    transmission: 'AUTOMATIC',
+    address: 'Nairobi',
+    ownerId: 'a0000000-0000-0000-0000-000000000002',
+    ownerName: 'James Mwangi',
+    ownerEmail: 'james.mwangi@mtravel.co.ke',
+    isSelfDriveAvailable: true,
+    isWithDriverAvailable: true,
+    images: ['https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80'],
+    status: 'APPROVED',
+    isLive: true,
+    ratingAverage: 5.0,
+    ratingCount: 12,
+    hasInsurance: true,
+    plateNumber: 'KFF 012A',
+    latitude: -1.2921,
+    longitude: 36.8219,
+    createdAt: '2026-01-04T00:00:00.000Z',
+  },
+  {
+    id: '77777777-7777-4777-8777-777777777777',
+    make: 'Toyota',
+    model: 'Coaster',
+    year: 2020,
+    type: 'VAN',
+    pricePerDay: 9500,
+    seats: 18,
+    fuelType: 'DIESEL',
+    transmission: 'AUTOMATIC',
+    address: 'Thika',
+    ownerId: 'a0000000-0000-0000-0000-000000000002',
+    ownerName: 'James Mwangi',
+    ownerEmail: 'james.mwangi@mtravel.co.ke',
+    isSelfDriveAvailable: true,
+    isWithDriverAvailable: true,
+    images: ['https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80'],
+    status: 'APPROVED',
+    isLive: true,
+    ratingAverage: 5.0,
+    ratingCount: 12,
+    hasInsurance: true,
+    plateNumber: 'KGG 345B',
+    latitude: -1.0333,
+    longitude: 37.0693,
+    createdAt: '2026-01-05T00:00:00.000Z',
+  },
+  {
+    id: '88888888-8888-4888-8888-888888888888',
+    make: 'Toyota',
+    model: 'Land Cruiser Prado',
+    year: 2021,
+    type: 'SUV',
+    pricePerDay: 15000,
+    seats: 5,
+    fuelType: 'DIESEL',
+    transmission: 'AUTOMATIC',
+    address: 'Nairobi/JKIA',
+    ownerId: 'a0000000-0000-0000-0000-000000000002',
+    ownerName: 'James Mwangi',
+    ownerEmail: 'james.mwangi@mtravel.co.ke',
+    isSelfDriveAvailable: true,
+    isWithDriverAvailable: true,
+    images: ['https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=800&q=80'],
+    status: 'APPROVED',
+    isLive: true,
+    ratingAverage: 5.0,
+    ratingCount: 12,
+    hasInsurance: true,
+    plateNumber: 'KHH 678C',
+    latitude: -1.3192,
+    longitude: 36.9275,
+    createdAt: '2026-01-06T00:00:00.000Z',
+  },
+];
+
 const DEMO_VEHICLE_IDS = new Set([
   '00000000-0000-0000-0000-000000000001',
   '00000000-0000-0000-0000-000000000002',
   '00000000-0000-0000-0000-000000000003',
   '00000000-0000-0000-0000-000000000004',
   '11111111-1111-4111-8111-111111111111',
-  '22222222-2222-4222-8222-222222222222',
-  '33333333-3333-4333-8333-333333333333',
-  '44444444-4444-4444-8444-444444444444',
-  '55555555-5555-4555-8555-555555555555',
   '66666666-6666-4666-8666-666666666666',
-  '77777777-7777-4777-8777-777777777777',
-  '88888888-8888-4888-8888-888888888888',
   '99999999-9999-4999-8999-999999999999',
   'b0000000-0000-0000-0000-000000000001',
   'b0000000-0000-0000-0000-000000000002',
@@ -224,38 +392,30 @@ export const ensureUUID = (str?: string): string => {
 };
 
 export const isDemoVehicle = (v: any): boolean => {
-  if (!v) return false;
-  if (v.id && DEMO_VEHICLE_IDS.has(v.id)) {
+  if (!v) return true;
+  const id = String(v.id || '');
+
+  // Approved registered host vehicles are NEVER demo vehicles
+  if (APPROVED_HOST_VEHICLE_IDS.has(id)) {
+    return false;
+  }
+
+  // Explicit demo vehicle IDs
+  if (DEMO_VEHICLE_IDS.has(id)) {
     return true;
   }
-  if (v.id && (String(v.id).startsWith('v-host-') || String(v.id).startsWith('mv-') || String(v.id).startsWith('00000000-'))) {
+
+  // Non-standard mock prefixes (e.g. v-..., mv-..., 00000000-..., b0000000-...)
+  if (id.startsWith('v-') || id.startsWith('mv-') || id.startsWith('00000000-') || id.startsWith('b0000000-')) {
     return true;
   }
-  const name = `${v.make || ''} ${v.model || ''} ${v.vehicleName || ''} ${v.title || ''}`.toLowerCase();
-  if (
-    name.includes('defender') ||
-    name.includes('land rover') ||
-    name.includes('wrangler') ||
-    name.includes('coaster') ||
-    name.includes('79 series') ||
-    name.includes('patrol') ||
-    name.includes('toyota land cruiser prado v8 4x4') ||
-    name.includes('toyota hiace custom safari van') ||
-    name.includes('toyota alphard executive lounge') ||
-    name.includes('prado v8') ||
-    name.includes('hiace safari van 4wd') ||
-    name.includes('alphard executive lounge') ||
-    name.includes('g-wagon amg') ||
-    name.includes('g-wagon g63') ||
-    name.includes('g-wagon v8') ||
-    name.includes('coaster vip bus') ||
-    name.includes('rav4 awd') ||
-    name.includes('premio executive')
-  ) {
-    if (!v.id || DEMO_VEHICLE_IDS.has(v.id) || String(v.id).startsWith('v-host-') || String(v.id).startsWith('00000000-') || v.id === 'v-safari-1' || v.id === 'v-alphard-2') {
-      return true;
-    }
+
+  // If a vehicle is NOT in APPROVED_HOST_VEHICLE_IDS, filter it out if it belongs to seed host or default system owner
+  const ownerId = String(v.ownerId || v.owner_id || '');
+  if (!ownerId || ownerId === 'owner-host' || ownerId.startsWith('00000000-') || ownerId === 'a0000000-0000-0000-0000-000000000002') {
+    return true;
   }
+
   return false;
 };
 
@@ -457,28 +617,53 @@ export const saveBooking = (booking: Omit<StoredBooking, 'id' | 'createdAt'>): S
 export const getStoredVehicles = (): StoredVehicle[] => {
   try {
     const raw = localStorage.getItem(VEHICLES_KEY);
-    if (!raw) {
-      localStorage.setItem(VEHICLES_KEY, JSON.stringify([]));
-      return [];
+    let parsed: StoredVehicle[] = [];
+    if (raw) {
+      try {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) parsed = arr;
+      } catch {}
     }
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      localStorage.setItem(VEHICLES_KEY, JSON.stringify([]));
-      return [];
-    }
+
     const overrides = getVehicleLiveOverrides();
-    const sanitized = parsed
-      .filter((v: StoredVehicle) => !isDemoVehicle(v))
-      .map((v: StoredVehicle) => ({
-        ...v,
-        isLive: overrides[v.id] !== undefined ? overrides[v.id] : (v.isLive !== false),
-      }));
-    if (sanitized.length !== parsed.length) {
-      localStorage.setItem(VEHICLES_KEY, JSON.stringify(sanitized));
+    const valid: StoredVehicle[] = [];
+
+    // 1. Always include registered host vehicles with exact uploaded images
+    for (const hv of REGISTERED_HOST_VEHICLES) {
+      const matchLocal = parsed.find((p) => p.id === hv.id);
+      valid.push({
+        ...hv,
+        images: hv.images,
+        isLive: overrides[hv.id] !== undefined ? overrides[hv.id] : matchLocal?.isLive !== false,
+      });
     }
-    return sanitized;
+
+    // 2. Preserve only genuine newly registered vehicles added by a host during runtime
+    for (const p of parsed) {
+      if (
+        p &&
+        p.id &&
+        !APPROVED_HOST_VEHICLE_IDS.has(p.id) &&
+        !isDemoVehicle(p) &&
+        isValidUUID(p.id) &&
+        p.ownerId &&
+        p.createdAt
+      ) {
+        valid.push({
+          ...p,
+          isLive: overrides[p.id] !== undefined ? overrides[p.id] : p.isLive !== false,
+        });
+      }
+    }
+
+    try {
+      localStorage.setItem(VEHICLES_KEY, JSON.stringify(valid));
+    } catch (e) {
+      console.warn('LocalStorage save warning in getStoredVehicles:', e);
+    }
+    return valid;
   } catch {
-    return [];
+    return REGISTERED_HOST_VEHICLES;
   }
 };
 
@@ -626,9 +811,7 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
 
         const images: string[] = (Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0)
           ? v.vehicle_images.map((img: any) => img.url).filter(Boolean)
-          : (existing?.images && existing.images.length > 0)
-            ? existing.images
-            : [getVehicleFallbackImage(v.make, v.model, v.type)];
+          : [getVehicleFallbackImage(v.make, v.model, v.type)];
 
         const adminLiveOverride = overrides[v.id];
         const isLive = adminLiveOverride !== undefined
@@ -664,11 +847,11 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
         };
       });
 
-    // Merge: Supabase vehicles take precedence, preserve local-only host additions
+    // Merge: Supabase vehicles take precedence, preserve valid local-only host additions
     const sbIds = new Set(mappedSupabase.map(v => v.id));
     const merged: StoredVehicle[] = [...mappedSupabase];
     for (const lv of currentLocal) {
-      if (!sbIds.has(lv.id) && !isDemoVehicle(lv)) {
+      if (!sbIds.has(lv.id) && (APPROVED_HOST_VEHICLE_IDS.has(lv.id) || (!isDemoVehicle(lv) && isValidUUID(lv.id) && lv.ownerId && lv.createdAt))) {
         merged.push(lv);
       }
     }
@@ -688,7 +871,11 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
 
 // Automatic initial sync in browser environment
 if (typeof window !== 'undefined') {
+  try {
+    ['mt_vehicles', 'mt_shared_vehicles', 'mt_shared_vehicles_v1', 'mt_demo_vehicles'].forEach((k) => localStorage.removeItem(k));
+  } catch {}
   setTimeout(() => {
+    getStoredVehicles();
     syncVehiclesFromSupabase().catch(() => {});
     syncBookingsFromSupabase().catch(() => {});
   }, 100);
@@ -767,6 +954,7 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
         newVehicle.ownerName || 'Fleet Host',
         'VEHICLE_OWNER'
       );
+      window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'vehicles' } }));
       await syncVehiclesFromSupabase();
     } catch (err) {
       console.warn('Supabase real-time vehicle insert notice:', err);
@@ -782,19 +970,20 @@ export const deleteVehicle = (vehicleId: string): boolean => {
   try {
     localStorage.setItem(VEHICLES_KEY, JSON.stringify(filtered));
     window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: { id: vehicleId, deleted: true } }));
+    window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'vehicles', deletedId: vehicleId } }));
   } catch {
     return false;
   }
 
-  if (isValidUUID(vehicleId)) {
-    (async () => {
-      try {
-        await supabase.from('vehicles').delete().eq('id', vehicleId);
-      } catch (err) {
-        console.warn('Supabase deleteVehicle notice:', err);
-      }
-    })();
-  }
+  (async () => {
+    try {
+      await supabase.from('vehicles').delete().eq('id', vehicleId);
+      window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'vehicles', deletedId: vehicleId } }));
+    } catch (err) {
+      console.warn('Supabase deleteVehicle notice:', err);
+    }
+  })();
+
   return true;
 };
 
