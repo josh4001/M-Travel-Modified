@@ -66,8 +66,8 @@ export const MpesaStkPushModal: React.FC<MpesaStkPushModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md font-display">
-      <div className="relative w-full max-w-md rounded-3xl border border-emerald-500/40 bg-slate-900 p-6 shadow-2xl text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-4 backdrop-blur-md font-display overflow-y-auto">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto my-auto rounded-3xl border border-emerald-500/40 bg-slate-900 p-4 sm:p-5 shadow-2xl text-white scrollbar-thin scrollbar-thumb-emerald-500/30">
         {/* CLOSE BUTTON */}
         <button
           onClick={onClose}

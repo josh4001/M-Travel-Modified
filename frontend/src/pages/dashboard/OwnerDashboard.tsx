@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
-import { supabase, insertVehicleImages } from '@/lib/supabaseClient';
 import {
   Car, PlusCircle, Activity, DollarSign, TrendingUp,
   RefreshCw, CheckCircle, Clock, XCircle, Bell, Image as ImageIcon, ShieldCheck,
   Banknote, BarChart3, Star, Calendar, Upload, Wallet, Sparkles,
-  CheckCircle2, X, FileText, Paperclip, Eye, Download, Check, Lock, Fuel, Gauge, Settings
+  CheckCircle2, X, FileText, Paperclip, Eye, Download, Check, Lock, Fuel, Gauge
 } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import { fetchNotifications, sendNotification, type AppNotification } from '@/lib/notificationService';
@@ -356,7 +355,7 @@ export default function OwnerDashboard() {
       });
 
       setAddMsg(`🎉 "${newV.make} ${newV.model}" registered successfully! Redirecting to your fleet…`);
-      setNewV({ make: '', model: '', year: '2024', type: '4x4', price_per_day: '15000', seats: '7', address: '', plateNumber: '' });
+      setNewV({ make: '', model: '', year: '2024', type: '4x4', price_per_day: '15000', seats: '7', address: '', plateNumber: '', fuelType: 'Diesel', transmission: 'Automatic' });
       setDocuments([]);
       fetchData();
       setTimeout(() => switchTab('fleet'), 1200);

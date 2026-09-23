@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
-  Car, Calendar, Wallet, MapPin, Star, Clock, Search,
+  Car, Calendar, Wallet, MapPin, Star, Clock,
   CheckCircle, XCircle, AlertCircle, ArrowRight, TrendingUp, Smartphone, X,
   Compass, Mountain, Trees, Waves, Sparkles, Bell, Palmtree, User, Shield
 } from 'lucide-react';
