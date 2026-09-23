@@ -10,7 +10,6 @@ import { Card3D } from '@/components/ui/Card3D';
 import { AiTravelAssistant } from '@/components/ai/AiTravelAssistant';
 import { BookingSearch } from '@/components/ui/BookingSearch';
 import { OffersRewards } from '@/components/ui/OffersRewards';
-import { TrackerWidget } from '@/components/ui/TrackerWidget';
 
 const journey = [
   { label: 'Explore', desc: 'Browse curated safari cruisers, luxury vans, and private villas.' },
@@ -200,25 +199,6 @@ export default function Landing() {
 
       {/* M-TRAVEL PRIVILEGE CLUB & SPECIAL OFFERS SECTION */}
       <OffersRewards />
-
-      {/* LIVE TRANSPORT TRACKER SECTION */}
-      <section className="px-6 py-16 relative bg-[#FAF8F5]">
-        <div className="mx-auto max-w-7xl">
-          <div className="text-center max-w-xl mx-auto mb-8">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3.5 py-1 text-xs font-bold text-emerald-800">
-              <ShieldCheck className="h-4 w-4 text-emerald-600" /> Easy &amp; Verified Booking Lookup
-            </span>
-            <h2 className="mt-3 font-serif text-3xl font-bold text-slate-900">
-              Check Your Booking Status
-            </h2>
-            <p className="mt-2 text-xs md:text-sm text-slate-600">
-              Already booked? Enter your booking reference or trip ID below for real-time status.
-            </p>
-          </div>
-
-          <TrackerWidget />
-        </div>
-      </section>
 
       {/* AI SAFARI & TOUR CONCIERGE FEATURED SECTION */}
       <section className="px-6 py-20 relative bg-white border-y border-slate-200/70">
