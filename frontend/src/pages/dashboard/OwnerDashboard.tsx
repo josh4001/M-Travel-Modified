@@ -318,7 +318,7 @@ export default function OwnerDashboard() {
       const vehiclePhotos = [frontPhoto, backPhoto, ...extraPhotos].filter(Boolean);
       const chosenPhotos = vehiclePhotos.length > 0 ? vehiclePhotos : ['/vehicles/prado-front.jpg', '/vehicles/prado-rear.jpg'];
 
-      saveVehicle({
+      await saveVehicle({
         make: newV.make,
         model: newV.model,
         year: Number(newV.year),

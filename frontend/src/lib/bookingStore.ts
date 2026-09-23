@@ -219,7 +219,8 @@ export const ensureUUID = (str?: string): string => {
       return crypto.randomUUID();
     } catch {}
   }
-  return 'b' + Math.random().toString(36).substring(2, 9) + '-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0').slice(-12);
+  const hex = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+  return `${hex()}${hex()}-${hex()}-4${hex().substring(1)}-a${hex().substring(1)}-${hex()}${hex()}${hex()}`;
 };
 
 export const isDemoVehicle = (v: any): boolean => {
@@ -711,7 +712,7 @@ if (typeof window !== 'undefined') {
   }, 100);
 }
 
-export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'ratingAverage' | 'ratingCount' | 'status'>): StoredVehicle => {
+export const saveVehicle = async (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'ratingAverage' | 'ratingCount' | 'status'>): Promise<StoredVehicle> => {
   const existing = getStoredVehicles();
   const vehicleId = ensureUUID();
   const newVehicle: StoredVehicle = {
@@ -738,85 +739,83 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
   }
   window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: newVehicle }));
 
-  // Real-time Supabase push
-  (async () => {
-    try {
-      let validOwnerId = isValidUUID(vehicle.ownerId) ? vehicle.ownerId : null;
+  // Real-time Supabase push (awaited)
+  try {
+    let validOwnerId = isValidUUID(vehicle.ownerId) ? vehicle.ownerId : null;
 
-      if (vehicle.ownerEmail) {
-        const { data: dbUser } = await supabase
-          .from('users')
-          .select('id')
-          .eq('email', vehicle.ownerEmail.trim().toLowerCase())
-          .maybeSingle();
-        if (dbUser?.id) {
-          validOwnerId = dbUser.id;
-        }
+    if (vehicle.ownerEmail) {
+      const { data: dbUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', vehicle.ownerEmail.trim().toLowerCase())
+        .maybeSingle();
+      if (dbUser?.id) {
+        validOwnerId = dbUser.id;
       }
-
-      if (!validOwnerId) {
-        validOwnerId = 'a0000000-0000-0000-0000-000000000002';
-        await supabase.from('users').upsert({
-          id: validOwnerId,
-          email: vehicle.ownerEmail || 'james.mwangi@mtravel.co.ke',
-          first_name: (vehicle.ownerName || 'James').split(' ')[0],
-          last_name: (vehicle.ownerName || 'Mwangi').split(' ').slice(1).join(' ') || 'Mwangi',
-          role: 'VEHICLE_OWNER',
-          is_active: true,
-        }, { onConflict: 'id' });
-      }
-
-      const { error: vErr } = await supabase.from('vehicles').upsert({
-        id: vehicleId,
-        owner_id: validOwnerId,
-        type: (vehicle.type || 'BUS').toUpperCase(),
-        make: vehicle.make,
-        model: vehicle.model,
-        year: Number(vehicle.year || 2024),
-        seats: Number(vehicle.seats || 7),
-        fuel_type: (vehicle.fuelType || 'DIESEL').toUpperCase(),
-        transmission: (vehicle.transmission || 'AUTOMATIC').toUpperCase(),
-        price_per_day: Number(vehicle.pricePerDay || 15000),
-        plate_number: vehicle.plateNumber || null,
-        has_insurance: vehicle.hasInsurance !== false,
-        latitude: vehicle.latitude ?? -1.2921,
-        longitude: vehicle.longitude ?? 36.8219,
-        address: vehicle.address || 'Nairobi, Kenya',
-        is_available: false,
-        is_approved: false,
-        rating_average: 5.0,
-        rating_count: 0,
-        created_at: newVehicle.createdAt,
-      }, { onConflict: 'id' });
-
-      if (vErr) {
-        console.warn('Supabase vehicle upsert warning:', vErr);
-      }
-
-      if (Array.isArray(vehicle.images) && vehicle.images.length > 0) {
-        await supabase.from('vehicle_images').delete().eq('vehicle_id', vehicleId);
-        const imgRows = vehicle.images.slice(0, 5).map((url, idx) => ({
-          vehicle_id: vehicleId,
-          url: url,
-          is_primary: idx === 0,
-        }));
-        await supabase.from('vehicle_images').insert(imgRows);
-      }
-
-      logAuditEvent(
-        'VEHICLE_REGISTERED',
-        'Vehicle',
-        vehicleId,
-        `Host ${newVehicle.ownerName || 'Host'} submitted ${newVehicle.year} ${newVehicle.make} ${newVehicle.model} for fleet inspection`,
-        newVehicle.ownerName || 'Fleet Host',
-        'VEHICLE_OWNER'
-      );
-      window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'vehicles' } }));
-      await syncVehiclesFromSupabase();
-    } catch (err) {
-      console.warn('Supabase real-time vehicle insert notice:', err);
     }
-  })();
+
+    if (!validOwnerId) {
+      validOwnerId = 'a0000000-0000-0000-0000-000000000002';
+      await supabase.from('users').upsert({
+        id: validOwnerId,
+        email: vehicle.ownerEmail || 'james.mwangi@mtravel.co.ke',
+        first_name: (vehicle.ownerName || 'James').split(' ')[0],
+        last_name: (vehicle.ownerName || 'Mwangi').split(' ').slice(1).join(' ') || 'Mwangi',
+        role: 'VEHICLE_OWNER',
+        is_active: true,
+      }, { onConflict: 'id' });
+    }
+
+    const { error: vErr } = await supabase.from('vehicles').upsert({
+      id: vehicleId,
+      owner_id: validOwnerId,
+      type: (vehicle.type || 'BUS').toUpperCase(),
+      make: vehicle.make,
+      model: vehicle.model,
+      year: Number(vehicle.year || 2024),
+      seats: Number(vehicle.seats || 7),
+      fuel_type: (vehicle.fuelType || 'DIESEL').toUpperCase(),
+      transmission: (vehicle.transmission || 'AUTOMATIC').toUpperCase(),
+      price_per_day: Number(vehicle.pricePerDay || 15000),
+      plate_number: vehicle.plateNumber || null,
+      has_insurance: vehicle.hasInsurance !== false,
+      latitude: vehicle.latitude ?? -1.2921,
+      longitude: vehicle.longitude ?? 36.8219,
+      address: vehicle.address || 'Nairobi, Kenya',
+      is_available: false,
+      is_approved: false,
+      rating_average: 5.0,
+      rating_count: 0,
+      created_at: newVehicle.createdAt,
+    }, { onConflict: 'id' });
+
+    if (vErr) {
+      console.warn('Supabase vehicle upsert warning:', vErr);
+    }
+
+    if (Array.isArray(vehicle.images) && vehicle.images.length > 0) {
+      await supabase.from('vehicle_images').delete().eq('vehicle_id', vehicleId);
+      const imgRows = vehicle.images.slice(0, 5).map((url, idx) => ({
+        vehicle_id: vehicleId,
+        url: url,
+        is_primary: idx === 0,
+      }));
+      await supabase.from('vehicle_images').insert(imgRows);
+    }
+
+    logAuditEvent(
+      'VEHICLE_REGISTERED',
+      'Vehicle',
+      vehicleId,
+      `Host ${newVehicle.ownerName || 'Host'} submitted ${newVehicle.year} ${newVehicle.make} ${newVehicle.model} for fleet inspection`,
+      newVehicle.ownerName || 'Fleet Host',
+      'VEHICLE_OWNER'
+    );
+    window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'vehicles' } }));
+    await syncVehiclesFromSupabase();
+  } catch (err) {
+    console.warn('Supabase real-time vehicle insert notice:', err);
+  }
 
   return newVehicle;
 };
