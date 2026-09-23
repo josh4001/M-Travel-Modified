@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { getStoredBookings, getStoredVehicles } from './bookingStore';
+import { getStoredBookings, getStoredVehicles, isValidUUID } from './bookingStore';
 
 // ─── M-Pesa Payment Gateway Service ─────────────────────────────────────────
 // Demo Mode implementation simulating instant M-Pesa STK push & B2C transactions.
@@ -88,20 +88,36 @@ export function getLocalWallet(userId: string, isHost = false, userEmail?: strin
       : { id: `w-${userId}`, balance: 0, currency: 'KES', transactions: [] };
 
     let checkIsHost = isHost;
-    if (!checkIsHost && typeof window !== 'undefined') {
+    let checkIsAdmin = false;
+    if (typeof window !== 'undefined') {
       try {
         const storedUserRaw = localStorage.getItem('mt_user');
         if (storedUserRaw) {
           const u = JSON.parse(storedUserRaw);
-          if (u.id === userId && (u.role === 'VEHICLE_OWNER' || u.role === 'OWNER')) {
-            checkIsHost = true;
-            if (!userEmail) userEmail = u.email;
+          if (u.id === userId) {
+            if (u.role === 'ADMIN') checkIsAdmin = true;
+            if (u.role === 'VEHICLE_OWNER' || u.role === 'OWNER') {
+              checkIsHost = true;
+              if (!userEmail) userEmail = u.email;
+            }
           }
         }
       } catch {}
     }
 
-    if (checkIsHost) {
+    if (checkIsAdmin) {
+      const allBookings = getStoredBookings();
+      const totalRevenue = allBookings
+        .filter(b => ['COMPLETED', 'CONFIRMED', 'PAID', 'IN_PROGRESS'].includes((b.status || '').toUpperCase()))
+        .reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
+
+      const companyPlatformRevenue = Math.max(0, totalRevenue * 0.15);
+      const totalWithdrawn = (w.transactions || [])
+        .filter(t => t.type === 'WITHDRAWAL' && t.status === 'COMPLETED')
+        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+      w.balance = Math.max(0, companyPlatformRevenue - totalWithdrawn);
+    } else if (checkIsHost) {
       const allVehicles = getStoredVehicles();
       const allBookings = getStoredBookings();
       const ownerVehicleIds = new Set(
@@ -114,14 +130,14 @@ export function getLocalWallet(userId: string, isHost = false, userEmail?: strin
         ownerVehicleIds.has(b.vehicleId)
       );
       const totalGross = ownerBookings
-        .filter(b => b.paymentStatus === 'PAID' || b.status === 'COMPLETED' || b.status === 'CONFIRMED')
-        .reduce((sum, b) => sum + Number(b.totalAmount), 0);
+        .filter(b => ['COMPLETED', 'CONFIRMED', 'PAID', 'IN_PROGRESS'].includes((b.status || '').toUpperCase()))
+        .reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
 
       const netEarningsFromBookings = Math.max(0, totalGross * 0.85);
 
       const totalWithdrawn = (w.transactions || [])
         .filter(t => t.type === 'WITHDRAWAL' && t.status === 'COMPLETED')
-        .reduce((sum, t) => sum + Number(t.amount), 0);
+        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
       w.balance = Math.max(0, netEarningsFromBookings - totalWithdrawn);
     }
@@ -143,36 +159,50 @@ export function saveLocalWallet(userId: string, data: LocalWalletData) {
 async function directWalletTopUp(userId: string, amount: number): Promise<PaymentResult> {
   const ref = `MPESA-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
-  try {
-    // Get or create wallet in Supabase
-    let { data: wallet } = await supabase
-      .from('wallets')
-      .select('id, balance')
-      .eq('user_id', userId)
-      .maybeSingle();
+  if (isValidUUID(userId)) {
+    try {
+      // 1. Ensure user row exists in Supabase users table so FK user_id doesn't fail
+      await supabase.from('users').upsert({
+        id: userId,
+        email: `user_${userId.slice(0, 6)}@mtravel.co.ke`,
+        first_name: 'Platform',
+        last_name: 'User',
+        role: 'TOURIST',
+        is_active: true,
+      }, { onConflict: 'id' });
 
-    if (!wallet) {
-      const { data: newWallet } = await supabase
+      // 2. Get or create wallet in Supabase
+      let { data: wallet } = await supabase
         .from('wallets')
-        .insert({ user_id: userId, balance: 0 })
-        .select()
-        .single();
-      wallet = newWallet;
-    }
+        .select('id, balance')
+        .eq('user_id', userId)
+        .maybeSingle();
 
-    if (wallet) {
-      const newBalance = Number(wallet.balance) + amount;
-      await supabase.from('wallets').update({ balance: newBalance }).eq('id', wallet.id);
-      await supabase.from('transactions').insert({
-        wallet_id: wallet.id,
-        type: 'MPESA_TOPUP',
-        amount,
-        status: 'COMPLETED',
-        reference: ref,
-        description: `M-Pesa top-up of KES ${amount.toLocaleString()}`,
-      });
+      if (!wallet) {
+        const { data: newWallet } = await supabase
+          .from('wallets')
+          .insert({ user_id: userId, balance: 0, currency: 'KES' })
+          .select()
+          .single();
+        wallet = newWallet;
+      }
+
+      if (wallet) {
+        const newBalance = Number(wallet.balance || 0) + amount;
+        await supabase.from('wallets').update({ balance: newBalance }).eq('id', wallet.id);
+        await supabase.from('transactions').insert({
+          wallet_id: wallet.id,
+          type: 'MPESA_TOPUP',
+          amount,
+          status: 'COMPLETED',
+          reference: ref,
+          description: `M-Pesa top-up of KES ${amount.toLocaleString()}`,
+        });
+      }
+    } catch (err) {
+      console.warn('Supabase topup notice:', err);
     }
-  } catch {}
+  }
 
   // Also sync to local wallet store so UI is 100% reactive
   const localW = getLocalWallet(userId);
@@ -198,26 +228,50 @@ async function directWalletTopUp(userId: string, amount: number): Promise<Paymen
 async function directWalletWithdraw(userId: string, amount: number): Promise<PaymentResult> {
   const ref = `WD-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
-  try {
-    const { data: wallet } = await supabase
-      .from('wallets')
-      .select('id, balance')
-      .eq('user_id', userId)
-      .maybeSingle();
+  if (isValidUUID(userId)) {
+    try {
+      // 1. Ensure user row exists in Supabase users table
+      await supabase.from('users').upsert({
+        id: userId,
+        email: `user_${userId.slice(0, 6)}@mtravel.co.ke`,
+        first_name: 'Platform',
+        last_name: 'User',
+        role: 'VEHICLE_OWNER',
+        is_active: true,
+      }, { onConflict: 'id' });
 
-    if (wallet && Number(wallet.balance) >= amount) {
-      const newBalance = Number(wallet.balance) - amount;
-      await supabase.from('wallets').update({ balance: newBalance }).eq('id', wallet.id);
-      await supabase.from('transactions').insert({
-        wallet_id: wallet.id,
-        type: 'WITHDRAWAL',
-        amount,
-        status: 'COMPLETED',
-        reference: ref,
-        description: `Withdrawal of KES ${amount.toLocaleString()} to M-Pesa`,
-      });
+      // 2. Get or create wallet in Supabase
+      let { data: wallet } = await supabase
+        .from('wallets')
+        .select('id, balance')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!wallet) {
+        const { data: newWallet } = await supabase
+          .from('wallets')
+          .insert({ user_id: userId, balance: amount, currency: 'KES' })
+          .select()
+          .single();
+        wallet = newWallet;
+      }
+
+      if (wallet) {
+        const newBalance = Math.max(0, Number(wallet.balance || 0) - amount);
+        await supabase.from('wallets').update({ balance: newBalance }).eq('id', wallet.id);
+        await supabase.from('transactions').insert({
+          wallet_id: wallet.id,
+          type: 'WITHDRAWAL',
+          amount,
+          status: 'COMPLETED',
+          reference: ref,
+          description: `Withdrawal of KES ${amount.toLocaleString()} to M-Pesa`,
+        });
+      }
+    } catch (err) {
+      console.warn('Supabase withdraw notice:', err);
     }
-  } catch {}
+  }
 
   // Update local wallet store
   const localW = getLocalWallet(userId);

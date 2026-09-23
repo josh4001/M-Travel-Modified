@@ -744,7 +744,7 @@ export default function VehicleDetail() {
                 <span>Instant M-PESA Mobile Checkout</span>
               </label>
               <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                Safaricom Express Verified
+                Safaricom M-PESA
               </span>
             </div>
 

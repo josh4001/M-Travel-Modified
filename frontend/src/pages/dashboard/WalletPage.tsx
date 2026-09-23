@@ -45,6 +45,8 @@ export default function WalletPage() {
   })();
   const { formatPrice } = useCurrency();
   const isCarOwner = user?.role === 'VEHICLE_OWNER';
+  const isAdmin = user?.role === 'ADMIN';
+  const isCarOwnerOrAdmin = isCarOwner || isAdmin;
 
   // Driver partners are compensated directly by the agency per contract
   if (user?.role === 'DRIVER') {
@@ -228,8 +230,8 @@ export default function WalletPage() {
                 {formatPrice(wallet.balance)}
               </p>
               <div className="mt-6 space-y-4">
-                {/* M-PESA TOP UP — REMOVED FOR CAR OWNERS PER REQUIREMENT */}
-                {!isCarOwner && (
+                {/* M-PESA TOP UP — REMOVED FOR CAR OWNERS & ADMIN ACCOUNTS PER REQUIREMENT */}
+                {!isCarOwnerOrAdmin && (
                   <div className="rounded-2xl border border-[#00A859]/40 bg-black/40 p-4 space-y-3">
                     <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 uppercase tracking-wider">
                       <MpesaLogo variant="icon" /> M-Pesa Wallet Top Up

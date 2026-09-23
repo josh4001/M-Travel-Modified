@@ -43,7 +43,7 @@ export const MpesaLogo: React.FC<MpesaLogoProps> = ({
     return (
       <span className={`inline-flex items-center gap-2 font-bold text-emerald-400 ${className}`}>
         {logoImage}
-        <span>M-PESA Express</span>
+        <span>M-PESA</span>
       </span>
     );
   }
@@ -53,7 +53,7 @@ export const MpesaLogo: React.FC<MpesaLogoProps> = ({
       <div className={`inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#00A859] to-[#008C4A] px-3 py-1.5 text-xs font-bold text-white shadow-md border border-emerald-400/30 ${className}`}>
         {logoImage}
         <span className="text-[10px] uppercase font-mono tracking-wider bg-black/25 px-2 py-0.5 rounded-full text-emerald-200">
-          STK Express Verified
+          M-PESA
         </span>
       </div>
     );
