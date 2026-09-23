@@ -175,179 +175,9 @@ export const isVehicleLive = (vehicleId: string): boolean => {
 };
 
 // --- STRICT REGISTERED HOST FLEET (EXCLUSIVELY APPROVED VEHICLES) ---
-export const APPROVED_HOST_VEHICLE_IDS = new Set([
-  '22222222-2222-4222-8222-222222222222',
-  '33333333-3333-4333-8333-333333333333',
-  '44444444-4444-4444-8444-444444444444',
-  '55555555-5555-4555-8555-555555555555',
-  '77777777-7777-4777-8777-777777777777',
-  '88888888-8888-4888-8888-888888888888',
-]);
+export const APPROVED_HOST_VEHICLE_IDS = new Set<string>();
 
-export const REGISTERED_HOST_VEHICLES: StoredVehicle[] = [
-  {
-    id: '22222222-2222-4222-8222-222222222222',
-    make: 'Jeep',
-    model: 'Wrangler',
-    year: 2013,
-    type: 'SUV',
-    pricePerDay: 10000,
-    seats: 7,
-    fuelType: 'DIESEL',
-    transmission: 'AUTOMATIC',
-    address: 'Thika, Cascade Parking',
-    ownerId: 'a0000000-0000-0000-0000-000000000002',
-    ownerName: 'James Mwangi',
-    ownerEmail: 'james.mwangi@mtravel.co.ke',
-    isSelfDriveAvailable: true,
-    isWithDriverAvailable: true,
-    images: ['https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80'],
-    status: 'APPROVED',
-    isLive: true,
-    ratingAverage: 5.0,
-    ratingCount: 12,
-    hasInsurance: true,
-    plateNumber: 'KCC 123X',
-    latitude: -1.0333,
-    longitude: 37.0693,
-    createdAt: '2026-01-01T00:00:00.000Z',
-  },
-  {
-    id: '33333333-3333-4333-8333-333333333333',
-    make: 'toyota',
-    model: 'prado',
-    year: 2022,
-    type: 'SUV',
-    pricePerDay: 15000,
-    seats: 4,
-    fuelType: 'DIESEL',
-    transmission: 'AUTOMATIC',
-    address: 'nairobi',
-    ownerId: 'a0000000-0000-0000-0000-000000000002',
-    ownerName: 'James Mwangi',
-    ownerEmail: 'james.mwangi@mtravel.co.ke',
-    isSelfDriveAvailable: true,
-    isWithDriverAvailable: true,
-    images: ['https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80'],
-    status: 'APPROVED',
-    isLive: true,
-    ratingAverage: 5.0,
-    ratingCount: 12,
-    hasInsurance: true,
-    plateNumber: 'KDD 456Y',
-    latitude: -1.2921,
-    longitude: 36.8219,
-    createdAt: '2026-01-02T00:00:00.000Z',
-  },
-  {
-    id: '44444444-4444-4444-8444-444444444444',
-    make: 'Toyota',
-    model: 'Premio',
-    year: 2021,
-    type: 'CAR',
-    pricePerDay: 7000,
-    seats: 4,
-    fuelType: 'DIESEL',
-    transmission: 'AUTOMATIC',
-    address: 'Thika',
-    ownerId: 'a0000000-0000-0000-0000-000000000002',
-    ownerName: 'James Mwangi',
-    ownerEmail: 'james.mwangi@mtravel.co.ke',
-    isSelfDriveAvailable: true,
-    isWithDriverAvailable: true,
-    images: ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80'],
-    status: 'APPROVED',
-    isLive: true,
-    ratingAverage: 5.0,
-    ratingCount: 12,
-    hasInsurance: true,
-    plateNumber: 'KEE 789Z',
-    latitude: -1.0333,
-    longitude: 37.0693,
-    createdAt: '2026-01-03T00:00:00.000Z',
-  },
-  {
-    id: '55555555-5555-4555-8555-555555555555',
-    make: 'Nissan',
-    model: 'Patrol',
-    year: 2019,
-    type: 'SUV',
-    pricePerDay: 14000,
-    seats: 4,
-    fuelType: 'DIESEL',
-    transmission: 'AUTOMATIC',
-    address: 'Nairobi',
-    ownerId: 'a0000000-0000-0000-0000-000000000002',
-    ownerName: 'James Mwangi',
-    ownerEmail: 'james.mwangi@mtravel.co.ke',
-    isSelfDriveAvailable: true,
-    isWithDriverAvailable: true,
-    images: ['https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80'],
-    status: 'APPROVED',
-    isLive: true,
-    ratingAverage: 5.0,
-    ratingCount: 12,
-    hasInsurance: true,
-    plateNumber: 'KFF 012A',
-    latitude: -1.2921,
-    longitude: 36.8219,
-    createdAt: '2026-01-04T00:00:00.000Z',
-  },
-  {
-    id: '77777777-7777-4777-8777-777777777777',
-    make: 'Toyota',
-    model: 'Coaster',
-    year: 2020,
-    type: 'VAN',
-    pricePerDay: 9500,
-    seats: 18,
-    fuelType: 'DIESEL',
-    transmission: 'AUTOMATIC',
-    address: 'Thika',
-    ownerId: 'a0000000-0000-0000-0000-000000000002',
-    ownerName: 'James Mwangi',
-    ownerEmail: 'james.mwangi@mtravel.co.ke',
-    isSelfDriveAvailable: true,
-    isWithDriverAvailable: true,
-    images: ['https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80'],
-    status: 'APPROVED',
-    isLive: true,
-    ratingAverage: 5.0,
-    ratingCount: 12,
-    hasInsurance: true,
-    plateNumber: 'KGG 345B',
-    latitude: -1.0333,
-    longitude: 37.0693,
-    createdAt: '2026-01-05T00:00:00.000Z',
-  },
-  {
-    id: '88888888-8888-4888-8888-888888888888',
-    make: 'Toyota',
-    model: 'Land Cruiser Prado',
-    year: 2021,
-    type: 'SUV',
-    pricePerDay: 15000,
-    seats: 5,
-    fuelType: 'DIESEL',
-    transmission: 'AUTOMATIC',
-    address: 'Nairobi/JKIA',
-    ownerId: 'a0000000-0000-0000-0000-000000000002',
-    ownerName: 'James Mwangi',
-    ownerEmail: 'james.mwangi@mtravel.co.ke',
-    isSelfDriveAvailable: true,
-    isWithDriverAvailable: true,
-    images: ['https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=800&q=80'],
-    status: 'APPROVED',
-    isLive: true,
-    ratingAverage: 5.0,
-    ratingCount: 12,
-    hasInsurance: true,
-    plateNumber: 'KHH 678C',
-    latitude: -1.3192,
-    longitude: 36.9275,
-    createdAt: '2026-01-06T00:00:00.000Z',
-  },
-];
+export const REGISTERED_HOST_VEHICLES: StoredVehicle[] = [];
 
 const DEMO_VEHICLE_IDS = new Set([
   '00000000-0000-0000-0000-000000000001',
@@ -788,9 +618,11 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
     }
 
     if (!data || data.length === 0) {
-      // Auto-seed core vehicles to Supabase so all coworkers see identical live vehicles
-      await seedCoreVehiclesToSupabase();
-      return getStoredVehicles();
+      try {
+        localStorage.setItem(VEHICLES_KEY, JSON.stringify([]));
+      } catch {}
+      window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: [] }));
+      return [];
     }
 
     const currentLocal = getStoredVehicles();
@@ -872,7 +704,12 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
 // Automatic initial sync in browser environment
 if (typeof window !== 'undefined') {
   try {
-    ['mt_vehicles', 'mt_shared_vehicles', 'mt_shared_vehicles_v1', 'mt_demo_vehicles'].forEach((k) => localStorage.removeItem(k));
+    ['mt_vehicles', 'mt_shared_vehicles', 'mt_shared_vehicles_v1', 'mt_shared_vehicles_v2', 'mt_shared_bookings_v2', 'mt_demo_vehicles', 'mt_vehicle_live_overrides', 'mt_rental_handovers'].forEach((k) => {
+      const raw = localStorage.getItem(k);
+      if (raw && (raw.includes('22222222-2222') || raw.includes('33333333-3333') || raw.includes('44444444-4444') || raw.includes('55555555-5555') || raw.includes('77777777-7777') || raw.includes('88888888-8888') || raw.includes('b-101'))) {
+        localStorage.removeItem(k);
+      }
+    });
   } catch {}
   setTimeout(() => {
     getStoredVehicles();
