@@ -225,6 +225,78 @@ async function directWalletTopUp(userId: string, amount: number): Promise<Paymen
   };
 }
 
+export async function creditHostPayout(
+  userId: string,
+  amount: number,
+  bookingRef: string,
+  description?: string
+): Promise<PaymentResult> {
+  const ref = `PAYOUT-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  const desc = description || `Net rental earnings released for trip ${bookingRef}`;
+
+  if (isValidUUID(userId)) {
+    try {
+      await supabase.from('users').upsert({
+        id: userId,
+        email: `user_${userId.slice(0, 6)}@mtravel.co.ke`,
+        first_name: 'Fleet',
+        last_name: 'Host',
+        role: 'VEHICLE_OWNER',
+        is_active: true,
+      }, { onConflict: 'id' });
+
+      let { data: wallet } = await supabase
+        .from('wallets')
+        .select('id, balance')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!wallet) {
+        const { data: newWallet } = await supabase
+          .from('wallets')
+          .insert({ user_id: userId, balance: 0, currency: 'KES' })
+          .select()
+          .single();
+        wallet = newWallet;
+      }
+
+      if (wallet) {
+        const newBalance = Number(wallet.balance || 0) + amount;
+        await supabase.from('wallets').update({ balance: newBalance }).eq('id', wallet.id);
+        await supabase.from('transactions').insert({
+          wallet_id: wallet.id,
+          type: 'BOOKING_PAYOUT',
+          amount,
+          status: 'COMPLETED',
+          reference: ref,
+          description: desc,
+        });
+      }
+    } catch (err) {
+      console.warn('Supabase payout notice:', err);
+    }
+  }
+
+  const localW = getLocalWallet(userId);
+  localW.balance += amount;
+  localW.transactions.unshift({
+    id: `tx-${Date.now()}`,
+    type: 'BOOKING_PAYOUT',
+    amount,
+    status: 'COMPLETED',
+    reference: ref,
+    description: desc,
+    created_at: new Date().toISOString(),
+  });
+  saveLocalWallet(userId, localW);
+
+  return {
+    success: true,
+    message: `KES ${amount.toLocaleString()} net earnings credited to host wallet.`,
+    reference: ref,
+  };
+}
+
 async function directWalletWithdraw(userId: string, amount: number): Promise<PaymentResult> {
   const ref = `WD-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 

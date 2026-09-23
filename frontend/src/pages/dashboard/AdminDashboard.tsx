@@ -3,7 +3,7 @@ import {
   Users, Car, Shield, DollarSign, Activity, CheckCircle,
   RefreshCw, BarChart3, TrendingUp, AlertTriangle, ArrowDownLeft, ArrowUpRight, FileCheck, Landmark,
   XCircle, Trash2, Server, Wifi, HardDrive, Clock, MapPin, Lock,
-  Palmtree, Plus, Edit2, Check, ExternalLink, Sparkles, Award
+  Palmtree, Plus, Edit2, Check, ExternalLink, Sparkles, Award, Upload
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useCurrency } from '@/context/CurrencyContext';
@@ -122,6 +122,7 @@ export default function AdminDashboard() {
     priceKES: 45000,
     priceUnit: '/ person',
     imageUrl: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1200&q=80',
+    images: [] as string[],
     location: 'Maasai Mara, Kenya',
     region: 'Narok County',
     specs: '3 Days / 2 Nights, Full Board Lodge, 4x4 Cruiser, Park Entry Included',
@@ -386,6 +387,70 @@ export default function AdminDashboard() {
     setTimeout(() => setApprovalMsg(null), 14000);
   };
 
+  const compressImageFile = (file: File, maxWidth = 1200, quality = 0.8): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (readerEvent) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          } else {
+            resolve(readerEvent.target?.result as string);
+          }
+        };
+        img.onerror = () => resolve('');
+        img.src = readerEvent.target?.result as string;
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleDestImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const newUrls: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const compressed = await compressImageFile(files[i], 1200, 0.8);
+      if (compressed) newUrls.push(compressed);
+    }
+    if (newUrls.length > 0) {
+      setDestForm(prev => {
+        const currentImages = prev.images && prev.images.length > 0 ? prev.images : (prev.imageUrl ? [prev.imageUrl] : []);
+        const combined = [...currentImages, ...newUrls];
+        return {
+          ...prev,
+          imageUrl: combined[0] || prev.imageUrl,
+          images: combined,
+        };
+      });
+    }
+    e.target.value = '';
+  };
+
+  const handleRemoveDestImage = (indexToRemove: number) => {
+    setDestForm(prev => {
+      const filtered = (prev.images || []).filter((_, i) => i !== indexToRemove);
+      return {
+        ...prev,
+        imageUrl: filtered[0] || '',
+        images: filtered,
+      };
+    });
+  };
+
   const handleOpenCreateDest = () => {
     setEditingDest(null);
     setDestForm({
@@ -396,6 +461,7 @@ export default function AdminDashboard() {
       priceKES: 45000,
       priceUnit: '/ person',
       imageUrl: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1200&q=80',
+      images: ['https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1200&q=80'],
       location: 'Maasai Mara, Kenya',
       region: 'Narok County',
       specs: '3 Days / 2 Nights, Full Board Lodge, 4x4 Cruiser, Park Entry Included',
@@ -418,6 +484,7 @@ export default function AdminDashboard() {
       priceKES: item.priceKES,
       priceUnit: item.priceUnit,
       imageUrl: item.imageUrl,
+      images: item.images && item.images.length > 0 ? item.images : [item.imageUrl],
       location: item.location,
       region: item.region,
       specs: item.specs.join(', '),
@@ -435,6 +502,8 @@ export default function AdminDashboard() {
     const specsArray = destForm.specs.split(',').map(s => s.trim()).filter(Boolean);
     const highlightsArray = destForm.highlights.split(',').map(s => s.trim()).filter(Boolean);
     const itineraryArray = destForm.itinerary.split('\n').map(s => s.trim()).filter(Boolean);
+    const imagesArray = destForm.images && destForm.images.length > 0 ? destForm.images : (destForm.imageUrl ? [destForm.imageUrl] : []);
+    const primaryImage = imagesArray[0] || destForm.imageUrl || 'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1200&q=80';
 
     if (editingDest) {
       updateDestination(editingDest.id, {
@@ -444,7 +513,8 @@ export default function AdminDashboard() {
         badge: destForm.badge,
         priceKES: Number(destForm.priceKES),
         priceUnit: destForm.priceUnit,
-        imageUrl: destForm.imageUrl,
+        imageUrl: primaryImage,
+        images: imagesArray,
         location: destForm.location,
         region: destForm.region,
         specs: specsArray,
@@ -465,7 +535,8 @@ export default function AdminDashboard() {
         badge: destForm.badge,
         priceKES: Number(destForm.priceKES),
         priceUnit: destForm.priceUnit,
-        imageUrl: destForm.imageUrl || 'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1200&q=80',
+        imageUrl: primaryImage,
+        images: imagesArray,
         location: destForm.location,
         region: destForm.region,
         specs: specsArray.length ? specsArray : ['Exclusive Access', 'Verified M-Travel'],
@@ -2327,7 +2398,7 @@ export default function AdminDashboard() {
       {/* ── ADMIN CREATE / EDIT DESTINATION MODAL ── */}
       {isDestModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs overflow-y-auto">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 my-8">
+          <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 space-y-4 my-auto max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-start justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5 text-purple-700">
                 <div className="rounded-xl bg-purple-100 p-2 text-purple-700 shrink-0">
@@ -2458,18 +2529,62 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-800 block mb-1">Featured Image URL *</label>
+                <label className="text-xs font-bold text-slate-800 block mb-1">
+                  Featured Image & Photo Gallery (Upload Multiple Destination Photos) *
+                </label>
+                <div className="flex flex-wrap items-center gap-3 mb-2">
+                  <label className="cursor-pointer rounded-xl bg-purple-50 border border-purple-200 px-3.5 py-2 text-xs font-bold text-purple-700 hover:bg-purple-100 transition flex items-center gap-2 shadow-2xs">
+                    <Upload className="h-4 w-4" /> Upload Multiple Photos
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleDestImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                  <span className="text-[11px] text-slate-500 font-medium">Or paste image URL below</span>
+                </div>
                 <input
                   type="url"
-                  required
                   value={destForm.imageUrl}
-                  onChange={e => setDestForm({ ...destForm, imageUrl: e.target.value })}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setDestForm(prev => ({
+                      ...prev,
+                      imageUrl: val,
+                      images: prev.images?.length ? [val, ...prev.images.slice(1)] : [val]
+                    }));
+                  }}
                   placeholder="https://images.unsplash.com/photo-..."
                   className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs text-slate-800 focus:border-purple-600 focus:outline-hidden"
                 />
-                {destForm.imageUrl && (
-                  <div className="mt-2 h-28 w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
-                    <img src={destForm.imageUrl} alt="Preview" className="h-full w-full object-cover" />
+
+                {(destForm.images?.length > 0 || destForm.imageUrl) && (
+                  <div className="mt-3">
+                    <span className="text-[11px] font-bold text-slate-600 block mb-1.5">
+                      Gallery Photos ({destForm.images?.length || (destForm.imageUrl ? 1 : 0)}) — First photo is primary cover:
+                    </span>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {(destForm.images?.length > 0 ? destForm.images : [destForm.imageUrl]).map((imgUrl, idx) => (
+                        <div key={idx} className="relative group h-24 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-2xs">
+                          <img src={imgUrl} alt={`Photo ${idx + 1}`} className="h-full w-full object-cover" />
+                          {idx === 0 && (
+                            <span className="absolute top-1 left-1 bg-purple-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs">
+                              Cover
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDestImage(idx)}
+                            className="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow-xs"
+                            title="Remove photo"
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

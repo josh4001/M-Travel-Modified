@@ -1,5 +1,6 @@
 import { supabase, getVehicleFallbackImage } from './supabaseClient';
 import { logAuditEvent } from './rentalLifecycleStore';
+import { creditHostPayout } from './paymentService';
 
 // Centralized persistent store for M-TRAVEL bookings, vehicle registration, and notifications
 export interface StoredBooking {
@@ -1140,6 +1141,20 @@ export const updateBookingStatus = (
       try {
         toggleVehicleLiveStatus(ub.vehicleId, true);
       } catch {}
+    }
+
+    if (normStatus === 'COMPLETED') {
+      try {
+        const vehiclesList = getStoredVehicles();
+        const v = vehiclesList.find(x => x.id === ub.vehicleId);
+        const hostId = ub.ownerId || v?.ownerId || 'a0000000-0000-0000-0000-000000000002';
+        const earned = (ub.totalAmount || 0) * 0.85;
+        if (earned > 0 && hostId) {
+          creditHostPayout(hostId, earned, ub.bookingRef || ub.id);
+        }
+      } catch (err) {
+        console.warn('Host payout error on completion:', err);
+      }
     }
 
     const actionName = status === 'CANCELLED' ? 'BOOKING_CANCELLED' : `BOOKING_${normStatus}`;

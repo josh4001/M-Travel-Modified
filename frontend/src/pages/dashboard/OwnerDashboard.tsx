@@ -16,7 +16,7 @@ import {
   getVehicleHireStatus,
   type StoredBooking, type StoredVehicle, type VehicleDocument
 } from '@/lib/bookingStore';
-import { getLocalWallet } from '@/lib/paymentService';
+import { getLocalWallet, creditHostPayout } from '@/lib/paymentService';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
 import { VehicleStatusBadge } from '@/components/ui/LuxuryVehicleBadges';
 import {
@@ -390,6 +390,7 @@ export default function OwnerDashboard() {
     const b = bookings.find(x => x.id === bId);
     if (b) {
       const earned = b.totalAmount * 0.85;
+      creditHostPayout(user?.id || b.ownerId || 'a0000000-0000-0000-0000-000000000002', earned, b.bookingRef);
       sendNotification({
         recipientId: user?.id,
         role: 'VEHICLE_OWNER',

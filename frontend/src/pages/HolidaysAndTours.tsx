@@ -51,6 +51,7 @@ export default function HolidaysAndTours() {
   const [bookingSuccessRef, setBookingSuccessRef] = useState<string | null>(null);
   const [lastEmailSent, setLastEmailSent] = useState<DispatchedEmail | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
 
   const loadData = () => {
     const liveOnly = getStoredDestinations().filter((d) => d.isLive);
@@ -464,14 +465,40 @@ export default function HolidaysAndTours() {
                 </p>
               </div>
 
-              {/* PHOTO PREVIEW */}
-              <div className="relative h-64 rounded-2xl overflow-hidden bg-slate-900">
-                <img
-                  src={selectedItem.imageUrl}
-                  alt={selectedItem.title}
-                  className="h-full w-full object-cover"
-                />
-              </div>
+              {/* PHOTO PREVIEW & GALLERY CAROUSEL */}
+              {(() => {
+                const photos = selectedItem.images && selectedItem.images.length > 0
+                  ? selectedItem.images
+                  : [selectedItem.imageUrl];
+                const activePhoto = photos[activePhotoIdx] || photos[0] || selectedItem.imageUrl;
+                return (
+                  <div className="space-y-2">
+                    <div className="relative h-64 sm:h-72 rounded-2xl overflow-hidden bg-slate-900 shadow-inner">
+                      <img
+                        src={activePhoto}
+                        alt={selectedItem.title}
+                        className="h-full w-full object-cover transition-all duration-300"
+                      />
+                      <div className="absolute bottom-2.5 right-2.5 bg-black/70 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg backdrop-blur-md border border-white/10">
+                        Photo {activePhotoIdx + 1} of {photos.length}
+                      </div>
+                    </div>
+                    {photos.length > 1 && (
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                        {photos.map((p, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setActivePhotoIdx(idx)}
+                            className={`relative h-16 w-24 shrink-0 rounded-xl overflow-hidden border-2 transition ${activePhotoIdx === idx ? 'border-amber-500 scale-105 shadow-md' : 'border-slate-200 opacity-70 hover:opacity-100'}`}
+                          >
+                            <img src={p} alt={`Thumb ${idx + 1}`} className="h-full w-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* OVERVIEW */}
               <div className="space-y-2">

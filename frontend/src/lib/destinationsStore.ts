@@ -5,6 +5,8 @@
  * Travelers consume the live items on the "Holidays and Tours" page.
  */
 
+import { supabase } from './supabaseClient';
+
 export type HolidayOrTourCategory = 'TOUR' | 'HOLIDAY_HOME' | 'DESTINATION';
 
 export interface TravelDestinationItem {
@@ -16,6 +18,7 @@ export interface TravelDestinationItem {
   priceKES: number;
   priceUnit: string; // e.g. '/ person', '/ night', '/ package'
   imageUrl: string;
+  images?: string[]; // Multi-photo gallery support
   location: string;
   region: string;
   specs: string[];
@@ -324,6 +327,35 @@ export function getStoredDestinations(): TravelDestinationItem[] {
   }
 }
 
+export async function syncDestinationsToSupabase() {
+  try {
+    const items = getStoredDestinations();
+    for (const d of items) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(d.id);
+      const cleanHex = d.id.replace(/[^0-9a-f]/gi, '').padEnd(12, '0').slice(-12);
+      const validId = isUuid ? d.id : `d0000000-0000-4000-8000-${cleanHex}`;
+
+      await supabase.from('tours').upsert({
+        id: validId,
+        title: d.title,
+        category: (d.category || 'TOUR').toUpperCase(),
+        description: d.details?.overview || d.subtitle || d.title,
+        price: Number(d.priceKES || 0),
+        duration_days: 3,
+        created_at: d.createdAt || new Date().toISOString(),
+      }, { onConflict: 'id' });
+    }
+  } catch (err) {
+    console.warn('syncDestinationsToSupabase notice:', err);
+  }
+}
+
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    syncDestinationsToSupabase().catch(() => {});
+  }, 500);
+}
+
 /**
  * Save / Create a new destination or holiday package (Admin only)
  */
@@ -350,6 +382,7 @@ export function saveDestination(
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
   window.dispatchEvent(new CustomEvent('mt_destinations_updated', { detail: { destination: newItem } }));
+  syncDestinationsToSupabase().catch(() => {});
   return newItem;
 }
 
@@ -373,6 +406,7 @@ export function updateDestination(
   all[index] = updated;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
   window.dispatchEvent(new CustomEvent('mt_destinations_updated', { detail: { destination: updated } }));
+  syncDestinationsToSupabase().catch(() => {});
   return updated;
 }
 
@@ -388,6 +422,7 @@ export function toggleDestinationLiveStatus(id: string): boolean {
   target.updatedAt = new Date().toISOString();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
   window.dispatchEvent(new CustomEvent('mt_destinations_updated', { detail: { destination: target } }));
+  syncDestinationsToSupabase().catch(() => {});
   return target.isLive;
 }
 
@@ -401,5 +436,6 @@ export function deleteDestination(id: string): boolean {
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
   window.dispatchEvent(new CustomEvent('mt_destinations_updated', { detail: { deletedId: id } }));
+  syncDestinationsToSupabase().catch(() => {});
   return true;
 }
