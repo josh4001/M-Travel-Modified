@@ -195,40 +195,62 @@ export default function OwnerDashboard() {
 
 
   const fetchData = async () => {
-    // Non-blocking background sync from Supabase
+    // 1. Immediately render local stored vehicles & bookings
+    const allVehicles = getStoredVehicles();
+    const allBookings = getStoredBookings();
+    const currentUserId = user?.id;
+
+    const ownerVehicles = currentUserId
+      ? allVehicles.filter(v => 
+          v.ownerId === currentUserId || 
+          (user?.email && v.ownerEmail === user.email) ||
+          (user?.email?.toLowerCase().includes('james') && (v.ownerEmail?.toLowerCase().includes('james') || v.ownerId === 'a0000000-0000-0000-0000-000000000002'))
+        )
+      : allVehicles;
+    const ownerVehicleIds = new Set(ownerVehicles.map(v => v.id));
+
+    const ownerBookings = currentUserId
+      ? allBookings.filter(b => 
+          (b.ownerId && (b.ownerId === currentUserId || (user?.email && b.ownerId === user.email))) || 
+          ownerVehicleIds.has(b.vehicleId)
+        )
+      : allBookings;
+
+    setVehicles(ownerVehicles);
+    setBookings(ownerBookings);
+
+    // 2. Non-blocking background sync from Supabase
     Promise.all([
       syncVehiclesFromSupabase().catch(() => []),
       syncBookingsFromSupabase().catch(() => []),
     ]).then(() => {
-      const allVehicles = getStoredVehicles();
-      const allBookings = getStoredBookings();
-      const currentUserId = user?.id;
+      const refreshedVehicles = getStoredVehicles();
+      const refreshedBookings = getStoredBookings();
 
-      const ownerVehicles = currentUserId
-        ? allVehicles.filter(v => 
+      const updatedOwnerVehicles = currentUserId
+        ? refreshedVehicles.filter(v => 
             v.ownerId === currentUserId || 
             (user?.email && v.ownerEmail === user.email) ||
             (user?.email?.toLowerCase().includes('james') && (v.ownerEmail?.toLowerCase().includes('james') || v.ownerId === 'a0000000-0000-0000-0000-000000000002'))
           )
-        : [];
-      const ownerVehicleIds = new Set(ownerVehicles.map(v => v.id));
+        : refreshedVehicles;
+      const updatedVehicleIds = new Set(updatedOwnerVehicles.map(v => v.id));
 
-      const ownerBookings = currentUserId
-        ? allBookings.filter(b => 
+      const updatedOwnerBookings = currentUserId
+        ? refreshedBookings.filter(b => 
             (b.ownerId && (b.ownerId === currentUserId || (user?.email && b.ownerId === user.email))) || 
-            ownerVehicleIds.has(b.vehicleId)
+            updatedVehicleIds.has(b.vehicleId)
           )
-        : [];
+        : refreshedBookings;
 
-      setVehicles(ownerVehicles);
-      setBookings(ownerBookings);
+      setVehicles(updatedOwnerVehicles);
+      setBookings(updatedOwnerBookings);
     }).catch(() => {});
 
     // Fetch alerts strictly isolated to this host in background
     fetchNotifications(user?.id, 'VEHICLE_OWNER').then(notifs => {
       if (notifs) setNotifications(notifs);
     }).catch(() => {});
-
   };
 
   useEffect(() => {
@@ -315,29 +337,6 @@ export default function OwnerDashboard() {
         plateNumber: newV.plateNumber,
         documents: documents,
       });
-
-      try {
-        const { data: inserted } = await supabase.from('vehicles').insert({
-          owner_id: user?.id,
-          make: newV.make, model: newV.model, year: Number(newV.year),
-          type: newV.type, price_per_day: Number(newV.price_per_day),
-          seats: Number(newV.seats),
-          fuel_type: (newV.fuelType || 'DIESEL').toUpperCase(),
-          transmission: (newV.transmission || 'AUTOMATIC').toUpperCase(),
-          latitude: -1.2921, longitude: 36.8219,
-          address: newV.address || 'Nairobi, Kenya',
-          is_available: false, has_insurance: true, is_approved: false,
-          rating_average: 5, rating_count: 1,
-        }).select();
-
-        if (inserted && inserted.length > 0 && chosenPhotos.length > 0) {
-          const vId = inserted[0].id;
-          await insertVehicleImages(vId, chosenPhotos);
-        }
-        await syncVehiclesFromSupabase();
-      } catch (sbErr) {
-        console.warn('Supabase vehicle insert warning:', sbErr);
-      }
 
       sendNotification({
         role: 'ADMIN',

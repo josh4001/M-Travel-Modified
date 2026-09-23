@@ -240,9 +240,9 @@ export const isDemoVehicle = (v: any): boolean => {
     return true;
   }
 
-  // If a vehicle is NOT in APPROVED_HOST_VEHICLE_IDS, filter it out if it belongs to seed host or default system owner
+  // If a vehicle is NOT in APPROVED_HOST_VEHICLE_IDS, filter it out if it belongs to mock host
   const ownerId = String(v.ownerId || v.owner_id || '');
-  if (!ownerId || ownerId === 'owner-host' || ownerId.startsWith('00000000-') || ownerId === 'a0000000-0000-0000-0000-000000000002') {
+  if (!ownerId || ownerId === 'owner-host' || ownerId.startsWith('00000000-')) {
     return true;
   }
 

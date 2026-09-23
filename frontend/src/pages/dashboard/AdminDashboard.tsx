@@ -186,8 +186,8 @@ export default function AdminDashboard() {
       syncBookingsFromSupabase().catch(() => []),
       syncUsersFromSupabase().catch(() => []),
     ]).then(([syncedV, syncedB]) => {
-      if (syncedV && syncedV.length > 0) setVehicles(syncedV);
-      if (syncedB && syncedB.length > 0) setBookings(syncedB);
+      setVehicles(Array.isArray(syncedV) && syncedV.length > 0 ? syncedV : getStoredVehicles());
+      setBookings(Array.isArray(syncedB) && syncedB.length > 0 ? syncedB : getStoredBookings());
     }).catch(() => {});
   };
 
