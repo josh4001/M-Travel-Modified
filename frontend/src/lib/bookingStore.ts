@@ -226,24 +226,13 @@ export const isDemoVehicle = (v: any): boolean => {
   if (!v) return true;
   const id = String(v.id || '');
 
-  // Approved registered host vehicles are NEVER demo vehicles
-  if (APPROVED_HOST_VEHICLE_IDS.has(id)) {
+  // Prado and approved host vehicles are real registered fleet vehicles
+  if (id === '33333333-3333-4333-8333-333333333333' || APPROVED_HOST_VEHICLE_IDS.has(id)) {
     return false;
   }
 
-  // Explicit demo vehicle IDs
-  if (DEMO_VEHICLE_IDS.has(id)) {
-    return true;
-  }
-
-  // Non-standard mock prefixes (e.g. v-..., mv-..., 00000000-..., b0000000-...)
+  // Only mock seed IDs are demo vehicles
   if (id.startsWith('v-') || id.startsWith('mv-') || id.startsWith('00000000-') || id.startsWith('b0000000-')) {
-    return true;
-  }
-
-  // If a vehicle is NOT in APPROVED_HOST_VEHICLE_IDS, filter it out if it belongs to mock host
-  const ownerId = String(v.ownerId || v.owner_id || '');
-  if (!ownerId || ownerId === 'owner-host' || ownerId.startsWith('00000000-')) {
     return true;
   }
 
@@ -305,12 +294,13 @@ export const syncLocalStoreToSupabase = async (): Promise<void> => {
       }, { onConflict: 'id' });
 
       if (!vErr && Array.isArray(v.images) && v.images.length > 0) {
+        await supabase.from('vehicle_images').delete().eq('vehicle_id', vId);
         const imgRows = v.images.slice(0, 5).map((url, idx) => ({
           vehicle_id: vId,
-          url: url.startsWith('data:') ? 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80' : url,
+          url: url.startsWith('data:') ? 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=1000&q=80' : url,
           is_primary: idx === 0,
         }));
-        await supabase.from('vehicle_images').upsert(imgRows, { onConflict: 'vehicle_id,url' });
+        await supabase.from('vehicle_images').insert(imgRows);
       }
     }
 
@@ -785,6 +775,16 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
         rating_count: 0,
         created_at: newVehicle.createdAt,
       }, { onConflict: 'id' });
+
+      if (Array.isArray(vehicle.images) && vehicle.images.length > 0) {
+        await supabase.from('vehicle_images').delete().eq('vehicle_id', vehicleId);
+        const imgRows = vehicle.images.slice(0, 5).map((url, idx) => ({
+          vehicle_id: vehicleId,
+          url: url.startsWith('data:') ? 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=1000&q=80' : url,
+          is_primary: idx === 0,
+        }));
+        await supabase.from('vehicle_images').insert(imgRows);
+      }
 
       logAuditEvent(
         'VEHICLE_REGISTERED',
