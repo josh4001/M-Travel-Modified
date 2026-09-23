@@ -295,16 +295,6 @@ export default function HolidaysAndTours() {
                   Open WhatsApp Booking Voucher
                 </a>
 
-                {lastEmailSent && (
-                  <button
-                    onClick={() => setShowEmailModal(true)}
-                    className="rounded-xl border border-amber-400 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition flex items-center gap-1.5"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 text-amber-600" />
-                    Preview Dispatched Email
-                  </button>
-                )}
-
                 <Link
                   to="/dashboard/bookings"
                   className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"

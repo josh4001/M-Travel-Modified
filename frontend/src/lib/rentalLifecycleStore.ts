@@ -487,8 +487,11 @@ export const executeReturnInspection = async (
     status: 'COMPLETED'
   });
 
-  // 3. Mark Vehicle as available again
+  // 3. Mark Vehicle as available again for future bookings
   if (fullInspection.vehicleId) {
+    try {
+      toggleVehicleLiveStatus(fullInspection.vehicleId, true);
+    } catch {}
     updateStoredVehicle(fullInspection.vehicleId, {
       isLive: true
     });

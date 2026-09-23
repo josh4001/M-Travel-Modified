@@ -120,27 +120,27 @@ export const MpesaStkPushModal: React.FC<MpesaStkPushModalProps> = ({
               </p>
             </div>
 
-            {/* PREMIUM PRE-BOOKING VERIFICATION NOTICE */}
+            {/* PREMIUM PRE-BOOKING VERIFICATION & DAMAGE LIABILITY NOTICE */}
             <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-950/40 via-amber-900/20 to-slate-900 p-3.5 text-xs text-amber-200/90 space-y-2 shadow-inner">
               <div className="flex items-center gap-2 text-amber-400 font-bold uppercase text-[11px] tracking-wider border-b border-amber-500/30 pb-1.5">
                 <ShieldCheck className="h-4 w-4 text-amber-400 shrink-0" />
-                <span>Mandatory Pickup Document Requirements</span>
+                <span>Pickup Documents &amp; Clean Return Policy</span>
               </div>
               <p className="text-[11px] leading-relaxed text-amber-100 font-medium">
-                Prior to key handover, physical document verification is mandatory by M-TRAVEL agents for safety &amp; fleet security:
+                Physical National ID/Passport (and Driving License for self-drive) required at vehicle pickup.
               </p>
               <ul className="text-[10.5px] space-y-1 pl-1 text-slate-200 font-semibold">
                 <li className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400"></span>
-                  Original National ID Card or Valid Passport (Mandatory)
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                  Clean Return: Vehicles returned in good condition incur KES 0 damage fees.
                 </li>
                 <li className="flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-amber-400"></span>
-                  Valid Driving License (Required for Self-Drive rentals)
+                  Damage Liability: Renter is held legally &amp; financially liable for any new damage caused.
                 </li>
               </ul>
               <p className="text-[10px] text-amber-300/80 italic font-mono pt-1">
-                By authorizing payment below, you confirm you will present valid original credentials at vehicle pickup.
+                By authorizing payment below, you confirm you will present valid credentials &amp; accept rental terms.
               </p>
             </div>
 

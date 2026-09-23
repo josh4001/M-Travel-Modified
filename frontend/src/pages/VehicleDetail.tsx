@@ -5,7 +5,7 @@ import { useSelector } from 'react-redux';
 import {
   Star, ShieldCheck, Phone as PhoneIcon, Mail, Calendar, MapPin,
   Car, CheckCircle2, Lock, Headset, AlertCircle,
-  MessageSquare, Sparkles
+  MessageSquare
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Vehicle } from '@/types';
@@ -521,16 +521,6 @@ export default function VehicleDetail() {
                   <MessageSquare className="h-4 w-4 fill-white" />
                   Open WhatsApp Booking Voucher
                 </a>
-
-                {lastEmailSent && (
-                  <button
-                    onClick={() => setShowEmailModal(true)}
-                    className="rounded-xl border border-amber-400 bg-amber-50 py-2 px-3 text-xs font-bold text-amber-800 hover:bg-amber-100 transition flex items-center justify-center gap-1.5"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 text-amber-600" />
-                    Preview Dispatched Email
-                  </button>
-                )}
               </div>
             </div>
           )}
@@ -734,6 +724,17 @@ export default function VehicleDetail() {
               <span className="text-slate-900">Total Payable</span>
               <span className="font-mono text-lg text-amber-700">{formatPrice(grandTotal)}</span>
             </div>
+          </div>
+
+          {/* CLEAN RETURN & DAMAGE LIABILITY POLICY NOTICE */}
+          <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-3.5 text-xs text-amber-950 space-y-1 shadow-2xs">
+            <div className="flex items-center gap-2 font-bold text-amber-900 uppercase text-[10px] tracking-wider border-b border-amber-300/60 pb-1">
+              <ShieldCheck className="h-4 w-4 text-amber-700 shrink-0" />
+              <span>Clean Return &amp; Damage Liability Policy</span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-amber-900 font-medium">
+              <strong>KES 0 Upfront Deposit Held:</strong> Vehicles returned in good condition incur <strong>KES 0 damage fees</strong>. If accidental damage or missing equipment occurs during rental, the renter is legally &amp; financially liable for assessed repair costs documented during return handover.
+            </p>
           </div>
 
           {/* M-PESA PAYMENT SECTION */}

@@ -388,7 +388,7 @@ export const VehicleHandoverModal: React.FC<VehicleHandoverModalProps> = ({
             <ul className="list-disc pl-5 space-y-1 text-gray-600">
               <li><strong>Authorized Driver:</strong> Vehicle shall be piloted solely by the verified registered hirer.</li>
               <li><strong>Speed Compliance:</strong> Hirer adheres strictly to Kenyan highway regulations (100 km/h ceiling).</li>
-              <li><strong>Security Deposit:</strong> KES 10,000 deposit refundable upon return inspection minus fuel or damage.</li>
+              <li><strong>Clean Return &amp; Damage Liability:</strong> Vehicles returned in clean, undamaged condition incur KES 0 damage fees. The hirer is held legally &amp; financially liable for any new damage or missing equipment assessed during return inspection.</li>
               <li><strong>Safety & Check-ins:</strong> Hirer affirms periodic possession check-ins and emergency SOS reporting.</li>
             </ul>
 

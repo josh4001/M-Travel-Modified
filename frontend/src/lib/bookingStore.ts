@@ -1135,7 +1135,14 @@ export const updateBookingStatus = (
 
   if (updatedBooking) {
     const ub = updatedBooking as StoredBooking;
-    const actionName = status === 'CANCELLED' ? 'BOOKING_CANCELLED' : `BOOKING_${status.toUpperCase()}`;
+    const normStatus = String(status || '').toUpperCase();
+    if (['CANCELLED', 'COMPLETED', 'REJECTED'].includes(normStatus) && ub.vehicleId) {
+      try {
+        toggleVehicleLiveStatus(ub.vehicleId, true);
+      } catch {}
+    }
+
+    const actionName = status === 'CANCELLED' ? 'BOOKING_CANCELLED' : `BOOKING_${normStatus}`;
     logAuditEvent(
       actionName,
       'Booking',

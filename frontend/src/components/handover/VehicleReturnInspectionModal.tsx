@@ -408,45 +408,49 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
             )}
           </div>
 
-          {/* Security Deposit Settlement Breakdown */}
+          {/* Vehicle Return & Damage Assessment Summary */}
           <div className="p-4 rounded-xl border border-indigo-200 bg-indigo-50/50 space-y-3">
             <h4 className="text-sm font-bold text-indigo-950 flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-indigo-600" />
-                Security Deposit Settlement Breakdown
+                Vehicle Return &amp; Damage Assessment
               </span>
-              <span className="text-xs font-mono font-bold text-indigo-800 bg-white px-2.5 py-0.5 rounded border border-indigo-200">
-                Deposit Held: KES {depositHeld.toLocaleString()}
+              <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded border ${
+                effectiveDamageCharge > 0 ? 'bg-red-100 text-red-800 border-red-300' : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+              }`}>
+                {effectiveDamageCharge > 0 ? `Assessed Damage: KES ${effectiveDamageCharge.toLocaleString()}` : 'Clean Return — KES 0 Damage Charges'}
               </span>
             </h4>
 
             <div className="space-y-1.5 text-xs text-gray-700 pt-1 border-t border-indigo-100">
-              <div className="flex justify-between">
-                <span>Security Deposit Held:</span>
-                <span className="font-mono font-semibold">+ KES {depositHeld.toLocaleString()}</span>
+              <div className="flex justify-between font-semibold">
+                <span>Vehicle Return Condition Status:</span>
+                <span className={effectiveDamageCharge > 0 ? 'text-red-700 font-bold' : 'text-emerald-700 font-bold'}>
+                  {effectiveDamageCharge > 0 ? 'Damaged / Restitution Required' : 'Clean & Good Condition (KES 0 Fee)'}
+                </span>
               </div>
               {calculatedFuelCharge > 0 && (
-                <div className="flex justify-between text-red-600">
-                  <span>Fuel Deficit Deduction:</span>
-                  <span className="font-mono font-semibold">- KES {calculatedFuelCharge.toLocaleString()}</span>
+                <div className="flex justify-between text-red-600 font-semibold">
+                  <span>Fuel Refilling Deficit Charge:</span>
+                  <span className="font-mono">+ KES {calculatedFuelCharge.toLocaleString()}</span>
                 </div>
               )}
               {effectiveDamageCharge > 0 && (
-                <div className="flex justify-between text-red-600">
-                  <span>Damage Restitution Deduction:</span>
-                  <span className="font-mono font-semibold">- KES {effectiveDamageCharge.toLocaleString()}</span>
+                <div className="flex justify-between text-red-600 font-bold">
+                  <span>Assessed Repair / Restitution Fee (Billed to Renter):</span>
+                  <span className="font-mono">+ KES {effectiveDamageCharge.toLocaleString()}</span>
                 </div>
               )}
               {lateReturnCharge > 0 && (
-                <div className="flex justify-between text-red-600">
+                <div className="flex justify-between text-red-600 font-semibold">
                   <span>Late Return Overdue Fee:</span>
-                  <span className="font-mono font-semibold">- KES {lateReturnCharge.toLocaleString()}</span>
+                  <span className="font-mono">+ KES {lateReturnCharge.toLocaleString()}</span>
                 </div>
               )}
               <div className="flex justify-between pt-2 border-t border-indigo-200 text-sm font-bold">
-                <span className="text-indigo-950">Net Deposit Refunded to Traveler:</span>
-                <span className="font-mono text-emerald-700 text-base">
-                  KES {depositRefunded.toLocaleString()}
+                <span className="text-indigo-950">Total Settlement Charges Billed:</span>
+                <span className="font-mono text-indigo-900 text-base">
+                  KES {totalDeductions.toLocaleString()}
                 </span>
               </div>
             </div>
