@@ -14,14 +14,7 @@ export interface AppNotification {
 
 const LOCAL_NOTIFS_KEY = 'mt_app_notifications';
 
-// Automatic cleanup to ensure fresh start with 0 alerts across accounts
-if (typeof window !== 'undefined') {
-  try {
-    ['mt_app_notifications', 'mt_app_notifications_v1', 'mt_alerts', 'mt_audit_logs', 'mt_incidents', 'mt_rental_handovers'].forEach((k) => {
-      localStorage.removeItem(k);
-    });
-  } catch {}
-}
+
 
 function getLocalNotifications(): AppNotification[] {
   try {

@@ -618,11 +618,12 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
     }
 
     if (!data || data.length === 0) {
+      const currentLocal = getStoredVehicles().filter(v => !isDemoVehicle(v));
       try {
-        localStorage.setItem(VEHICLES_KEY, JSON.stringify([]));
+        localStorage.setItem(VEHICLES_KEY, JSON.stringify(currentLocal));
       } catch {}
-      window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: [] }));
-      return [];
+      window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: currentLocal }));
+      return currentLocal;
     }
 
     const currentLocal = getStoredVehicles();
