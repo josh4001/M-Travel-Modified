@@ -223,7 +223,7 @@ export default function VehicleDetail() {
         vehicleMake: targetVehicle.make,
         vehicleModel: targetVehicle.model,
         vehicleName: `${targetVehicle.make} ${targetVehicle.model}`,
-        vehicleImage: targetVehicle.images?.[0]?.url || (targetVehicle as any).imageUrl || 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=800&q=80',
+        vehicleImage: targetVehicle.images?.[0]?.url || (targetVehicle as any).imageUrl || '/vehicles/prado-front.jpg',
         ownerId: targetVehicle.ownerId || targetVehicle.owner?.id || 'owner-1',
         driverId: undefined,
         driverName: withDriver ? 'Verified Station Chauffeur' : undefined,
@@ -351,7 +351,7 @@ export default function VehicleDetail() {
         <div className="space-y-6">
           <div className="relative h-80 rounded-2xl bg-slate-100 overflow-hidden border border-slate-200 shadow-sm group">
             <img
-              src={targetVehicle.images[0]?.url || 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73'}
+              src={targetVehicle.images[0]?.url || '/vehicles/prado-front.jpg'}
               className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700"
               alt={`${targetVehicle.make} ${targetVehicle.model}`}
             />

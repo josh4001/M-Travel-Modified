@@ -297,7 +297,7 @@ export const syncLocalStoreToSupabase = async (): Promise<void> => {
         await supabase.from('vehicle_images').delete().eq('vehicle_id', vId);
         const imgRows = v.images.slice(0, 5).map((url, idx) => ({
           vehicle_id: vId,
-          url: url.startsWith('data:') ? 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=1000&q=80' : url,
+          url: url.startsWith('data:') ? '/vehicles/prado-front.jpg' : url,
           is_primary: idx === 0,
         }));
         await supabase.from('vehicle_images').insert(imgRows);
@@ -533,7 +533,7 @@ export const syncBookingsFromSupabase = async (): Promise<StoredBooking[]> => {
         vehicleImage = vehicle.vehicle_images[0]?.url;
       }
       if (!vehicleImage) {
-        vehicleImage = 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=800&q=80';
+        vehicleImage = '/vehicles/prado-front.jpg';
       }
 
       return {
@@ -730,7 +730,7 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
     console.warn('LocalStorage quota warning in saveVehicle, saving with pruned images:', err);
     const sanitized = updated.map(v => ({
       ...v,
-      images: v.images.map((img, i) => img.startsWith('data:') ? (i === 0 ? 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=800&q=80' : 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80') : img)
+      images: v.images.map((img, i) => img.startsWith('data:') ? (i === 0 ? '/vehicles/prado-front.jpg' : '/vehicles/prado-rear.jpg') : img)
     }));
     try {
       localStorage.setItem(VEHICLES_KEY, JSON.stringify(sanitized));
@@ -780,7 +780,7 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
         await supabase.from('vehicle_images').delete().eq('vehicle_id', vehicleId);
         const imgRows = vehicle.images.slice(0, 5).map((url, idx) => ({
           vehicle_id: vehicleId,
-          url: url.startsWith('data:') ? 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=1000&q=80' : url,
+          url: url.startsWith('data:') ? '/vehicles/prado-front.jpg' : url,
           is_primary: idx === 0,
         }));
         await supabase.from('vehicle_images').insert(imgRows);
@@ -1112,7 +1112,7 @@ export const updateBookingStatus = (
       vehicleMake: 'Safari Fleet',
       vehicleModel: 'Vehicle',
       vehicleName: 'Safari Fleet Vehicle',
-      vehicleImage: 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=800&q=80',
+      vehicleImage: '/vehicles/prado-front.jpg',
       touristId: 'tourist',
       touristName: 'Traveler',
       touristPhone: '0712345678',
@@ -1407,7 +1407,7 @@ export const generateSampleBookingForVehicle = (
     vehicleMake,
     vehicleModel,
     vehicleName: `${vehicleMake} ${vehicleModel}`,
-    vehicleImage: 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=800&q=80',
+    vehicleImage: '/vehicles/prado-front.jpg',
     ownerId: hostId,
     driverName: 'Host Assigned Certified Driver',
     touristId: `usr-tourist-${Date.now()}`,
