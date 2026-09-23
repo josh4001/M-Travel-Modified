@@ -559,6 +559,31 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* ── PENDING VEHICLE REGISTRATION APPROVAL ALERT BANNER ── */}
+      {pendingVehicles.length > 0 && (
+        <div className="rounded-2xl bg-amber-500/10 border-2 border-amber-500/40 p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm animate-pulse">
+              <Car className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="font-serif text-sm font-bold text-amber-950 flex items-center gap-1.5">
+                <span>🚨</span> {pendingVehicles.length} New Vehicle Registration Request{pendingVehicles.length > 1 ? 's' : ''} Awaiting Admin Approval
+              </h4>
+              <p className="text-xs text-amber-900/90 font-medium mt-0.5">
+                Fleet Host{pendingVehicles.length > 1 ? 's have' : ' has'} submitted {pendingVehicles.map(v => `${v.make} ${v.model} (${v.plateNumber || 'Pending Plate'})`).join(', ')}. Review photos & compliance docs to approve or decline.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setActiveTab('approvals')}
+            className="btn-primary !py-2 !px-4 text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 shadow-sm shrink-0 flex items-center gap-1.5"
+          >
+            Review Pending Queue ({pendingVehicles.length}) →
+          </button>
+        </div>
+      )}
+
       {/* ── TOP EXCEPTION METRICS STRIP (OPERATIONAL STATUS AT A GLANCE) ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs">

@@ -326,7 +326,7 @@ export default function OwnerDashboard() {
           transmission: (newV.transmission || 'AUTOMATIC').toUpperCase(),
           latitude: -1.2921, longitude: 36.8219,
           address: newV.address || 'Nairobi, Kenya',
-          is_available: true, has_insurance: true, is_approved: true,
+          is_available: false, has_insurance: true, is_approved: false,
           rating_average: 5, rating_count: 1,
         }).select();
 

@@ -645,10 +645,11 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
           ? v.vehicle_images.map((img: any) => img.url).filter(Boolean)
           : [getVehicleFallbackImage(v.make, v.model, v.type)];
 
+        const isApprovedInDb = Boolean(v.is_approved);
         const adminLiveOverride = overrides[v.id];
         const isLive = adminLiveOverride !== undefined
           ? adminLiveOverride
-          : (existing?.isLive !== undefined ? existing.isLive : v.is_available !== false);
+          : (isApprovedInDb && v.is_available !== false);
 
         return {
           id: v.id,
@@ -658,14 +659,14 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
           type: (v.type || 'SUV').toUpperCase(),
           pricePerDay: Number(v.price_per_day || 15000),
           seats: Number(v.seats || 7),
-          fuelType: v.fuel_type || 'Diesel',
-          transmission: v.transmission || 'Automatic',
+          fuelType: v.fuel_type ? (v.fuel_type.charAt(0).toUpperCase() + v.fuel_type.slice(1).toLowerCase()) : 'Diesel',
+          transmission: v.transmission ? (v.transmission.charAt(0).toUpperCase() + v.transmission.slice(1).toLowerCase()) : 'Automatic',
           address: v.address || existing?.address || 'Nairobi, Kenya',
           ownerId: v.owner_id || existing?.ownerId || 'a0000000-0000-0000-0000-000000000002',
           ownerName,
           ownerEmail: owner.email || existing?.ownerEmail,
           images,
-          status: (v.is_approved !== false ? 'APPROVED' : (existing?.status || 'PENDING_APPROVAL')) as any,
+          status: isApprovedInDb ? 'APPROVED' : (existing?.status === 'REJECTED' ? 'REJECTED' : 'PENDING_APPROVAL') as any,
           isLive,
           ratingAverage: Number(v.rating_average || 4.9),
           ratingCount: Number(v.rating_count || 12),
@@ -724,8 +725,8 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
   const newVehicle: StoredVehicle = {
     ...vehicle,
     id: vehicleId,
-    status: 'APPROVED',
-    isLive: true,
+    status: 'PENDING_APPROVAL',
+    isLive: false,
     ratingAverage: 5.0,
     ratingCount: 0,
     createdAt: new Date().toISOString(),
@@ -776,8 +777,8 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
         latitude: vehicle.latitude ?? -1.2921,
         longitude: vehicle.longitude ?? 36.8219,
         address: vehicle.address || 'Nairobi, Kenya',
-        is_available: true,
-        is_approved: true,
+        is_available: false,
+        is_approved: false,
         rating_average: 5.0,
         rating_count: 0,
         created_at: newVehicle.createdAt,
