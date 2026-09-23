@@ -48,7 +48,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
   const vehicleImages = useMemo(() => {
     return vehicle.images && vehicle.images.length > 0
       ? vehicle.images
-      : ['https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1200&q=80'];
+      : ['https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=1200&q=80'];
   }, [vehicle.images]);
 
   const vehicleDocs = useMemo(() => {

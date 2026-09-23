@@ -40,7 +40,7 @@ export function getVehicleFallbackImage(make: string = '', model: string = '', t
     return 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1000&q=80';
   }
   if (id === '55555555-5555-4555-8555-555555555555' || text.includes('patrol')) {
-    return 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=1000&q=80';
+    return 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=1000&q=80';
   }
   if (id === '77777777-7777-4777-8777-777777777777' || text.includes('coaster') || text.includes('bus')) {
     return 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1000&q=80';
@@ -63,10 +63,8 @@ export function formatDbVehicle(v: any): any {
     }));
   }
 
-  if (images.length === 0 || !images[0].url) {
+  if (images.length === 0 || !images[0]?.url) {
     images = [{ id: `img-default-${v.id}`, url: hostImage, isPrimary: true }];
-  } else if (['22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333', '44444444-4444-4444-8444-444444444444', '55555555-5555-4555-8555-555555555555', '77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888'].includes(v.id)) {
-    images[0].url = hostImage;
   }
 
   const owner = v.users || {};

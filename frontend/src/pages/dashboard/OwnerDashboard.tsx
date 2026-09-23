@@ -80,7 +80,7 @@ export default function OwnerDashboard() {
     make: '', model: '', year: '2024', type: '4x4', price_per_day: '15000', seats: '7', address: '', plateNumber: '',
     fuelType: 'Diesel', transmission: 'Automatic',
   });
-  const [frontPhoto, setFrontPhoto] = useState<string>('https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80');
+  const [frontPhoto, setFrontPhoto] = useState<string>('https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=800&q=80');
   const [backPhoto, setBackPhoto] = useState<string>('https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80');
   const [extraPhotos, setExtraPhotos] = useState<string[]>([]);
   const [extraPhotoInput, setExtraPhotoInput] = useState('');
@@ -316,7 +316,7 @@ export default function OwnerDashboard() {
 
     try {
       const vehiclePhotos = [frontPhoto, backPhoto, ...extraPhotos].filter(Boolean);
-      const chosenPhotos = vehiclePhotos.length > 0 ? vehiclePhotos : ['https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80'];
+      const chosenPhotos = vehiclePhotos.length > 0 ? vehiclePhotos : ['https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=800&q=80'];
 
       saveVehicle({
         make: newV.make,
@@ -568,7 +568,7 @@ export default function OwnerDashboard() {
                 return (
                   <div key={v.id} className="rounded-2xl bg-white border border-slate-200/90 p-5 space-y-3 shadow-sm hover:shadow-md transition">
                     <div className="relative h-44 rounded-xl overflow-hidden bg-slate-900 border border-slate-200/60">
-                      <img src={v.images[0] || 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b'} alt={v.make} className="h-full w-full object-cover" />
+                      <img src={v.images[0] || 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73'} alt={v.make} className="h-full w-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                       <span className="absolute top-3 left-3 rounded-full bg-mtravel-burgundy text-amber-300 font-mono text-[10px] font-bold px-2.5 py-0.5 border border-amber-400/30">
                         {v.type}

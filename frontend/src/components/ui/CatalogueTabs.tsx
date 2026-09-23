@@ -97,7 +97,7 @@ export const CatalogueTabs: React.FC = () => {
       badge: `${v.type} Vehicle`,
       priceKES: v.pricePerDay,
       priceUnit: '/ day',
-      imageUrl: v.images[0] || 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80',
+      imageUrl: v.images[0] || 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=800&q=80',
       location: v.address || 'Nairobi & National Parks',
       specs: [`${v.seats} Seats`, v.fuelType, v.transmission, v.hasInsurance ? 'Verified' : 'Standard Insurance'],
     }));

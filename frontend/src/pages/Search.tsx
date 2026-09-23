@@ -57,7 +57,9 @@ const mapStoredToVehicle = (v: StoredVehicle): Vehicle => {
     address: v.address,
     ratingAverage: v.ratingAverage,
     ratingCount: v.ratingCount,
-    images: [{ id: `img-${v.id}`, url: hostImage || primaryUrl, isPrimary: true }],
+    images: (Array.isArray(v.images) && v.images.length > 0)
+      ? v.images.map((url, idx) => ({ id: `img-${v.id}-${idx}`, url, isPrimary: idx === 0 }))
+      : [{ id: `img-${v.id}`, url: primaryUrl, isPrimary: true }],
     owner: {
       id: v.ownerId || 'a0000000-0000-0000-0000-000000000002',
       firstName: v.ownerName ? v.ownerName.split(' ')[0] : 'James',

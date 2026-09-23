@@ -1019,7 +1019,7 @@ export default function AdminDashboard() {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="relative h-36 rounded-xl overflow-hidden bg-slate-900 border border-slate-200">
                       <img
-                        src={v.images[0] || 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=600'}
+                        src={v.images[0] || 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?w=600'}
                         alt="Front View"
                         className="h-full w-full object-cover"
                       />
@@ -1311,7 +1311,7 @@ export default function AdminDashboard() {
 
                     <div className="relative h-36 rounded-xl overflow-hidden bg-slate-900">
                       <img
-                        src={v.images[0] || 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=400'}
+                        src={v.images[0] || 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?w=400'}
                         alt={`${v.make} ${v.model}`}
                         className="h-full w-full object-cover"
                       />
@@ -2324,7 +2324,7 @@ export default function AdminDashboard() {
             <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 flex items-center gap-3">
               <div className="h-14 w-20 rounded-lg overflow-hidden bg-slate-200 shrink-0">
                 <img
-                  src={vehicleToDelete.images[0] || 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=200'}
+                  src={vehicleToDelete.images[0] || 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?w=200'}
                   alt={vehicleToDelete.make}
                   className="h-full w-full object-cover"
                 />

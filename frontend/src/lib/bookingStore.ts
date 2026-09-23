@@ -533,7 +533,7 @@ export const syncBookingsFromSupabase = async (): Promise<StoredBooking[]> => {
         vehicleImage = vehicle.vehicle_images[0]?.url;
       }
       if (!vehicleImage) {
-        vehicleImage = 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80';
+        vehicleImage = 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=800&q=80';
       }
 
       return {
@@ -635,7 +635,7 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
 
         const images: string[] = (Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0)
           ? v.vehicle_images.map((img: any) => img.url).filter(Boolean)
-          : [getVehicleFallbackImage(v.make, v.model, v.type)];
+          : [getVehicleFallbackImage(v.make, v.model, v.type, v.id)];
 
         const isApprovedInDb = Boolean(v.is_approved);
         const adminLiveOverride = overrides[v.id];
@@ -730,7 +730,7 @@ export const saveVehicle = (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'r
     console.warn('LocalStorage quota warning in saveVehicle, saving with pruned images:', err);
     const sanitized = updated.map(v => ({
       ...v,
-      images: v.images.map((img, i) => img.startsWith('data:') ? (i === 0 ? 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80' : 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80') : img)
+      images: v.images.map((img, i) => img.startsWith('data:') ? (i === 0 ? 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=800&q=80' : 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80') : img)
     }));
     try {
       localStorage.setItem(VEHICLES_KEY, JSON.stringify(sanitized));
@@ -1112,7 +1112,7 @@ export const updateBookingStatus = (
       vehicleMake: 'Safari Fleet',
       vehicleModel: 'Vehicle',
       vehicleName: 'Safari Fleet Vehicle',
-      vehicleImage: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80',
+      vehicleImage: 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=800&q=80',
       touristId: 'tourist',
       touristName: 'Traveler',
       touristPhone: '0712345678',
@@ -1407,7 +1407,7 @@ export const generateSampleBookingForVehicle = (
     vehicleMake,
     vehicleModel,
     vehicleName: `${vehicleMake} ${vehicleModel}`,
-    vehicleImage: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80',
+    vehicleImage: 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?auto=format&fit=crop&w=800&q=80',
     ownerId: hostId,
     driverName: 'Host Assigned Certified Driver',
     touristId: `usr-tourist-${Date.now()}`,
