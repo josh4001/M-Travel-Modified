@@ -237,7 +237,17 @@ function saveLocalAccount(acc: LocalAccount) {
         updated_at: new Date().toISOString(),
       };
 
-      await supabase.from('users').upsert(payload, { onConflict: 'email' });
+      let { error: uErr } = await supabase.from('users').upsert(payload, { onConflict: 'email' });
+      if (uErr && uErr.message?.includes('users_phone_key')) {
+        payload.phone = null;
+        await supabase.from('users').upsert(payload, { onConflict: 'email' });
+      }
+
+      await supabase.from('wallets').upsert({
+        user_id: accountId,
+        balance: 0,
+        currency: 'KES',
+      }, { onConflict: 'user_id' });
 
       logAuditEvent(
         'USER_REGISTERED',
@@ -262,11 +272,10 @@ export async function syncDefaultUsersToSupabase() {
   try {
     const accounts = getLocalAccounts();
     for (const acc of accounts) {
-      const validId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(acc.id)
-        ? acc.id
-        : undefined;
+      const validId = generateUserUUID(acc.id);
 
       const payload: any = {
+        id: validId,
         email: acc.email.toLowerCase(),
         phone: acc.phone || null,
         password_hash: '$2a$12$FcgCkt0j41e9vnp7pXSzzeGGZ.VPoec/vZ1N3Xxt1RLU4LC6UDt4u',
@@ -277,9 +286,18 @@ export async function syncDefaultUsersToSupabase() {
         is_active: acc.isActive !== false,
         updated_at: new Date().toISOString(),
       };
-      if (validId) payload.id = validId;
 
-      await supabase.from('users').upsert(payload, { onConflict: 'email' });
+      let { error: uErr } = await supabase.from('users').upsert(payload, { onConflict: 'email' });
+      if (uErr && uErr.message?.includes('users_phone_key')) {
+        payload.phone = null;
+        await supabase.from('users').upsert(payload, { onConflict: 'email' });
+      }
+
+      await supabase.from('wallets').upsert({
+        user_id: validId,
+        balance: 0,
+        currency: 'KES',
+      }, { onConflict: 'user_id' });
     }
   } catch (err) {
     console.warn('syncDefaultUsersToSupabase notice:', err);
@@ -392,31 +410,6 @@ export async function register(payload: {
   };
 
   saveLocalAccount(accountRecord);
-
-  // Attempt to write to Supabase in background
-  try {
-    supabase.from('users').insert({
-      id: effectiveId,
-      email: payload.email.trim(),
-      password_hash: `demo_hash_${payload.password}`,
-      first_name: payload.firstName.trim(),
-      last_name: payload.lastName.trim(),
-      phone: payload.phone ?? null,
-      role,
-      is_active: true,
-      is_email_verified: true,
-    }).then(async (res) => {
-      if (!res.error) {
-        try {
-          await supabase.from('wallets').insert({
-            user_id: effectiveId,
-            balance: 0,
-            currency: 'KES',
-          });
-        } catch { /* empty */ }
-      }
-    }, () => {});
-  } catch {}
 
   const mockTokens = buildMockTokens(effectiveId, payload.email.trim(), role);
   persistTokens(mockTokens.accessToken, mockTokens.refreshToken);
