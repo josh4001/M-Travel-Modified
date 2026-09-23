@@ -7,7 +7,7 @@ import {
   Car, PlusCircle, Activity, DollarSign, TrendingUp,
   RefreshCw, CheckCircle, Clock, XCircle, Bell, Image as ImageIcon, ShieldCheck,
   Banknote, BarChart3, Star, Calendar, Upload, Wallet, Sparkles,
-  CheckCircle2, X, FileText, Paperclip, Eye, Download, Check, Lock
+  CheckCircle2, X, FileText, Paperclip, Eye, Download, Check, Lock, Fuel, Gauge, Settings
 } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import { fetchNotifications, sendNotification, type AppNotification } from '@/lib/notificationService';
@@ -79,6 +79,7 @@ export default function OwnerDashboard() {
   // New vehicle form state with verification photos (Front & Back view)
   const [newV, setNewV] = useState({
     make: '', model: '', year: '2024', type: '4x4', price_per_day: '15000', seats: '7', address: '', plateNumber: '',
+    fuelType: 'Diesel', transmission: 'Automatic',
   });
   const [frontPhoto, setFrontPhoto] = useState<string>('https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=800&q=80');
   const [backPhoto, setBackPhoto] = useState<string>('https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80');
@@ -303,8 +304,8 @@ export default function OwnerDashboard() {
         type: newV.type,
         pricePerDay: Number(newV.price_per_day),
         seats: Number(newV.seats),
-        fuelType: 'Diesel',
-        transmission: 'Automatic',
+        fuelType: newV.fuelType || 'Diesel',
+        transmission: newV.transmission || 'Automatic',
         address: newV.address || 'Nairobi, Kenya',
         ownerId: user.id,
         ownerName: `${user.firstName ?? 'Fleet Host'} ${user.lastName ?? ''}`.trim(),
@@ -320,7 +321,9 @@ export default function OwnerDashboard() {
           owner_id: user?.id,
           make: newV.make, model: newV.model, year: Number(newV.year),
           type: newV.type, price_per_day: Number(newV.price_per_day),
-          seats: Number(newV.seats), fuel_type: 'DIESEL', transmission: 'AUTOMATIC',
+          seats: Number(newV.seats),
+          fuel_type: (newV.fuelType || 'DIESEL').toUpperCase(),
+          transmission: (newV.transmission || 'AUTOMATIC').toUpperCase(),
           latitude: -1.2921, longitude: 36.8219,
           address: newV.address || 'Nairobi, Kenya',
           is_available: true, has_insurance: true, is_approved: true,
@@ -1118,6 +1121,59 @@ export default function OwnerDashboard() {
                   className={`flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-bold transition ${newV.type === type ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-sm' : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'}`}
                 >
                   <Car className="h-3.5 w-3.5 text-amber-600" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* FUEL ENGINE TYPE SELECTOR */}
+          <div>
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-800">
+              Fuel Engine Type
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { type: 'Diesel', label: 'Diesel Engine' },
+                { type: 'Petrol', label: 'Petrol Engine' },
+                { type: 'Hybrid', label: 'Hybrid / EV' },
+              ].map(({ type, label }) => (
+                <button
+                  key={type} type="button"
+                  onClick={() => setNewV({ ...newV, fuelType: type })}
+                  className={`flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-bold transition ${
+                    newV.fuelType === type 
+                      ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-sm' 
+                      : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <Fuel className="h-3.5 w-3.5 text-amber-600" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* TRANSMISSION TYPE SELECTOR */}
+          <div>
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-800">
+              Transmission Gearbox
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { type: 'Automatic', label: 'Automatic Transmission' },
+                { type: 'Manual', label: 'Manual Gearbox' },
+              ].map(({ type, label }) => (
+                <button
+                  key={type} type="button"
+                  onClick={() => setNewV({ ...newV, transmission: type })}
+                  className={`flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-bold transition ${
+                    newV.transmission === type 
+                      ? 'border-teal-500 bg-teal-50 text-teal-900 shadow-sm' 
+                      : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <Gauge className="h-3.5 w-3.5 text-teal-600" />
                   {label}
                 </button>
               ))}
