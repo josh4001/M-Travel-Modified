@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import {
-  Car, PlusCircle, Activity, DollarSign, TrendingUp,
+  Car, Bus, PlusCircle, Activity, DollarSign, TrendingUp,
   RefreshCw, CheckCircle, Clock, XCircle, Bell, Image as ImageIcon, ShieldCheck,
   Banknote, BarChart3, Star, Calendar, Upload, Wallet, Sparkles,
   CheckCircle2, X, FileText, Paperclip, Eye, Download, Check, Lock, Fuel, Gauge
@@ -1110,7 +1110,7 @@ export default function OwnerDashboard() {
             <div className="grid grid-cols-4 gap-2">
               {[
                 { type: '4x4', label: '4x4 Safari' },
-                { type: 'SUV', label: 'Luxury SUV' },
+                { type: 'BUS', label: 'Bus' },
                 { type: 'VAN', label: 'Alphard Van' },
                 { type: 'SEDAN', label: 'Sedan' },
               ].map(({ type, label }) => (
@@ -1119,7 +1119,7 @@ export default function OwnerDashboard() {
                   onClick={() => setNewV({ ...newV, type })}
                   className={`flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-bold transition ${newV.type === type ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-sm' : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'}`}
                 >
-                  <Car className="h-3.5 w-3.5 text-amber-600" />
+                  {type === 'BUS' ? <Bus className="h-3.5 w-3.5 text-amber-600" /> : <Car className="h-3.5 w-3.5 text-amber-600" />}
                   {label}
                 </button>
               ))}
