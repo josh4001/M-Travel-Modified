@@ -33,9 +33,6 @@ export function getVehicleFallbackImage(make: string = '', model: string = '', t
   if (id === '33333333-3333-4333-8333-333333333333' || text.includes('prado')) {
     return '/vehicles/prado-front.jpg';
   }
-  if (text.includes('coaster') || text.includes('bus')) {
-    return '/vehicles/van.jpg';
-  }
   return '/vehicles/prado-front.jpg';
 }
 

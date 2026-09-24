@@ -578,6 +578,7 @@ export default function OwnerDashboard() {
                           isHired={hireStatus.isHired}
                           isLive={isLive}
                           isPendingApproval={v.status === 'PENDING_APPROVAL'}
+                          isRejected={v.status === 'REJECTED'}
                           variant="overlay"
                         />
                       </div>
@@ -591,6 +592,10 @@ export default function OwnerDashboard() {
                       {v.status === 'PENDING_APPROVAL' ? (
                         <span className="inline-flex items-center gap-1 rounded-full border border-yellow-400/40 bg-yellow-400/10 px-2.5 py-0.5 text-[10px] font-bold text-yellow-700">
                           <Clock className="h-3 w-3" /> Awaiting Admin Approval
+                        </span>
+                      ) : v.status === 'REJECTED' ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/40 bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-bold text-rose-700">
+                          <XCircle className="h-3 w-3" /> Registration Rejected
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
@@ -614,6 +619,34 @@ export default function OwnerDashboard() {
                         <p className="text-[11px] text-amber-800 font-medium">
                           Submitted to M-TRAVEL Administration. The Admin will verify documents and push this vehicle live to the traveler marketplace.
                         </p>
+                      </div>
+                    )}
+
+                    {/* REJECTED NOTICE */}
+                    {v.status === 'REJECTED' && (
+                      <div className="rounded-xl border border-rose-200 bg-rose-50/90 p-3.5 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-900">
+                            <XCircle className="h-4 w-4 text-rose-600 shrink-0" />
+                            Registration Application Rejected by Admin
+                          </span>
+                          <span className="rounded-full bg-rose-200 text-rose-900 text-[10px] font-bold px-2 py-0.5">
+                            Action Required
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-rose-800 font-medium">
+                          {v.rejectionNotes || 'Vehicle documentation or exterior verification did not pass initial platform inspection.'}
+                        </p>
+                        {Array.isArray(v.rejectionReasons) && v.rejectionReasons.length > 0 && (
+                          <div className="text-[11px] text-rose-900 font-semibold space-y-1 pt-1 border-t border-rose-200/60">
+                            <p className="text-[10px] uppercase font-mono text-rose-700 font-bold">Reasons Provided:</p>
+                            {v.rejectionReasons.map((r, i) => (
+                              <p key={i} className="flex items-center gap-1 text-[11px]">
+                                • <span>{r}</span>
+                              </p>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
 

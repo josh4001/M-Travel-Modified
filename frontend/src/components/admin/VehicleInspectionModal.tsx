@@ -104,19 +104,19 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
   }, [hostName, hostPhone, vehicle, selectedReasons, customFeedback]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-3 sm:p-4 backdrop-blur-xs font-display overflow-y-auto">
-      <div className="relative w-full max-w-4xl rounded-3xl border border-slate-700 bg-slate-900 text-white shadow-2xl p-5 sm:p-7 animate-in fade-in zoom-in-95 duration-200 my-6">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-3 sm:p-4 backdrop-blur-xs font-display overflow-y-auto">
+      <div className="relative w-full max-w-4xl max-h-[90vh] flex flex-col rounded-3xl border border-slate-700 bg-slate-900 text-white shadow-2xl p-5 sm:p-6 animate-in fade-in zoom-in-95 duration-200 my-auto">
         {/* CLOSE BUTTON */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white/70 hover:bg-white/20 hover:text-white transition"
+          className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white/70 hover:bg-white/20 hover:text-white transition z-10"
           title="Close Inspector"
         >
           <X className="h-4 w-4" />
         </button>
 
         {/* HEADER */}
-        <div className="border-b border-slate-800 pb-4">
+        <div className="shrink-0 border-b border-slate-800 pb-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
@@ -210,11 +210,13 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
           </div>
         </div>
 
-        {/* ── TAB 1: VEHICLE PHOTOS DETAILED INSPECTION ── */}
-        {activeTab === 'PHOTOS' && (
-          <div className="space-y-4 pt-4">
-            {/* MAIN PHOTO DISPLAY */}
-            <div className="relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center min-h-[300px] max-h-[420px]">
+        {/* ── SCROLLABLE TAB CONTENT AREA ── */}
+        <div className="flex-1 overflow-y-auto min-h-0 py-2 pr-1 space-y-4">
+          {/* ── TAB 1: VEHICLE PHOTOS DETAILED INSPECTION ── */}
+          {activeTab === 'PHOTOS' && (
+            <div className="space-y-4 pt-2">
+              {/* MAIN PHOTO DISPLAY */}
+              <div className="relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center h-[260px] sm:h-[340px] max-h-[45vh]">
               <img
                 src={vehicleImages[selectedPhotoIndex] || vehicleImages[0]}
                 alt="Selected Vehicle Perspective"
@@ -587,9 +589,10 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
             </div>
           </div>
         )}
+        </div>
 
         {/* ── MODAL ACTIONS BAR ── */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-5 mt-6 border-t border-slate-800">
+        <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 pt-3 mt-2 border-t border-slate-800">
           <button
             type="button"
             onClick={onClose}

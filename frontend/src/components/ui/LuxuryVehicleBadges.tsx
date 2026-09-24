@@ -1,10 +1,11 @@
 import React from 'react';
-import { Navigation, Radio, UserCheck, KeyRound, Clock, Pause } from 'lucide-react';
+import { Navigation, Radio, UserCheck, KeyRound, Clock, Pause, XCircle } from 'lucide-react';
 
 interface VehicleStatusBadgeProps {
   isHired?: boolean;
   isLive?: boolean;
   isPendingApproval?: boolean;
+  isRejected?: boolean;
   variant?: 'overlay' | 'light' | 'pill';
   labelOverride?: string;
   className?: string;
@@ -19,10 +20,29 @@ export const VehicleStatusBadge: React.FC<VehicleStatusBadgeProps> = ({
   isHired = false,
   isLive = true,
   isPendingApproval = false,
+  isRejected = false,
   variant = 'overlay',
   labelOverride,
   className = '',
 }) => {
+  // 0. Rejected State
+  if (isRejected) {
+    if (variant === 'overlay') {
+      return (
+        <span className={`inline-flex items-center gap-1.5 rounded-full bg-slate-950/90 backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-300 border border-rose-400/40 shadow-md ${className}`}>
+          <XCircle className="h-3 w-3 text-rose-400" />
+          <span>{labelOverride || 'Rejected'}</span>
+        </span>
+      );
+    }
+    return (
+      <span className={`inline-flex items-center gap-1.5 rounded-full border border-rose-400/40 bg-rose-50 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-800 ${className}`}>
+        <XCircle className="h-3 w-3 text-rose-600" />
+        <span>{labelOverride || 'Rejected'}</span>
+      </span>
+    );
+  }
+
   // 1. Pending Admin Verification State
   if (isPendingApproval) {
     if (variant === 'overlay') {
