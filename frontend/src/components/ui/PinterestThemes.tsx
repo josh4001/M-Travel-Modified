@@ -55,18 +55,6 @@ const PINTEREST_PINS: ThemePin[] = [
     featuredVehicle: 'Custom Safari Tour Van',
   },
   {
-    id: 'pin-4',
-    title: 'Mount Kenya Alpine Cloud Forest',
-    subtitle: 'Fresh mountain air, bamboo forest canopy drives, and high-altitude luxury lodges.',
-    tag: 'Mountain Vibe',
-    location: 'Nanyuki & Mt Kenya',
-    pricePerDayKES: 12000,
-    imageUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80',
-    aspect: 'aspect-[4/3]',
-    likes: 418,
-    featuredVehicle: 'Land Rover Defender 4x4',
-  },
-  {
     id: 'pin-5',
     title: 'Amboseli Kilimanjaro Elephant Trail',
     subtitle: 'Capture iconic photos of giant elephant herds under Mount Kilimanjaro peak.',
@@ -77,18 +65,6 @@ const PINTEREST_PINS: ThemePin[] = [
     aspect: 'aspect-[3/4]',
     likes: 670,
     featuredVehicle: 'Custom 4x4 Safari Cruiser',
-  },
-  {
-    id: 'pin-6',
-    title: 'Nairobi Executive City & Nightlife',
-    subtitle: 'Chauffeur luxury sedans for business meetings, fine dining, and giraffe manor.',
-    tag: 'Urban Luxe',
-    location: 'Westlands & Karen, Nairobi',
-    pricePerDayKES: 5500,
-    imageUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
-    aspect: 'aspect-[4/3]',
-    likes: 198,
-    featuredVehicle: 'Toyota Premio Executive',
   },
 ];
 
