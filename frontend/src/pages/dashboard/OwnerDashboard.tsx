@@ -6,12 +6,13 @@ import {
   Car, Bus, PlusCircle, Activity, DollarSign, TrendingUp,
   RefreshCw, CheckCircle, Clock, XCircle, Bell, Image as ImageIcon, ShieldCheck,
   Banknote, BarChart3, Star, Calendar, Upload, Wallet, Sparkles,
-  CheckCircle2, X, FileText, Paperclip, Eye, Download, Check, Lock, Fuel, Gauge
+  CheckCircle2, X, FileText, Paperclip, Eye, Download, Check, Lock, Fuel, Gauge, Trash2
 } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import { fetchNotifications, sendNotification, type AppNotification } from '@/lib/notificationService';
 import {
   getStoredBookings, getStoredVehicles, syncVehiclesFromSupabase, syncBookingsFromSupabase, saveVehicle, updateBookingStatus,
+  deleteVehicle,
   generateSampleBookingForVehicle,
   getVehicleHireStatus,
   type StoredBooking, type StoredVehicle, type VehicleDocument
@@ -19,6 +20,7 @@ import {
 import { getLocalWallet, creditHostPayout } from '@/lib/paymentService';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
 import { VehicleStatusBadge } from '@/components/ui/LuxuryVehicleBadges';
+import { supabase } from '@/lib/supabaseClient';
 import {
   getHostApprovalWhatsAppUrl,
 } from '@/lib/communicationService';
@@ -89,6 +91,34 @@ export default function OwnerDashboard() {
   const [documents, setDocuments] = useState<VehicleDocument[]>([]);
   const [docUploadLoading, setDocUploadLoading] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<VehicleDocument | null>(null);
+
+  // Rejected vehicle deletion state
+  const [vehicleToDelete, setVehicleToDelete] = useState<StoredVehicle | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmMsg, setConfirmMsg] = useState('');
+
+  const handleDeleteRejectedVehicle = async () => {
+    if (!vehicleToDelete) return;
+    const vId = vehicleToDelete.id;
+    setDeletingId(vId);
+    try {
+      deleteVehicle(vId);
+      try {
+        await supabase.from('vehicle_images').delete().eq('vehicle_id', vId);
+        await supabase.from('vehicles').delete().eq('id', vId);
+      } catch (e) {
+        console.warn('Supabase delete vehicle notice:', e);
+      }
+      setConfirmMsg(`Rejected vehicle "${vehicleToDelete.make} ${vehicleToDelete.model}" deleted from your fleet.`);
+      setVehicleToDelete(null);
+      fetchData();
+      setTimeout(() => setConfirmMsg(''), 6000);
+    } catch (err) {
+      console.error('Failed to delete rejected vehicle:', err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleDocumentUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -647,6 +677,20 @@ export default function OwnerDashboard() {
                             ))}
                           </div>
                         )}
+
+                        <div className="pt-2 border-t border-rose-200/80 flex items-center justify-between gap-2">
+                          <p className="text-[10px] text-rose-700 font-medium italic">
+                            Host Option: Delete this rejected vehicle from your account.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setVehicleToDelete(v)}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3 py-1.5 transition shadow-xs shrink-0 cursor-pointer"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>Delete Rejected Vehicle</span>
+                          </button>
+                        </div>
                       </div>
                     )}
 
@@ -1646,6 +1690,70 @@ export default function OwnerDashboard() {
                 className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
               >
                 Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRMATION TOAST BANNER */}
+      {confirmMsg && (
+        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-slate-900 border border-slate-700 p-4 text-xs font-bold text-white shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
+          <span>{confirmMsg}</span>
+          <button type="button" onClick={() => setConfirmMsg('')} className="text-slate-400 hover:text-white ml-2">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* DELETE REJECTED VEHICLE CONFIRMATION MODAL */}
+      {vehicleToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs font-display">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5 text-rose-700">
+                <div className="rounded-xl bg-rose-100 p-2.5 text-rose-700 shrink-0">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Delete Rejected Vehicle</h3>
+                  <p className="text-xs text-slate-500 font-medium">Remove record from your fleet account</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVehicleToDelete(null)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Are you sure you want to permanently delete <strong className="text-slate-900">{vehicleToDelete.make} {vehicleToDelete.model}</strong> ({vehicleToDelete.plateNumber || 'Pending Plate'}) from your host dashboard?
+            </p>
+
+            <div className="rounded-xl bg-rose-50 border border-rose-200/80 p-3 text-[11px] text-rose-900 font-medium">
+              ⚠️ This vehicle registration was rejected by platform administration. Deleting it will remove the listing and feedback notes permanently. You may re-register a new vehicle anytime.
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setVehicleToDelete(null)}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteRejectedVehicle}
+                disabled={deletingId === vehicleToDelete.id}
+                className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-2 transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>{deletingId === vehicleToDelete.id ? 'Deleting…' : 'Yes, Delete Vehicle'}</span>
               </button>
             </div>
           </div>
