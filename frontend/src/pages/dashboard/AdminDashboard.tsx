@@ -337,9 +337,10 @@ export default function AdminDashboard() {
     // 1. Mark status as REJECTED and persist rejection audit data
     rejectVehicle(vehicle.id, reasons, customFeedback);
 
-    // 2. Sync to Supabase DB (if exists)
+    // 2. Remove from Supabase DB completely so unapproved rejected vehicles are not stored in database
     try {
-      await supabase.from('vehicles').update({ is_approved: false, is_available: false }).eq('id', vehicle.id);
+      await supabase.from('vehicle_images').delete().eq('vehicle_id', vehicle.id);
+      await supabase.from('vehicles').delete().eq('id', vehicle.id);
     } catch (e) {
       console.warn('Supabase vehicle reject error:', e);
     }

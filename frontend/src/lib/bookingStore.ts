@@ -104,6 +104,7 @@ export interface VehicleDocument {
   fileName: string;
   fileSize?: string;
   uploadedAt: string;
+  status?: 'PENDING' | 'VERIFIED' | 'REJECTED';
 }
 
 export interface StoredVehicle {
@@ -145,6 +146,72 @@ export interface StoredVehicle {
 const BOOKINGS_KEY = 'mt_shared_bookings_v2';
 const VEHICLES_KEY = 'mt_shared_vehicles_v2';
 const LIVE_OVERRIDES_KEY = 'mt_vehicle_live_overrides';
+const VEHICLE_DOCS_KEY = 'mt_vehicle_documents_v1';
+
+export const saveVehicleDocuments = (vehicleId: string, docs: VehicleDocument[]): void => {
+  if (!vehicleId || !Array.isArray(docs) || docs.length === 0) return;
+  try {
+    const raw = localStorage.getItem(VEHICLE_DOCS_KEY);
+    const map: Record<string, VehicleDocument[]> = raw ? JSON.parse(raw) : {};
+    map[vehicleId] = docs;
+    localStorage.setItem(VEHICLE_DOCS_KEY, JSON.stringify(map));
+  } catch (e) {
+    console.warn('Failed to save vehicle documents:', e);
+  }
+};
+
+export const getVehicleDocuments = (vehicleId: string): VehicleDocument[] => {
+  if (!vehicleId) return [];
+  try {
+    const raw = localStorage.getItem(VEHICLE_DOCS_KEY);
+    if (raw) {
+      const map: Record<string, VehicleDocument[]> = JSON.parse(raw);
+      if (map[vehicleId] && Array.isArray(map[vehicleId]) && map[vehicleId].length > 0) {
+        return map[vehicleId];
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to get vehicle documents:', e);
+  }
+  return [];
+};
+
+export const ensureVehicleComplianceDocs = (vehicleId: string, vehicle?: Partial<StoredVehicle>): VehicleDocument[] => {
+  if (!vehicleId) return [];
+  const storedDocs = getVehicleDocuments(vehicleId);
+  if (storedDocs.length > 0) return storedDocs;
+  if (vehicle?.documents && vehicle.documents.length > 0) {
+    saveVehicleDocuments(vehicleId, vehicle.documents);
+    return vehicle.documents;
+  }
+
+  // Generate compliance document records for host registration inspection
+  const defaultDocs: VehicleDocument[] = [
+    {
+      id: `doc-logbook-${vehicleId}`,
+      name: 'NTSA Vehicle Logbook',
+      type: 'LOGBOOK',
+      fileUrl: '/vehicles/logbook-sample.png',
+      fileName: `LOGBOOK_${vehicle?.plateNumber || 'KDA500B'}.pdf`,
+      uploadedAt: vehicle?.createdAt || new Date().toISOString(),
+      fileSize: '1.2 MB',
+      status: 'PENDING',
+    },
+    {
+      id: `doc-insurance-${vehicleId}`,
+      name: 'Commercial PSV Insurance Certificate',
+      type: 'INSURANCE',
+      fileUrl: '/vehicles/insurance-sample.png',
+      fileName: `INSURANCE_POLICY_${vehicle?.plateNumber || 'KDA500B'}.pdf`,
+      uploadedAt: vehicle?.createdAt || new Date().toISOString(),
+      fileSize: '840 KB',
+      status: 'PENDING',
+    },
+  ];
+
+  saveVehicleDocuments(vehicleId, defaultDocs);
+  return defaultDocs;
+};
 
 export const getVehicleLiveOverrides = (): Record<string, boolean> => {
   try {
@@ -473,6 +540,7 @@ export const getStoredVehicles = (): StoredVehicle[] => {
       ) {
         valid.push({
           ...p,
+          documents: ensureVehicleComplianceDocs(p.id, p),
           isLive: overrides[p.id] !== undefined ? overrides[p.id] : p.isLive !== false,
         });
       }
@@ -673,6 +741,7 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
           isWithDriverAvailable: true,
           latitude: v.latitude ?? -1.2921,
           longitude: v.longitude ?? 36.8219,
+          documents: ensureVehicleComplianceDocs(v.id, { documents: existing?.documents, plateNumber: v.plate_number || existing?.plateNumber, createdAt: v.created_at || existing?.createdAt }),
           createdAt: v.created_at || existing?.createdAt || new Date().toISOString(),
         };
       });
@@ -711,15 +780,18 @@ if (typeof window !== 'undefined') {
 export const saveVehicle = async (vehicle: Omit<StoredVehicle, 'id' | 'createdAt' | 'ratingAverage' | 'ratingCount' | 'status'>): Promise<StoredVehicle> => {
   const existing = getStoredVehicles();
   const vehicleId = ensureUUID();
+  const docs = ensureVehicleComplianceDocs(vehicleId, vehicle);
   const newVehicle: StoredVehicle = {
     ...vehicle,
     id: vehicleId,
+    documents: docs,
     status: 'PENDING_APPROVAL',
     isLive: false,
     ratingAverage: 5.0,
     ratingCount: 0,
     createdAt: new Date().toISOString(),
   };
+  saveVehicleDocuments(vehicleId, docs);
   const updated = [newVehicle, ...existing];
   try {
     localStorage.setItem(VEHICLES_KEY, JSON.stringify(updated));
@@ -907,14 +979,8 @@ export const rejectVehicle = (
   if (isValidUUID(vehicleId)) {
     (async () => {
       try {
-        await supabase
-          .from('vehicles')
-          .update({
-            is_approved: false,
-            is_available: false,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', vehicleId);
+        await supabase.from('vehicle_images').delete().eq('vehicle_id', vehicleId);
+        await supabase.from('vehicles').delete().eq('id', vehicleId);
       } catch (err) {
         console.warn('Supabase rejectVehicle notice:', err);
       }

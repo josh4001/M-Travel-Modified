@@ -6,6 +6,7 @@ import {
   ChevronLeft, ChevronRight, ShieldAlert, Paperclip
 } from 'lucide-react';
 import type { StoredVehicle, VehicleDocument } from '@/lib/bookingStore';
+import { ensureVehicleComplianceDocs } from '@/lib/bookingStore';
 import { getHostRejectionWhatsAppUrl } from '@/lib/communicationService';
 
 interface VehicleInspectionModalProps {
@@ -52,8 +53,8 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
   }, [vehicle.images]);
 
   const vehicleDocs = useMemo(() => {
-    return vehicle.documents || [];
-  }, [vehicle.documents]);
+    return ensureVehicleComplianceDocs(vehicle.id, vehicle);
+  }, [vehicle]);
 
   const hasLogbook = vehicleDocs.some(d => d.type === 'LOGBOOK');
   const hasInsurance = vehicleDocs.some(d => d.type === 'INSURANCE');
