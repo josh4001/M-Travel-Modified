@@ -115,35 +115,44 @@ export default function Catalogue() {
     { id: 'buses',    label: 'Bus Reservations',  icon: Bus, desc: 'VIP Highway Coaches & Intercity Shuttles' },
   ];
 
-  // Dynamic approved vehicles from registered hosts (including currently hired ones with in-use status)
+  const isBusVehicle = (v: StoredVehicle): boolean => {
+    const typeStr = (v.type || '').toUpperCase();
+    const nameStr = `${v.make || ''} ${v.model || ''}`.toLowerCase();
+    return typeStr === 'BUS' || nameStr.includes('bus') || nameStr.includes('coaster') || nameStr.includes('coach');
+  };
+
+  // Dynamic approved vehicles from registered hosts (only approved & live vehicles)
   const approvedHostVehicles: CatalogueItem[] = storedVehicles
-    .filter((v) => v.status === 'APPROVED')
-    .map((v) => ({
-      id: v.id,
-      category: 'vehicles' as TabType,
-      title: `${v.make} ${v.model}`,
-      subtitle: `${v.year} • ${v.seats} Seats • ${v.fuelType} • ${v.transmission}`,
-      badge: `${v.type} Vehicle`,
-      priceKES: v.pricePerDay,
-      priceUnit: '/ day',
-      imageUrl: v.images[0] || '/vehicles/prado-front.jpg',
-      location: v.address || 'Nairobi & National Parks',
-      specs: [`${v.seats} Seats`, v.fuelType, v.transmission, v.hasInsurance ? 'Verified & Insured' : 'Standard Insurance'],
-      rating: v.ratingAverage || 4.9,
-      reviews: v.ratingCount || 12,
-      ownerId: v.ownerId,
-      ownerName: v.ownerName,
-      isLive: isVehicleLive(v.id),
-      details: {
-        overview: `${v.year} ${v.make} ${v.model} registered by host ${v.ownerName}. Inspected and approved by M-TRAVEL Fleet Administration for tourist hire.`,
-        highlights: [
-          'Certified roadworthiness & professional inspection',
-          '24/7 M-TRAVEL Roadside Assistance',
-          v.hasInsurance ? 'Comprehensive insurance included' : 'Standard third-party cover',
-          `Pickup / Delivery: ${v.address || 'Nairobi Central Hub'}`,
-        ],
-      },
-    }));
+    .filter((v) => v.status === 'APPROVED' && isVehicleLive(v.id))
+    .map((v) => {
+      const isBus = isBusVehicle(v);
+      return {
+        id: v.id,
+        category: (isBus ? 'buses' : 'vehicles') as TabType,
+        title: `${v.make} ${v.model}`,
+        subtitle: `${v.year} • ${v.seats} Seats • ${v.fuelType} • ${v.transmission}`,
+        badge: isBus ? 'BUS VEHICLE' : `${v.type} Vehicle`,
+        priceKES: v.pricePerDay,
+        priceUnit: '/ day',
+        imageUrl: v.images[0] || '/vehicles/prado-front.jpg',
+        location: v.address || 'Nairobi & National Parks',
+        specs: [`${v.seats} Seats`, v.fuelType, v.transmission, v.hasInsurance ? 'Verified & Insured' : 'Standard Insurance'],
+        rating: v.ratingAverage || 4.9,
+        reviews: v.ratingCount || 12,
+        ownerId: v.ownerId,
+        ownerName: v.ownerName,
+        isLive: true,
+        details: {
+          overview: `${v.year} ${v.make} ${v.model} registered by host ${v.ownerName}. Inspected and approved by M-TRAVEL Fleet Administration for tourist hire.`,
+          highlights: [
+            'Certified roadworthiness & professional inspection',
+            '24/7 M-TRAVEL Roadside Assistance',
+            v.hasInsurance ? 'Comprehensive insurance included' : 'Standard third-party cover',
+            `Pickup / Delivery: ${v.address || 'Nairobi Central Hub'}`,
+          ],
+        },
+      };
+    });
 
   // Platform catalogue: Live Vehicles strictly from approved hosts; Bus reservations for intercity routes
   const allCatalogueItems: CatalogueItem[] = [

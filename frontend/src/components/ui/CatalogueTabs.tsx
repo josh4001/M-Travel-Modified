@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Car, Bus, Palmtree, Home, MapPin, ArrowRight, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCurrency } from '@/context/CurrencyContext';
-import { getStoredVehicles } from '@/lib/bookingStore';
+import { getStoredVehicles, isVehicleLive } from '@/lib/bookingStore';
 
 type TabType = 'vehicles' | 'buses' | 'tours' | 'homes';
 
@@ -85,25 +85,34 @@ export const CatalogueTabs: React.FC = () => {
     { id: 'homes',    label: 'Holiday Homes',     icon: Home,     desc: 'Villas, Cottages & Stays' },
   ];
 
+  const isBusVehicle = (v: any): boolean => {
+    const t = (v.type || '').toUpperCase();
+    const m = `${v.make || ''} ${v.model || ''}`.toLowerCase();
+    return t === 'BUS' || m.includes('bus') || m.includes('coaster') || m.includes('coach');
+  };
+
   const [storedVehicles] = useState(() => getStoredVehicles());
 
   const approvedVehicles: CatalogueItem[] = storedVehicles
-    .filter((v) => v.status === 'APPROVED')
-    .map((v) => ({
-      id: v.id,
-      category: 'vehicles' as TabType,
-      title: `${v.make} ${v.model}`,
-      subtitle: `${v.year} • ${v.seats} Seats • ${v.fuelType} • ${v.transmission}`,
-      badge: `${v.type} Vehicle`,
-      priceKES: v.pricePerDay,
-      priceUnit: '/ day',
-      imageUrl: v.images[0] || '/vehicles/prado-front.jpg',
-      location: v.address || 'Nairobi & National Parks',
-      specs: [`${v.seats} Seats`, v.fuelType, v.transmission, v.hasInsurance ? 'Verified' : 'Standard Insurance'],
-    }));
+    .filter((v) => v.status === 'APPROVED' && isVehicleLive(v.id))
+    .map((v) => {
+      const isBus = isBusVehicle(v);
+      return {
+        id: v.id,
+        category: (isBus ? 'buses' : 'vehicles') as TabType,
+        title: `${v.make} ${v.model}`,
+        subtitle: `${v.year} • ${v.seats} Seats • ${v.fuelType} • ${v.transmission}`,
+        badge: isBus ? 'BUS VEHICLE' : `${v.type} Vehicle`,
+        priceKES: v.pricePerDay,
+        priceUnit: '/ day',
+        imageUrl: v.images[0] || '/vehicles/prado-front.jpg',
+        location: v.address || 'Nairobi & National Parks',
+        specs: [`${v.seats} Seats`, v.fuelType, v.transmission, v.hasInsurance ? 'Verified' : 'Standard Insurance'],
+      };
+    });
 
-  const currentItems = activeTab === 'vehicles'
-    ? approvedVehicles
+  const currentItems = activeTab === 'vehicles' || activeTab === 'buses'
+    ? approvedVehicles.filter((item) => item.category === activeTab)
     : CATALOGUE_ITEMS.filter((item) => item.category === activeTab);
 
   return (
