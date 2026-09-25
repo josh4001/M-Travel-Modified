@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Car, Bus, Palmtree, Home, MapPin, ArrowRight, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCurrency } from '@/context/CurrencyContext';
-import { getStoredVehicles, isVehicleLive } from '@/lib/bookingStore';
+import { getStoredVehicles, isVehicleLive, isBusVehicle, type StoredVehicle } from '@/lib/bookingStore';
 
 type TabType = 'vehicles' | 'buses' | 'tours' | 'homes';
 
@@ -85,20 +85,23 @@ export const CatalogueTabs: React.FC = () => {
     { id: 'homes',    label: 'Holiday Homes',     icon: Home,     desc: 'Villas, Cottages & Stays' },
   ];
 
-  const isBusVehicle = (v: any): boolean => {
-    if (!v) return false;
-    const t = (v.type || '').toUpperCase();
-    const makeStr = (v.make || '').toLowerCase();
-    const modelStr = (v.model || '').toLowerCase();
-    const nameStr = `${makeStr} ${modelStr}`;
-    if (t === 'BUS' || t === 'MINIBUS' || t === 'COASTER') return true;
-    if (nameStr.includes('coaster') || nameStr.includes('nqr bus') || nameStr.includes('bus')) return true;
-    return false;
-  };
+  const [storedVehicles, setStoredVehicles] = useState<StoredVehicle[]>(() => getStoredVehicles());
 
-  const [storedVehicles] = useState(() => getStoredVehicles());
+  useEffect(() => {
+    const handleUpdate = () => setStoredVehicles(getStoredVehicles());
+    window.addEventListener('mt_vehicle_updated', handleUpdate);
+    window.addEventListener('mt_vehicle_approved', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('mt_vehicle_updated', handleUpdate);
+      window.removeEventListener('mt_vehicle_approved', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
 
-  const approvedVehicles: CatalogueItem[] = storedVehicles
+  const rawVehicles = storedVehicles && storedVehicles.length > 0 ? storedVehicles : getStoredVehicles();
+
+  const approvedVehicles: CatalogueItem[] = rawVehicles
     .filter((v) => v.status === 'APPROVED' && isVehicleLive(v.id))
     .map((v) => {
       const isBus = isBusVehicle(v);
@@ -159,13 +162,13 @@ export const CatalogueTabs: React.FC = () => {
       </div>
 
       {/* CATALOGUE CARDS GRID */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence initial={false}>
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -15 }}
-          transition={{ duration: 0.3 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
           className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 items-stretch"
         >
           {currentItems.length === 0 ? (

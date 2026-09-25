@@ -12,7 +12,7 @@ import {
   getStoredBookings, getStoredVehicles, syncVehiclesFromSupabase, syncBookingsFromSupabase,
   approveVehicle as approveVehicleInStore, updateBookingStatus,
   toggleVehicleLiveStatus, getVehicleHireStatus, deleteVehicle, isVehicleLive, rejectVehicle,
-  isTripBooking,
+  isTripBooking, isBusVehicle,
   type StoredBooking, type StoredVehicle
 } from '@/lib/bookingStore';
 import { syncUsersFromSupabase } from '@/lib/authService';
@@ -197,8 +197,18 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchAll();
-    const handleUpdate = () => fetchAll();
+    const handleUpdate = () => {
+      setVehicles(getStoredVehicles());
+      setBookings(getStoredBookings());
+      setDestinationsList(getStoredDestinations());
+      setExceptionMetrics(getExceptionMetrics());
+      setAttentionItems(getAttentionRequiredQueue());
+      setIncidentsList(getAllIncidents());
+      setAuditLogsList(getAllAuditLogs());
+      setUsers(getAdminUserList());
+    };
     const handleDestUpdate = () => setDestinationsList(getStoredDestinations());
+    const handleRemoteChange = () => fetchAll();
     window.addEventListener('mt_vehicle_updated', handleUpdate);
     window.addEventListener('mt_booking_updated', handleUpdate);
     window.addEventListener('mt_booking_status_changed', handleUpdate);
@@ -211,7 +221,7 @@ export default function AdminDashboard() {
     window.addEventListener('mt_incident_updated', handleUpdate);
     window.addEventListener('mt_audit_logged', handleUpdate);
     window.addEventListener('mt_accounts_updated', handleUpdate);
-    window.addEventListener('mt_remote_change', handleUpdate);
+    window.addEventListener('mt_remote_change', handleRemoteChange);
     return () => {
       window.removeEventListener('mt_vehicle_updated', handleUpdate);
       window.removeEventListener('mt_booking_updated', handleUpdate);
@@ -225,7 +235,7 @@ export default function AdminDashboard() {
       window.removeEventListener('mt_incident_updated', handleUpdate);
       window.removeEventListener('mt_audit_logged', handleUpdate);
       window.removeEventListener('mt_accounts_updated', handleUpdate);
-      window.removeEventListener('mt_remote_change', handleUpdate);
+      window.removeEventListener('mt_remote_change', handleRemoteChange);
     };
   }, []);
 
@@ -1269,21 +1279,11 @@ export default function AdminDashboard() {
 
       {/* ── FLEET ── */}
       {!loading && activeTab === 'fleet' && (() => {
-        const isAdminBusVehicle = (v: StoredVehicle): boolean => {
-          const typeStr = (v.type || '').toUpperCase();
-          const makeStr = (v.make || '').toLowerCase();
-          const modelStr = (v.model || '').toLowerCase();
-          const nameStr = `${makeStr} ${modelStr}`;
-          if (typeStr === 'BUS' || typeStr === 'MINIBUS' || typeStr === 'COASTER') return true;
-          if (nameStr.includes('coaster') || nameStr.includes('nqr bus') || nameStr.includes('bus')) return true;
-          return false;
-        };
-
-        const totalVehiclesCount = vehicles.filter(v => !isAdminBusVehicle(v)).length;
-        const totalBusesCount = vehicles.filter(v => isAdminBusVehicle(v)).length;
+        const totalVehiclesCount = vehicles.filter(v => !isBusVehicle(v)).length;
+        const totalBusesCount = vehicles.filter(v => isBusVehicle(v)).length;
 
         const displayedFleetVehicles = vehicles.filter(v => {
-          const isBus = isAdminBusVehicle(v);
+          const isBus = isBusVehicle(v);
           if (fleetCategoryFilter === 'buses') return isBus;
           return !isBus;
         });
