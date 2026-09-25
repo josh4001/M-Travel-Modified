@@ -148,16 +148,23 @@ const VEHICLES_KEY = 'mt_shared_vehicles_v2';
 const LIVE_OVERRIDES_KEY = 'mt_vehicle_live_overrides';
 const VEHICLE_DOCS_KEY = 'mt_vehicle_documents_v1';
 const DELETED_VEHICLES_KEY = 'mt_deleted_vehicle_ids';
+const DEFAULT_DELETED_VEHICLE_IDS = [
+  'a5ddaf53-f49a-488b-87f1-e46f4fc1e6e4',
+  '9beb7a95-89a5-4475-99fe-56b66ac65f8c',
+];
 
 export const getDeletedVehicleIds = (): Set<string> => {
+  const set = new Set<string>(DEFAULT_DELETED_VEHICLE_IDS);
   try {
     const raw = localStorage.getItem(DELETED_VEHICLES_KEY);
     if (raw) {
       const arr = JSON.parse(raw);
-      if (Array.isArray(arr)) return new Set(arr);
+      if (Array.isArray(arr)) {
+        arr.forEach((id: string) => set.add(id));
+      }
     }
   } catch {}
-  return new Set(['a5ddaf53-f49a-488b-87f1-e46f4fc1e6e4']);
+  return set;
 };
 
 export const recordDeletedVehicleId = (vehicleId: string): void => {
@@ -321,6 +328,15 @@ export const ensureUUID = (str?: string): string => {
 export const isDemoVehicle = (v: any): boolean => {
   if (!v) return true;
   const id = String(v.id || '');
+  const make = String(v.make || '').toLowerCase();
+  const model = String(v.model || '').toLowerCase();
+
+  // Explicitly purge un-registered Isuzu NQR buses
+  if (make.includes('isuzu') || model.includes('isuzu') || model.includes('nqr')) {
+    if (id === '9beb7a95-89a5-4475-99fe-56b66ac65f8c' || id === 'a5ddaf53-f49a-488b-87f1-e46f4fc1e6e4' || !APPROVED_HOST_VEHICLE_IDS.has(id)) {
+      return true;
+    }
+  }
 
   // Prado and approved host vehicles are real registered fleet vehicles
   if (id === '33333333-3333-4333-8333-333333333333' || APPROVED_HOST_VEHICLE_IDS.has(id)) {
