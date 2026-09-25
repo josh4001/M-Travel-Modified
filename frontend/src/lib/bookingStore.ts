@@ -147,6 +147,34 @@ const BOOKINGS_KEY = 'mt_shared_bookings_v2';
 const VEHICLES_KEY = 'mt_shared_vehicles_v2';
 const LIVE_OVERRIDES_KEY = 'mt_vehicle_live_overrides';
 const VEHICLE_DOCS_KEY = 'mt_vehicle_documents_v1';
+const DELETED_VEHICLES_KEY = 'mt_deleted_vehicle_ids';
+
+export const getDeletedVehicleIds = (): Set<string> => {
+  try {
+    const raw = localStorage.getItem(DELETED_VEHICLES_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch {}
+  return new Set(['a5ddaf53-f49a-488b-87f1-e46f4fc1e6e4']);
+};
+
+export const recordDeletedVehicleId = (vehicleId: string): void => {
+  if (!vehicleId) return;
+  try {
+    const set = getDeletedVehicleIds();
+    set.add(vehicleId);
+    localStorage.setItem(DELETED_VEHICLES_KEY, JSON.stringify(Array.from(set)));
+  } catch (e) {
+    console.warn('Failed to record deleted vehicle ID:', e);
+  }
+};
+
+export const isDeletedVehicle = (vehicleId: string): boolean => {
+  if (!vehicleId) return false;
+  return getDeletedVehicleIds().has(vehicleId);
+};
 
 export const saveVehicleDocuments = (vehicleId: string, docs: VehicleDocument[]): void => {
   if (!vehicleId || !Array.isArray(docs) || docs.length === 0) return;
@@ -527,11 +555,12 @@ export const getStoredVehicles = (): StoredVehicle[] => {
       });
     }
 
-    // 2. Preserve only genuine newly registered vehicles added by a host during runtime
+    const deletedIds = getDeletedVehicleIds();
     for (const p of parsed) {
       if (
         p &&
         p.id &&
+        !deletedIds.has(p.id) &&
         !APPROVED_HOST_VEHICLE_IDS.has(p.id) &&
         !isDemoVehicle(p) &&
         isValidUUID(p.id) &&
@@ -693,10 +722,11 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
     }
 
     const overrides = getVehicleLiveOverrides();
+    const deletedIds = getDeletedVehicleIds();
 
-    // Map each Supabase vehicle into a StoredVehicle (strictly filter out demo seed records)
+    // Map each Supabase vehicle into a StoredVehicle (strictly filter out demo seed records and deleted records)
     const mappedSupabase: StoredVehicle[] = data
-      .filter((v: any) => !isDemoVehicle(v))
+      .filter((v: any) => !isDemoVehicle(v) && !deletedIds.has(v.id))
       .map((v: any) => {
         const existing = localMap.get(v.id);
         const owner = v.users || {};
@@ -892,6 +922,7 @@ export const saveVehicle = async (vehicle: Omit<StoredVehicle, 'id' | 'createdAt
 };
 
 export const deleteVehicle = (vehicleId: string): boolean => {
+  recordDeletedVehicleId(vehicleId);
   const vehicles = getStoredVehicles();
   const filtered = vehicles.filter(v => v.id !== vehicleId);
   try {
@@ -904,6 +935,7 @@ export const deleteVehicle = (vehicleId: string): boolean => {
 
   (async () => {
     try {
+      await supabase.from('vehicle_images').delete().eq('vehicle_id', vehicleId);
       await supabase.from('vehicles').delete().eq('id', vehicleId);
       window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'vehicles', deletedId: vehicleId } }));
     } catch (err) {
