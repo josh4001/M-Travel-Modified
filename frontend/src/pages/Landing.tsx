@@ -8,7 +8,6 @@ import { RouteGlobe } from '@/components/RouteGlobe';
 import { Hero3DCanvas } from '@/components/ui/Hero3DCanvas';
 import { Card3D } from '@/components/ui/Card3D';
 import { AiTravelAssistant } from '@/components/ai/AiTravelAssistant';
-import { BookingSearch } from '@/components/ui/BookingSearch';
 import { OffersRewards } from '@/components/ui/OffersRewards';
 
 const journey = [
@@ -99,16 +98,6 @@ export default function Landing() {
               <RouteGlobe />
             </motion.div>
           </div>
-
-          {/* M-TRAVEL SIGNATURE TABBED SEARCH BAR */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.7 }}
-            className="pt-2"
-          >
-            <BookingSearch />
-          </motion.div>
         </div>
 
         {/* JOURNEY PIPELINE WITH PRECISE CIRCLE CONNECTOR ALIGNMENT */}
