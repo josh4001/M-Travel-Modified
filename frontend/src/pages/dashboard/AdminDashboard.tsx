@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Users, Car, Shield, DollarSign, Activity, CheckCircle,
+  Users, Car, Bus, Shield, DollarSign, Activity, CheckCircle,
   RefreshCw, BarChart3, TrendingUp, AlertTriangle, ArrowDownLeft, ArrowUpRight, FileCheck, Landmark,
   XCircle, Trash2, Server, Wifi, HardDrive, Clock, MapPin, Lock,
   Palmtree, Plus, Edit2, Check, ExternalLink, Sparkles, Award, Upload
@@ -99,6 +99,9 @@ export default function AdminDashboard() {
   const [auditSearch, setAuditSearch] = useState('');
   const [resolvingIncident, setResolvingIncident] = useState<IncidentReport | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState('');
+
+  // Fleet Category Filter state (Admin Exclusive)
+  const [fleetCategoryFilter, setFleetCategoryFilter] = useState<'vehicles' | 'buses'>('vehicles');
 
   // De-registration / Vehicle Deletion & Smart Inspection Modals (Admin Exclusive)
   const [inspectingVehicle, setInspectingVehicle] = useState<StoredVehicle | null>(null);
@@ -1265,38 +1268,88 @@ export default function AdminDashboard() {
       )}
 
       {/* ── FLEET ── */}
-      {!loading && activeTab === 'fleet' && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="font-display text-xl font-bold text-slate-900">All Platform Vehicles ({vehicles.length})</h2>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">Toggle live marketplace status upon host request or oversee vehicle availability.</p>
-            </div>
-            <a
-              href="/catalogue?category=vehicles"
-              className="btn-secondary !py-2 !px-3 text-xs font-bold text-purple-700 bg-purple-50 border-purple-200 hover:bg-purple-100 flex items-center gap-1.5"
-            >
-              <Car className="h-3.5 w-3.5" /> View Live Fleet Marketplace
-            </a>
-          </div>
+      {!loading && activeTab === 'fleet' && (() => {
+        const isAdminBusVehicle = (v: StoredVehicle): boolean => {
+          const typeStr = (v.type || '').toUpperCase();
+          const makeStr = (v.make || '').toLowerCase();
+          const modelStr = (v.model || '').toLowerCase();
+          const nameStr = `${makeStr} ${modelStr}`;
+          if (typeStr === 'BUS' || typeStr === 'MINIBUS' || typeStr === 'COASTER') return true;
+          if (nameStr.includes('coaster') || nameStr.includes('nqr bus') || nameStr.includes('bus')) return true;
+          return false;
+        };
 
-          {vehicles.length === 0 ? (
-            <div className="rounded-3xl bg-white border border-slate-200/90 p-12 md:p-16 text-center space-y-4 shadow-sm">
-              <div className="h-16 w-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mx-auto">
-                <Car className="h-8 w-8 stroke-[1.75]" />
+        const totalVehiclesCount = vehicles.filter(v => !isAdminBusVehicle(v)).length;
+        const totalBusesCount = vehicles.filter(v => isAdminBusVehicle(v)).length;
+
+        const displayedFleetVehicles = vehicles.filter(v => {
+          const isBus = isAdminBusVehicle(v);
+          if (fleetCategoryFilter === 'buses') return isBus;
+          return !isBus;
+        });
+
+        return (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-display text-xl font-bold text-slate-900">All Platform Vehicles ({vehicles.length})</h2>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">Toggle live marketplace status upon host request or oversee vehicle availability.</p>
               </div>
-              <div className="space-y-1 max-w-md mx-auto">
-                <h3 className="font-serif text-xl font-bold text-slate-900">No vehicles available at the moment</h3>
-                <p className="text-xs md:text-sm text-slate-500 font-medium leading-relaxed">
-                  No vehicles have been registered by fleet hosts or submitted for platform inspection. When hosts list vehicles, they will appear here for verification and live fleet control.
-                </p>
-              </div>
+              <a
+                href={`/catalogue?category=${fleetCategoryFilter}`}
+                className="btn-secondary !py-2 !px-3 text-xs font-bold text-purple-700 bg-purple-50 border-purple-200 hover:bg-purple-100 flex items-center gap-1.5"
+              >
+                {fleetCategoryFilter === 'buses' ? <Bus className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />} View Live Marketplace ({fleetCategoryFilter === 'buses' ? 'Buses' : 'Vehicles'})
+              </a>
             </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {vehicles.map(v => {
-                const hireStatus = getVehicleHireStatus(v.id);
-                const isLive = isVehicleLive(v.id);
+
+            {/* CATEGORY FILTER SUB-TABS */}
+            <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+              <button
+                type="button"
+                onClick={() => setFleetCategoryFilter('vehicles')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  fleetCategoryFilter === 'vehicles'
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <Car className="h-3.5 w-3.5" /> Live Vehicle Hire ({totalVehiclesCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFleetCategoryFilter('buses')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  fleetCategoryFilter === 'buses'
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <Bus className="h-3.5 w-3.5" /> Bus Reservations ({totalBusesCount})
+              </button>
+            </div>
+
+            {displayedFleetVehicles.length === 0 ? (
+              <div className="rounded-3xl bg-white border border-slate-200/90 p-12 md:p-16 text-center space-y-4 shadow-sm">
+                <div className="h-16 w-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mx-auto">
+                  {fleetCategoryFilter === 'buses' ? <Bus className="h-8 w-8 stroke-[1.75]" /> : <Car className="h-8 w-8 stroke-[1.75]" />}
+                </div>
+                <div className="space-y-1 max-w-md mx-auto">
+                  <h3 className="font-serif text-xl font-bold text-slate-900">
+                    {fleetCategoryFilter === 'buses' ? 'No buses at the moment' : 'No vehicles available at the moment'}
+                  </h3>
+                  <p className="text-xs md:text-sm text-slate-500 font-medium leading-relaxed">
+                    {fleetCategoryFilter === 'buses'
+                      ? 'There are currently no buses registered into the system. Admin and hosts can register buses under live fleet.'
+                      : 'No vehicles have been registered by fleet hosts or submitted for platform inspection. When hosts list vehicles, they will appear here for verification and live fleet control.'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {displayedFleetVehicles.map(v => {
+                  const hireStatus = getVehicleHireStatus(v.id);
+                  const isLive = isVehicleLive(v.id);
 
                 return (
                   <div key={v.id} className="rounded-2xl bg-white border border-slate-200/90 p-4 space-y-2.5 shadow-sm hover:shadow-md transition">
@@ -1424,7 +1477,8 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
-      )}
+        );
+      })()}
 
       {/* ── BOOKINGS ── */}
       {!loading && activeTab === 'bookings' && (

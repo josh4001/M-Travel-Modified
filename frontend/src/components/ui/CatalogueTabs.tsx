@@ -86,9 +86,14 @@ export const CatalogueTabs: React.FC = () => {
   ];
 
   const isBusVehicle = (v: any): boolean => {
+    if (!v) return false;
     const t = (v.type || '').toUpperCase();
-    const m = `${v.make || ''} ${v.model || ''}`.toLowerCase();
-    return t === 'BUS' || m.includes('bus') || m.includes('coaster') || m.includes('coach');
+    const makeStr = (v.make || '').toLowerCase();
+    const modelStr = (v.model || '').toLowerCase();
+    const nameStr = `${makeStr} ${modelStr}`;
+    if (t === 'BUS' || t === 'MINIBUS' || t === 'COASTER') return true;
+    if (nameStr.includes('coaster') || nameStr.includes('nqr bus') || nameStr.includes('bus')) return true;
+    return false;
   };
 
   const [storedVehicles] = useState(() => getStoredVehicles());

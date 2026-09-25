@@ -116,9 +116,14 @@ export default function Catalogue() {
   ];
 
   const isBusVehicle = (v: StoredVehicle): boolean => {
+    if (!v) return false;
     const typeStr = (v.type || '').toUpperCase();
-    const nameStr = `${v.make || ''} ${v.model || ''}`.toLowerCase();
-    return typeStr === 'BUS' || nameStr.includes('bus') || nameStr.includes('coaster') || nameStr.includes('coach');
+    const makeStr = (v.make || '').toLowerCase();
+    const modelStr = (v.model || '').toLowerCase();
+    const nameStr = `${makeStr} ${modelStr}`;
+    if (typeStr === 'BUS' || typeStr === 'MINIBUS' || typeStr === 'COASTER') return true;
+    if (nameStr.includes('coaster') || nameStr.includes('nqr bus') || nameStr.includes('bus')) return true;
+    return false;
   };
 
   // Dynamic approved vehicles from registered hosts (only approved & live vehicles)
