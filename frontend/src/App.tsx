@@ -69,6 +69,18 @@ function NonHostRoute({ children }: { children: JSX.Element }) {
   return children;
 }
 
+/** Smart Root Route: Redirects authenticated users to their role dashboard while serving Landing to guests */
+function RootRoute() {
+  const user = useSelector((s: RootState) => s.auth.user);
+  if (user) {
+    const role = user.role?.toUpperCase();
+    if (role === 'ADMIN' || role === 'SUPER_ADMIN') return <Navigate to="/dashboard/admin" replace />;
+    if (role === 'VEHICLE_OWNER' || role === 'OWNER' || role === 'HOST' || role === 'FLEET_HOST') return <Navigate to="/dashboard/owner" replace />;
+    return <Navigate to="/dashboard/tourist" replace />;
+  }
+  return <Landing />;
+}
+
 export default function App() {
   const dispatch = useDispatch();
 
@@ -123,8 +135,8 @@ export default function App() {
       <Navbar />
       <main className="flex-1">
         <Routes>
-          {/* PUBLIC ROUTES (Fleet Hosts redirected to host portal) */}
-          <Route path="/" element={<Landing />} />
+          {/* PUBLIC ROUTES (Authenticated users redirected from root) */}
+          <Route path="/" element={<RootRoute />} />
           <Route path="/catalogue" element={<NonHostRoute><Catalogue /></NonHostRoute>} />
           <Route path="/holidays-and-tours" element={<NonHostRoute><HolidaysAndTours /></NonHostRoute>} />
           <Route path="/services" element={<Services />} />
