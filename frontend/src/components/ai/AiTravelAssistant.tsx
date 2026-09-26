@@ -263,10 +263,12 @@ export function AiTravelAssistant({
   isModal = false,
   onClose,
   showCalculator = false,
+  initialPrompt,
 }: {
   isModal?: boolean;
   onClose?: () => void;
   showCalculator?: boolean;
+  initialPrompt?: string;
 }) {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([
@@ -335,6 +337,14 @@ export function AiTravelAssistant({
     },
     [input]
   );
+
+  const handledInitialPrompt = useRef<string | null>(null);
+  useEffect(() => {
+    if (initialPrompt && initialPrompt.trim() && handledInitialPrompt.current !== initialPrompt) {
+      handledInitialPrompt.current = initialPrompt;
+      handleSend(initialPrompt);
+    }
+  }, [initialPrompt, handleSend]);
 
   const calculatedResult = React.useMemo(() => {
     const dest = currentDestination;

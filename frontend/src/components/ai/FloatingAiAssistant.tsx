@@ -1,11 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Bot, Sparkles, X } from 'lucide-react';
 import { AiTravelAssistant } from './AiTravelAssistant';
 
 export function FloatingAiAssistant() {
   const [isOpen, setIsOpen] = useState(false);
+  const [initialPrompt, setInitialPrompt] = useState<string | undefined>();
   const location = useLocation();
+
+  useEffect(() => {
+    const handleOpen = (e: Event) => {
+      const customEvent = e as CustomEvent<{ prompt?: string }>;
+      if (customEvent.detail?.prompt) {
+        setInitialPrompt(customEvent.detail.prompt);
+      } else {
+        setInitialPrompt(undefined);
+      }
+      setIsOpen(true);
+    };
+
+    window.addEventListener('open-ai-concierge', handleOpen);
+    return () => window.removeEventListener('open-ai-concierge', handleOpen);
+  }, []);
 
   // Hide on auth pages to avoid obstructing the login/register forms
   if (['/login', '/register'].includes(location.pathname)) {
@@ -17,7 +33,12 @@ export function FloatingAiAssistant() {
       {/* FLOATING CONCIERGE BUTTON */}
       <div className="fixed bottom-6 right-6 z-50">
         <button
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => {
+            if (!isOpen) {
+              setInitialPrompt(undefined);
+            }
+            setIsOpen(!isOpen);
+          }}
           className="group flex items-center gap-2.5 rounded-full bg-slate-950/95 text-white border border-amber-400/40 px-4 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.3)] backdrop-blur-xl hover:border-amber-400 hover:scale-105 active:scale-95 transition-all duration-200"
           title="Open M-TRAVEL AI Safari Concierge"
         >
@@ -43,7 +64,14 @@ export function FloatingAiAssistant() {
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/85 backdrop-blur-md p-4 animate-fadeIn">
           <div className="relative w-full max-w-4xl">
-            <AiTravelAssistant isModal onClose={() => setIsOpen(false)} />
+            <AiTravelAssistant
+              isModal
+              initialPrompt={initialPrompt}
+              onClose={() => {
+                setIsOpen(false);
+                setInitialPrompt(undefined);
+              }}
+            />
           </div>
         </div>
       )}
