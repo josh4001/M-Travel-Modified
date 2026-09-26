@@ -84,9 +84,9 @@ export function AuthVideoBackground({ children, title, subtitle }: AuthVideoBack
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-73px)] w-full overflow-hidden bg-slate-950 font-display flex flex-col justify-between">
+    <div className="relative min-h-[calc(100vh-73px)] w-full overflow-x-hidden overflow-y-auto bg-slate-950 font-display flex flex-col justify-between">
       {/* 1. CINEMATIC BACKGROUND VIDEO (PERMANENTLY MUTED & SILENT) */}
-      <div className="absolute inset-0 z-0">
+      <div className="fixed inset-0 z-0">
         <video
           ref={videoRef}
           key={activeTheme.videoUrl}

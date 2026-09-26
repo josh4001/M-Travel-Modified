@@ -223,33 +223,50 @@ export default function Register() {
             </div>
 
             {/* Role selector */}
-            <div>
-              <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-300">
-                Account Type
-              </label>
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                {ROLES.map((r) => {
-                  const active = form.role === r.value;
-                  return (
-                    <button
-                      key={r.value}
-                      type="button"
-                      id={`role-${r.value.toLowerCase()}`}
-                      onClick={() => update('role', r.value)}
-                      className={`rounded-xl border p-2.5 text-center transition flex flex-col items-center gap-1 text-xs font-semibold ${
-                        active
-                          ? 'border-amber-400 bg-amber-500/20 text-amber-300 shadow-sm shadow-amber-500/20 scale-[1.02]'
-                          : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08] hover:text-white'
-                      }`}
-                    >
-                      <r.icon className="h-5 w-5" />
-                      <span className="leading-tight">{r.label}</span>
-                      <span className="text-[10px] font-normal text-slate-400 leading-tight hidden sm:block">{r.description}</span>
-                    </button>
-                  );
-                })}
+            {isBookingNotice ? (
+              <div className="rounded-xl border border-amber-400/40 bg-amber-500/15 p-3 flex items-center justify-between text-xs text-amber-200">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-7 w-7 rounded-lg bg-amber-400/20 text-amber-400 flex items-center justify-center">
+                    <User className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-white block text-xs">Explorer / Traveler Account</span>
+                    <span className="text-[10px] text-slate-300">Required to reserve your destination</span>
+                  </div>
+                </div>
+                <span className="text-[10px] text-amber-300 font-mono font-bold bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-400/30">
+                  Pre-selected
+                </span>
               </div>
-            </div>
+            ) : (
+              <div>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-300">
+                  Account Type
+                </label>
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                  {ROLES.map((r) => {
+                    const active = form.role === r.value;
+                    return (
+                      <button
+                        key={r.value}
+                        type="button"
+                        id={`role-${r.value.toLowerCase()}`}
+                        onClick={() => update('role', r.value)}
+                        className={`rounded-xl border p-2.5 text-center transition flex flex-col items-center gap-1 text-xs font-semibold ${
+                          active
+                            ? 'border-amber-400 bg-amber-500/20 text-amber-300 shadow-sm shadow-amber-500/20 scale-[1.02]'
+                            : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08] hover:text-white'
+                        }`}
+                      >
+                        <r.icon className="h-5 w-5" />
+                        <span className="leading-tight">{r.label}</span>
+                        <span className="text-[10px] font-normal text-slate-400 leading-tight hidden sm:block">{r.description}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <button
               id="register-submit-btn"

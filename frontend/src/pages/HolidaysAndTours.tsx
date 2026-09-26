@@ -457,29 +457,29 @@ export default function HolidaysAndTours() {
               </div>
 
               {/* FOOTER & PRICING */}
-              <div className="p-6 pt-0 border-t border-slate-100 mt-4 flex items-center justify-between">
-                <div>
-                  <span className="block text-[10px] uppercase font-bold text-slate-400">All-Inclusive Rate</span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-serif text-2xl font-bold text-slate-950">
+              <div className="p-5 pt-0 border-t border-slate-100 mt-4 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="block text-[10px] uppercase font-bold text-slate-400 truncate">All-Inclusive Rate</span>
+                  <div className="flex items-baseline gap-1 whitespace-nowrap">
+                    <span className="font-serif text-lg sm:text-xl font-bold text-slate-950">
                       {formatPrice(item.priceKES)}
                     </span>
-                    <span className="text-xs text-slate-500 font-medium">{item.priceUnit}</span>
+                    <span className="text-[11px] text-slate-500 font-medium truncate">{item.priceUnit}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => setSelectedItem(item)}
-                    className="rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-100 px-3 py-2 text-xs font-bold text-slate-800 transition"
+                    className="rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-100 px-2.5 py-2 text-xs font-bold text-slate-800 transition whitespace-nowrap"
                   >
-                    View Details
+                    Details
                   </button>
                   <button
                     onClick={() => handleBookNow(item)}
-                    className="btn-primary !py-2 !px-4 text-xs font-bold shadow-md shadow-amber-500/20"
+                    className="btn-primary !py-2 !px-3.5 text-xs font-bold shadow-md shadow-amber-500/20 whitespace-nowrap flex items-center gap-1"
                   >
-                    Book Now
+                    <span>Book Now</span>
                   </button>
                 </div>
               </div>
@@ -643,87 +643,87 @@ export default function HolidaysAndTours() {
       {/* TRAVELER REGISTRATION REQUIRED POPUP MODAL */}
       <AnimatePresence>
         {authRequiredItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 p-6 md:p-8 shadow-2xl space-y-6 text-slate-900"
+              className="relative w-full max-w-md max-h-[92vh] overflow-y-auto rounded-3xl bg-white border border-slate-200 p-5 sm:p-6 shadow-2xl space-y-4 text-slate-900 my-auto"
             >
               {/* CLOSE BUTTON */}
               <button
                 onClick={() => setAuthRequiredItem(null)}
-                className="absolute top-5 right-5 h-9 w-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 transition"
+                className="absolute top-4 right-4 h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 transition"
                 title="Close"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
 
               {/* HEADER BADGE */}
-              <div className="space-y-2">
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3.5 py-1 text-xs font-bold text-amber-800">
-                  <Lock className="h-3.5 w-3.5 text-amber-600" />
+              <div className="space-y-1.5 pr-8">
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-0.5 text-xs font-bold text-amber-800">
+                  <Lock className="h-3 w-3 text-amber-600" />
                   <span>Traveler Account Required</span>
                 </div>
-                <h3 className="font-serif text-2xl md:text-3xl font-bold text-slate-950 tracking-tight">
+                <h3 className="font-serif text-xl sm:text-2xl font-bold text-slate-950 tracking-tight">
                   Register as a Traveler to Reserve
                 </h3>
-                <p className="text-xs md:text-sm text-slate-600 leading-relaxed">
+                <p className="text-xs text-slate-600 leading-relaxed">
                   To confirm your reservation and receive your official digital itinerary, vouchers, and 24/7 concierge assistance, please register or sign in as a traveler.
                 </p>
               </div>
 
               {/* SELECTED ITEM PREVIEW CARD */}
-              <div className="rounded-2xl border border-slate-200/90 bg-[#FAF8F5] p-3.5 flex items-center gap-4 shadow-xs">
+              <div className="rounded-2xl border border-slate-200/90 bg-[#FAF8F5] p-3 flex items-center gap-3.5 shadow-xs">
                 <img
                   src={authRequiredItem.imageUrl}
                   alt={authRequiredItem.title}
-                  className="h-16 w-20 rounded-xl object-cover shrink-0 border border-slate-200"
+                  className="h-14 w-16 rounded-xl object-cover shrink-0 border border-slate-200"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-800 uppercase font-mono">
+                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[9px] font-bold text-amber-800 uppercase font-mono">
                       {authRequiredItem.badge}
                     </span>
                     <span className="text-[10px] text-slate-500 flex items-center gap-0.5 truncate">
                       <MapPin className="h-3 w-3 text-slate-400 shrink-0" /> {authRequiredItem.location}
                     </span>
                   </div>
-                  <h4 className="font-serif font-bold text-sm text-slate-900 truncate mt-1">
+                  <h4 className="font-serif font-bold text-xs sm:text-sm text-slate-900 truncate mt-0.5">
                     {authRequiredItem.title}
                   </h4>
-                  <div className="mt-1 flex items-baseline gap-1">
-                    <span className="font-serif font-bold text-amber-700 text-sm">
+                  <div className="mt-0.5 flex items-baseline gap-1">
+                    <span className="font-serif font-bold text-amber-700 text-xs sm:text-sm">
                       {formatPrice(authRequiredItem.priceKES)}
                     </span>
-                    <span className="text-[11px] text-slate-500">{authRequiredItem.priceUnit}</span>
+                    <span className="text-[10px] text-slate-500">{authRequiredItem.priceUnit}</span>
                   </div>
                 </div>
               </div>
 
               {/* BENEFITS CHECKLIST */}
-              <div className="space-y-2 rounded-2xl bg-amber-50/50 border border-amber-200/60 p-3.5 text-xs text-slate-700">
-                <p className="font-bold text-amber-900 text-[11px] uppercase tracking-wider">
+              <div className="space-y-1.5 rounded-2xl bg-amber-50/50 border border-amber-200/60 p-3 text-xs text-slate-700">
+                <p className="font-bold text-amber-900 text-[10px] uppercase tracking-wider">
                   Why you need a Traveler Account:
                 </p>
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-[11px] sm:text-xs">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                     <span>Instant M-Pesa receipt verification & booking confirmation</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <div className="flex items-center gap-2 text-[11px] sm:text-xs">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                     <span>Official safari voucher & stay access credentials sent to your email</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <div className="flex items-center gap-2 text-[11px] sm:text-xs">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                     <span>Live 24/7 dedicated WhatsApp & phone concierge support</span>
                   </div>
                 </div>
               </div>
 
               {/* ACTION BUTTONS */}
-              <div className="space-y-2.5 pt-2">
+              <div className="space-y-2 pt-1">
                 <button
                   type="button"
                   onClick={() => {
@@ -735,7 +735,7 @@ export default function HolidaysAndTours() {
                       },
                     });
                   }}
-                  className="btn-primary w-full !py-3 font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition"
+                  className="btn-primary w-full !py-2.5 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition"
                 >
                   <UserPlus className="h-4 w-4" />
                   <span>Register as Traveler & Continue</span>
@@ -753,7 +753,7 @@ export default function HolidaysAndTours() {
                       },
                     });
                   }}
-                  className="btn-secondary w-full !py-2.5 font-bold text-xs flex items-center justify-center gap-1.5"
+                  className="btn-secondary w-full !py-2 font-bold text-xs flex items-center justify-center gap-1.5"
                 >
                   <Lock className="h-3.5 w-3.5 text-slate-600" />
                   <span>Already have an account? Sign In</span>
