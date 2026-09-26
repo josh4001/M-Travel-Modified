@@ -614,144 +614,304 @@ export default function AdminDashboard() {
     return matchesCategory && matchesSearch;
   });
 
-  const TABS: { id: Tab; label: string; icon: any }[] = [
-    { id: 'overview',     label: 'Overview', icon: BarChart3 },
-    { id: 'approvals',    label: `Approvals (${pendingVehicles.length})`, icon: FileCheck },
-    { id: 'fleet',        label: 'Fleet & Status', icon: Car },
-    { id: 'bookings',     label: `Bookings (${bookings.length})`, icon: Clock },
-    { id: 'incidents',    label: `🚨 Incidents (${incidentsList.filter(i => i.status !== 'RESOLVED').length})`, icon: AlertTriangle },
-    { id: 'audit_logs',   label: 'Audit Trail', icon: FileCheck },
-    { id: 'accounting',   label: 'Accounting', icon: DollarSign },
-    { id: 'users',        label: `Accounts (${users.length})`, icon: Users },
-    { id: 'credit_scores', label: '🛡️ Traveler Credit Ratings', icon: Shield },
-    { id: 'destinations', label: `Holidays & Tours (${destinationsList.length})`, icon: Palmtree },
+  const TABS_ROW_1: { id: Tab; label: string; badge?: number | string; badgeAlert?: boolean; icon: any }[] = [
+    { id: 'overview',     label: 'Overview & Insights', icon: BarChart3 },
+    { id: 'fleet',        label: 'Fleet Telematics', icon: Car },
+    { id: 'approvals',    label: 'Host Approvals', badge: pendingVehicles.length, badgeAlert: pendingVehicles.length > 0, icon: FileCheck },
+    { id: 'destinations', label: 'Holidays & Tours', badge: destinationsList.length, icon: Palmtree },
+    { id: 'bookings',     label: 'Bookings Ledger', badge: bookings.length, icon: Clock },
+  ];
+
+  const TABS_ROW_2: { id: Tab; label: string; badge?: number | string; badgeAlert?: boolean; icon: any }[] = [
+    { id: 'credit_scores', label: 'Traveler Credit Ratings', icon: Shield },
+    { id: 'incidents',    label: 'Safety Incidents', badge: incidentsList.filter(i => i.status !== 'RESOLVED').length, badgeAlert: incidentsList.filter(i => i.status !== 'RESOLVED').length > 0, icon: AlertTriangle },
+    { id: 'accounting',   label: 'Treasury & Accounts', icon: DollarSign },
+    { id: 'users',        label: 'User Directory', badge: users.length, icon: Users },
+    { id: 'audit_logs',   label: 'Immutable Audit Trail', icon: FileCheck },
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 space-y-6 font-display text-slate-900">
-      {/* HEADER */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-6">
-        <div>
-          <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-purple-700">
-            <Shield className="h-3.5 w-3.5" /> Platform Administration
-          </span>
-          <h1 className="mt-1 font-display text-3xl font-bold text-slate-900">Admin Console</h1>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <button onClick={fetchAll} className="btn-secondary !py-2 !px-4 text-xs flex items-center gap-2 font-bold text-slate-800 border-slate-200 hover:text-slate-950">
-            <RefreshCw className="h-4 w-4 text-purple-600" /> Sync Live Data
-          </button>
+    <div className="mx-auto max-w-7xl px-4 py-8 space-y-7 font-display text-slate-900">
+      {/* ── BILLION-DOLLAR ENTERPRISE EXECUTIVE COMMAND HEADER ── */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6 sm:p-8 text-white border border-slate-800 shadow-2xl">
+        {/* Ambient luxury glow overlay */}
+        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-amber-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute left-1/3 -bottom-20 h-64 w-64 rounded-full bg-teal-500/10 blur-3xl" />
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1 text-[11px] font-mono font-bold tracking-widest text-amber-400 border border-amber-500/30 uppercase">
+                <Shield className="h-3.5 w-3.5 text-amber-400" /> M-Travel Enterprise
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-[11px] font-mono font-bold text-emerald-400 border border-emerald-500/30">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                Live Telemetry Active
+              </span>
+            </div>
+
+            <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white">
+              Operations &amp; Expedition Command
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl font-normal leading-relaxed">
+              Real-time 4×4 fleet telematics, Safari Van &amp; Bus dispatch, host accreditation approvals, risk scoring, and financial clearing.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={fetchAll}
+              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 text-xs font-bold text-white backdrop-blur-md transition shadow-sm cursor-pointer"
+            >
+              <RefreshCw className="h-4 w-4 text-amber-400" />
+              <span>Sync Live Telemetry</span>
+            </button>
+            <button
+              onClick={() => {
+                setEditingDest(null);
+                setDestForm({
+                  title: '',
+                  subtitle: '',
+                  category: 'TOUR',
+                  badge: 'Premier Safari Package',
+                  priceKES: 45000,
+                  priceUnit: '/ person',
+                  imageUrl: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1200&q=80',
+                  images: [],
+                  location: 'Maasai Mara, Kenya',
+                  region: 'Narok County',
+                  specs: '3 Days / 2 Nights, Full Board Lodge, 4x4 Cruiser, Park Entry Included',
+                  overview: 'All-inclusive guided safari with private 4x4 pop-up roof cruiser and certified safari guide.',
+                  highlights: 'Big Five game drives, Gourmet lodge dining, Cultural visit, Park entry fees',
+                  itinerary: 'Day 1: Transfer from Nairobi & afternoon safari\nDay 2: Full day wildlife safari with bush picnic\nDay 3: Sunrise game drive & return journey',
+                  isLive: true,
+                  featured: true,
+                });
+                setIsDestModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2.5 text-xs font-bold text-slate-950 transition shadow-lg shadow-amber-400/20 cursor-pointer"
+            >
+              <Plus className="h-4 w-4 text-slate-950" />
+              <span>New Safari Package</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* ── PENDING VEHICLE REGISTRATION APPROVAL ALERT BANNER ── */}
       {pendingVehicles.length > 0 && (
-        <div className="rounded-2xl bg-amber-500/10 border-2 border-amber-500/40 p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm animate-pulse">
-              <Car className="h-5 w-5" />
+        <div className="rounded-3xl bg-amber-500/10 border-2 border-amber-500/40 p-5 shadow-md flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20 animate-pulse">
+              <Car className="h-6 w-6" />
             </div>
             <div>
-              <h4 className="font-serif text-sm font-bold text-amber-950 flex items-center gap-1.5">
+              <h4 className="font-serif text-base font-bold text-amber-950 flex items-center gap-2">
                 <span>🚨</span> {pendingVehicles.length} New Vehicle Registration Request{pendingVehicles.length > 1 ? 's' : ''} Awaiting Admin Approval
               </h4>
               <p className="text-xs text-amber-900/90 font-medium mt-0.5">
-                Fleet Host{pendingVehicles.length > 1 ? 's have' : ' has'} submitted {pendingVehicles.map(v => `${v.make} ${v.model} (${v.plateNumber || 'Pending Plate'})`).join(', ')}. Review photos & compliance docs to approve or decline.
+                Fleet Host{pendingVehicles.length > 1 ? 's have' : ' has'} submitted {pendingVehicles.map(v => `${v.make} ${v.model} (${v.plateNumber || 'Pending Plate'})`).join(', ')}. Review photos &amp; compliance docs to approve or decline.
               </p>
             </div>
           </div>
           <button
             onClick={() => setActiveTab('approvals')}
-            className="btn-primary !py-2 !px-4 text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 shadow-sm shrink-0 flex items-center gap-1.5"
+            className="rounded-xl px-5 py-2.5 text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 shadow-sm shrink-0 flex items-center gap-2 cursor-pointer transition"
           >
             Review Pending Queue ({pendingVehicles.length}) →
           </button>
         </div>
       )}
 
-      {/* ── TOP EXCEPTION METRICS STRIP (OPERATIONAL STATUS AT A GLANCE) ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-        <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Fleet</span>
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-xl font-bold font-mono text-slate-900">{exceptionMetrics.totalFleet}</span>
-            <Car className="w-4 h-4 text-slate-400" />
+      {/* ── EXECUTIVE OPERATIONAL STATUS DECK (6-POD BALANCED COMMAND GRID) ── */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+        {/* 1. TOTAL FLEET */}
+        <div className="rounded-3xl bg-white border border-slate-200/90 p-4 shadow-xs hover:shadow-md transition flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Fleet</span>
+            <div className="h-8 w-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
+              <Car className="h-4 w-4 text-slate-800" />
+            </div>
+          </div>
+          <div>
+            <p className="mt-2 font-mono text-3xl font-bold text-slate-900">{exceptionMetrics.totalFleet}</p>
+            <p className="mt-1 text-[11px] text-slate-500 font-medium">4×4 Cruisers, Vans &amp; Buses</p>
           </div>
         </div>
 
-        <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3.5 shadow-2xs">
-          <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">Available</span>
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-xl font-bold font-mono text-emerald-700">{exceptionMetrics.available}</span>
-            <CheckCircle className="w-4 h-4 text-emerald-500" />
+        {/* 2. AVAILABLE */}
+        <div className="rounded-3xl bg-emerald-50/70 border border-emerald-200/90 p-4 shadow-xs hover:shadow-md transition flex flex-col justify-between">
+          <div className="flex items-center justify-between text-emerald-800">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Available</span>
+            <div className="h-8 w-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700">
+              <CheckCircle className="h-4 w-4 text-emerald-600" />
+            </div>
+          </div>
+          <div>
+            <p className="mt-2 font-mono text-3xl font-bold text-emerald-700">{exceptionMetrics.available}</p>
+            <div className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <span>Ready for Instant Hire</span>
+            </div>
           </div>
         </div>
 
-        <div className="bg-indigo-50/70 border border-indigo-200 rounded-xl p-3.5 shadow-2xs">
-          <span className="text-[10px] font-bold text-indigo-800 uppercase tracking-wider block">Active Rentals</span>
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-xl font-bold font-mono text-indigo-700">{exceptionMetrics.activeRentals}</span>
-            <Lock className="w-4 h-4 text-indigo-500" />
+        {/* 3. ACTIVE FIELD DEPLOYMENTS */}
+        <div className="rounded-3xl bg-indigo-50/70 border border-indigo-200/90 p-4 shadow-xs hover:shadow-md transition flex flex-col justify-between">
+          <div className="flex items-center justify-between text-indigo-800">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-800">In Deployment</span>
+            <div className="h-8 w-8 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-700">
+              <Lock className="h-4 w-4 text-indigo-600" />
+            </div>
+          </div>
+          <div>
+            <p className="mt-2 font-mono text-3xl font-bold text-indigo-700">{exceptionMetrics.activeRentals + exceptionMetrics.reserved}</p>
+            <p className="mt-1 text-[11px] text-indigo-700 font-medium truncate">
+              {exceptionMetrics.activeRentals} Active • {exceptionMetrics.reserved} Reserved
+            </p>
           </div>
         </div>
 
-        <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-3.5 shadow-2xs">
-          <span className="text-[10px] font-bold text-purple-800 uppercase tracking-wider block">Reserved</span>
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-xl font-bold font-mono text-purple-700">{exceptionMetrics.reserved}</span>
-            <Clock className="w-4 h-4 text-purple-500" />
+        {/* 4. RETURN DUE */}
+        <div className="rounded-3xl bg-amber-50/80 border border-amber-200/90 p-4 shadow-xs hover:shadow-md transition flex flex-col justify-between">
+          <div className="flex items-center justify-between text-amber-900">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900">Return Due</span>
+            <div className="h-8 w-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700">
+              <Clock className="h-4 w-4 text-amber-700" />
+            </div>
+          </div>
+          <div>
+            <p className="mt-2 font-mono text-3xl font-bold text-amber-800">{exceptionMetrics.returnDue}</p>
+            <p className="mt-1 text-[11px] text-amber-800 font-medium">Inspection queue today</p>
           </div>
         </div>
 
-        <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-3.5 shadow-2xs">
-          <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider block">Return Due</span>
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-xl font-bold font-mono text-amber-700">{exceptionMetrics.returnDue}</span>
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
-          </div>
-        </div>
-
-        <div className={`rounded-xl p-3.5 border shadow-2xs ${
+        {/* 5. OVERDUE WATCH */}
+        <div className={`rounded-3xl p-4 border shadow-xs transition flex flex-col justify-between ${
           exceptionMetrics.overdue > 0
-            ? 'bg-red-600 text-white border-red-700 animate-pulse'
-            : 'bg-slate-50 border-slate-200 text-slate-600'
+            ? 'bg-red-600 text-white border-red-700 shadow-red-500/20 shadow-lg animate-pulse'
+            : 'bg-white border-slate-200/90'
         }`}>
-          <span className={`text-[10px] font-bold uppercase tracking-wider block ${exceptionMetrics.overdue > 0 ? 'text-white' : 'text-slate-500'}`}>
-            Overdue 🚨
-          </span>
-          <div className="flex items-center justify-between mt-1">
-            <span className={`text-xl font-bold font-mono ${exceptionMetrics.overdue > 0 ? 'text-white' : 'text-slate-700'}`}>
-              {exceptionMetrics.overdue}
+          <div className="flex items-center justify-between">
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${exceptionMetrics.overdue > 0 ? 'text-white' : 'text-slate-500'}`}>
+              Overdue Watch
             </span>
-            <AlertTriangle className={`w-4 h-4 ${exceptionMetrics.overdue > 0 ? 'text-white' : 'text-slate-400'}`} />
+            <div className={`h-8 w-8 rounded-xl flex items-center justify-center ${exceptionMetrics.overdue > 0 ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+              <AlertTriangle className="h-4 w-4" />
+            </div>
+          </div>
+          <div>
+            <p className={`mt-2 font-mono text-3xl font-bold ${exceptionMetrics.overdue > 0 ? 'text-white' : 'text-slate-900'}`}>
+              {exceptionMetrics.overdue}
+            </p>
+            <p className={`mt-1 text-[11px] font-medium ${exceptionMetrics.overdue > 0 ? 'text-red-100' : 'text-slate-500'}`}>
+              {exceptionMetrics.overdue > 0 ? 'Urgent follow-up required' : '0 Rentals Overdue'}
+            </p>
           </div>
         </div>
 
-        <div className={`rounded-xl p-3.5 border shadow-2xs ${
+        {/* 6. SAFETY & INCIDENTS */}
+        <div className={`rounded-3xl p-4 border shadow-xs transition flex flex-col justify-between ${
           exceptionMetrics.activeIncidents > 0
-            ? 'bg-rose-50 border-rose-300 text-rose-900'
-            : 'bg-slate-50 border-slate-200 text-slate-600'
+            ? 'bg-rose-50 border-rose-300 shadow-xs'
+            : 'bg-white border-slate-200/90'
         }`}>
-          <span className="text-[10px] font-bold text-rose-800 uppercase tracking-wider block">Incidents 🚨</span>
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-xl font-bold font-mono text-rose-700">{exceptionMetrics.activeIncidents}</span>
-            <AlertTriangle className="w-4 h-4 text-rose-500" />
+          <div className="flex items-center justify-between">
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${exceptionMetrics.activeIncidents > 0 ? 'text-rose-800' : 'text-slate-500'}`}>
+              Safety Incidents
+            </span>
+            <div className={`h-8 w-8 rounded-xl flex items-center justify-center ${exceptionMetrics.activeIncidents > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500'}`}>
+              <Shield className="h-4 w-4" />
+            </div>
+          </div>
+          <div>
+            <p className={`mt-2 font-mono text-3xl font-bold ${exceptionMetrics.activeIncidents > 0 ? 'text-rose-700' : 'text-slate-900'}`}>
+              {exceptionMetrics.activeIncidents}
+            </p>
+            <p className={`mt-1 text-[11px] font-medium ${exceptionMetrics.activeIncidents > 0 ? 'text-rose-700 font-bold' : 'text-emerald-700 font-medium'}`}>
+              {exceptionMetrics.activeIncidents > 0 ? 'Active dispatch alerts' : 'All Clear • Zero Incidents'}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* TAB BAR */}
-      <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-slate-100/90 p-1.5">
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition ${activeTab === t.id ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white'}`}
-          >
-            <t.icon className="h-3.5 w-3.5" />
-            {t.label}
-          </button>
-        ))}
+      {/* ── ENTERPRISE 2-TIER STRUCTURED NAVIGATION ── */}
+      <div className="rounded-3xl border border-slate-200/90 bg-white p-3.5 shadow-sm space-y-3">
+        {/* ROW 1: EXPEDITION & FLEET DISPATCH */}
+        <div>
+          <div className="flex items-center justify-between px-2 pb-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+            <span className="flex items-center gap-1.5"><Car className="h-3 w-3 text-amber-600" /> Expedition &amp; Fleet Operations</span>
+            <span className="text-slate-400">Group A</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+            {TABS_ROW_1.map(t => {
+              const isActive = activeTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id)}
+                  className={`flex items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition cursor-pointer border ${
+                    isActive
+                      ? 'bg-slate-950 text-white border-slate-800 shadow-md ring-1 ring-amber-400/40'
+                      : 'bg-slate-50/80 hover:bg-slate-100 text-slate-700 hover:text-slate-950 border-slate-200/70'
+                  }`}
+                >
+                  <span className="flex items-center gap-2 truncate">
+                    <t.icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-amber-400' : 'text-slate-500'}`} />
+                    <span className="truncate">{t.label}</span>
+                  </span>
+                  {t.badge !== undefined && (
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-bold shrink-0 ${
+                      isActive
+                        ? (t.badgeAlert ? 'bg-amber-400 text-slate-950' : 'bg-white/20 text-white')
+                        : (t.badgeAlert ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-slate-200 text-slate-700')
+                    }`}>
+                      {t.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ROW 2: GOVERNANCE, RISK & TREASURY */}
+        <div className="pt-2 border-t border-slate-100">
+          <div className="flex items-center justify-between px-2 pb-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+            <span className="flex items-center gap-1.5"><Shield className="h-3 w-3 text-indigo-600" /> Risk, Governance &amp; Treasury</span>
+            <span className="text-slate-400">Group B</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+            {TABS_ROW_2.map(t => {
+              const isActive = activeTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id)}
+                  className={`flex items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition cursor-pointer border ${
+                    isActive
+                      ? 'bg-slate-950 text-white border-slate-800 shadow-md ring-1 ring-amber-400/40'
+                      : 'bg-slate-50/80 hover:bg-slate-100 text-slate-700 hover:text-slate-950 border-slate-200/70'
+                  }`}
+                >
+                  <span className="flex items-center gap-2 truncate">
+                    <t.icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-amber-400' : 'text-slate-500'}`} />
+                    <span className="truncate">{t.label}</span>
+                  </span>
+                  {t.badge !== undefined && (
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-bold shrink-0 ${
+                      isActive
+                        ? (t.badgeAlert ? 'bg-red-500 text-white' : 'bg-white/20 text-white')
+                        : (t.badgeAlert ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-slate-200 text-slate-700')
+                    }`}>
+                      {t.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {loading && (
@@ -765,41 +925,56 @@ export default function AdminDashboard() {
       {!loading && activeTab === 'overview' && (
         <div className="space-y-6">
           {/* ── PRIORITY EXCEPTION QUEUE: ATTENTION REQUIRED ── */}
-          <div className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className={`p-2 rounded-xl ${attentionItems.length > 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                  <AlertTriangle className="w-5 h-5" />
+          <div className="rounded-3xl bg-white border border-slate-200/90 p-6 shadow-sm space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className={`p-2.5 rounded-2xl ${attentionItems.length > 0 ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'}`}>
+                  {attentionItems.length > 0 ? <AlertTriangle className="w-5 h-5 text-red-700" /> : <Shield className="w-5 h-5 text-emerald-700" />}
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-                    Priority Attention Feed
+                  <div className="flex items-center gap-2.5">
+                    <h3 className="font-serif text-lg font-bold text-slate-900">
+                      Operations Exception Radar
+                    </h3>
                     {attentionItems.length > 0 ? (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-red-100 text-red-800 border border-red-200">
-                        {attentionItems.length} Exceptions Active
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-red-100 text-red-800 border border-red-300">
+                        {attentionItems.length} Action{attentionItems.length > 1 ? 's' : ''} Required
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
-                        All Normal
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                        All Telemetry Nominal
                       </span>
                     )}
-                  </h3>
-                  <p className="text-xs text-slate-500">Live operational exceptions requiring agency review or dispatch</p>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">Live operational exceptions requiring agency dispatch, handover execution, or return settlement</p>
                 </div>
               </div>
             </div>
 
             {attentionItems.length === 0 ? (
-              <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2 font-medium">
-                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Zero pending exceptions. All vehicle rentals, returns, and safety check-ins are operating smoothly.</span>
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-50/80 via-white to-emerald-50/50 border border-emerald-200/80 text-xs text-emerald-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <CheckCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-emerald-950">Zero Pending Exceptions Active</h4>
+                    <p className="text-slate-600 mt-0.5">
+                      All 4×4 safari cruisers, safari vans, coaches, and driver handovers are operating in full compliance. GPS check-ins and return inspections are on schedule.
+                    </p>
+                  </div>
+                </div>
+                <div className="text-[11px] font-mono text-emerald-800 bg-white/80 px-3 py-1.5 rounded-xl border border-emerald-200 shrink-0 font-bold">
+                  Status: 100% Operational
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                 {attentionItems.map(item => (
                   <div
                     key={item.id}
-                    className={`p-3.5 rounded-xl border flex flex-col justify-between gap-2.5 transition shadow-2xs ${
+                    className={`p-4 rounded-2xl border flex flex-col justify-between gap-3 transition shadow-xs ${
                       item.severity === 'high'
                         ? 'bg-red-50/90 border-red-300'
                         : item.severity === 'medium'
@@ -814,11 +989,11 @@ export default function AdminDashboard() {
                         }`}>
                           {item.title}
                         </span>
-                        <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-white/80 border border-slate-200 shrink-0">
+                        <span className="text-[10px] font-mono font-bold uppercase px-2.5 py-0.5 rounded-full bg-white/90 border border-slate-200 shrink-0">
                           {item.timeLabel}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-600 mt-1 line-clamp-1">{item.subtitle}</p>
+                      <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">{item.subtitle}</p>
                     </div>
 
                     <div className="flex items-center justify-end pt-1">
@@ -829,7 +1004,7 @@ export default function AdminDashboard() {
                             const b = bookings.find(x => x.id === item.bookingId);
                             if (b) setSelectedBookingForHandover(b);
                           }}
-                          className="px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg shadow-xs cursor-pointer flex items-center gap-1"
+                          className="px-3.5 py-2 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5 transition"
                         >
                           <Lock className="w-3.5 h-3.5" /> Execute Handover
                         </button>
@@ -842,9 +1017,9 @@ export default function AdminDashboard() {
                             const b = bookings.find(x => x.id === item.bookingId);
                             if (b) setSelectedBookingForReturnInspection(b);
                           }}
-                          className="px-3 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-xs cursor-pointer flex items-center gap-1"
+                          className="px-3.5 py-2 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5 transition"
                         >
-                          <CheckCircle className="w-3.5 h-3.5" /> Inspect & Settle
+                          <CheckCircle className="w-3.5 h-3.5" /> Inspect &amp; Settle
                         </button>
                       )}
 
@@ -852,7 +1027,7 @@ export default function AdminDashboard() {
                         <button
                           type="button"
                           onClick={() => setActiveTab('incidents')}
-                          className="px-3 py-1.5 text-xs font-bold bg-rose-700 hover:bg-rose-800 text-white rounded-lg shadow-xs cursor-pointer flex items-center gap-1"
+                          className="px-3.5 py-2 text-xs font-bold bg-rose-700 hover:bg-rose-800 text-white rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5 transition"
                         >
                           <AlertTriangle className="w-3.5 h-3.5" /> Manage Incident
                         </button>
@@ -864,47 +1039,51 @@ export default function AdminDashboard() {
             )}
           </div>
 
+          {/* ── 4 CORE ENTERPRISE VOLUME METRICS ── */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {[
-              { label: 'Platform Revenue',  value: formatPrice(totalRevenue),  icon: DollarSign, color: 'text-emerald-700', bg: 'bg-emerald-50' },
-              { label: 'Registered Users',  value: users.length,               icon: Users,      color: 'text-teal-700',    bg: 'bg-teal-50' },
-              { label: 'Fleet Vehicles',    value: vehicles.length,            icon: Car,        color: 'text-amber-700',   bg: 'bg-amber-50' },
-              { label: 'Total Bookings',    value: bookings.length,            icon: Activity,   color: 'text-rose-700',    bg: 'bg-rose-50' },
+              { label: 'Platform Revenue',  sub: 'Gross rental & tour volume', value: formatPrice(totalRevenue),  icon: DollarSign, color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-t-emerald-600' },
+              { label: 'Verified Accounts', sub: 'Tourists, hosts & admins', value: users.length,              icon: Users,      color: 'text-teal-700',    bg: 'bg-teal-50', border: 'border-t-teal-600' },
+              { label: 'Fleet Under Command', sub: 'Cruisers, vans & coaches', value: vehicles.length,           icon: Car,        color: 'text-amber-700',   bg: 'bg-amber-50', border: 'border-t-amber-500' },
+              { label: 'Total Bookings',    sub: 'Platform expeditions', value: bookings.length,           icon: Activity,   color: 'text-indigo-700',  bg: 'bg-indigo-50', border: 'border-t-indigo-600' },
             ].map(s => (
-              <div key={s.label} className="rounded-2xl bg-white border border-slate-200/90 p-5 shadow-sm hover:shadow-md transition">
-                <div className={`inline-flex p-2.5 rounded-xl ${s.bg}`}>
-                  <s.icon className={`h-5 w-5 ${s.color}`} />
+              <div key={s.label} className={`rounded-3xl bg-white border border-slate-200/90 ${s.border} border-t-4 p-5 shadow-xs hover:shadow-md transition`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{s.label}</span>
+                  <div className={`p-2 rounded-xl ${s.bg}`}>
+                    <s.icon className={`h-4 w-4 ${s.color}`} />
+                  </div>
                 </div>
-                <p className="mt-3 font-mono text-2xl font-bold text-slate-900">{s.value}</p>
-                <p className="mt-0.5 text-xs text-slate-600 font-semibold">{s.label}</p>
+                <p className="mt-3 font-mono text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">{s.value}</p>
+                <p className="mt-1 text-xs text-slate-500 font-medium">{s.sub}</p>
               </div>
             ))}
           </div>
 
           {/* ROLE BREAKDOWN */}
-          <div className="rounded-2xl bg-white border border-slate-200/90 p-6 space-y-4 shadow-sm">
-            <h3 className="font-display font-bold text-slate-900 text-lg flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-purple-600" /> Live Role Distribution
+          <div className="rounded-3xl bg-white border border-slate-200/90 p-6 space-y-4 shadow-sm">
+            <h3 className="font-serif font-bold text-slate-900 text-lg flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-amber-600" /> Platform Role Distribution &amp; Governance
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { role: 'TOURIST',       label: 'Tourists',          icon: Users,  cls: 'text-teal-800 border-teal-200 bg-teal-50' },
-                { role: 'VEHICLE_OWNER', label: 'Vehicle Owners',    icon: Car,    cls: 'text-amber-800 border-amber-200 bg-amber-50' },
-                { role: 'ADMIN',         label: 'Administrators',    icon: Shield, cls: 'text-purple-800 border-purple-200 bg-purple-50' },
+                { role: 'TOURIST',       label: 'Tourists & Travelers', icon: Users,  cls: 'text-teal-800 border-teal-200 bg-teal-50/70', bar: 'bg-teal-600' },
+                { role: 'VEHICLE_OWNER', label: 'Fleet Hosts',          icon: Car,    cls: 'text-amber-800 border-amber-200 bg-amber-50/70', bar: 'bg-amber-500' },
+                { role: 'ADMIN',         label: 'Administrators',       icon: Shield, cls: 'text-slate-900 border-slate-200 bg-slate-100/70', bar: 'bg-slate-900' },
               ].map(r => {
                 const count = users.filter(u => u.role === r.role).length;
                 const pct = (count / Math.max(users.length, 1)) * 100;
                 return (
-                  <div key={r.role} className={`rounded-xl border p-4 ${r.cls}`}>
+                  <div key={r.role} className={`rounded-2xl border p-4.5 ${r.cls}`}>
                     <div className="flex justify-between items-center font-bold text-slate-900">
-                      <span className="flex items-center gap-1.5">
+                      <span className="flex items-center gap-1.5 text-xs">
                         <r.icon className="h-4 w-4" />
                         {r.label}
                       </span>
                       <span className="font-mono text-xl">{count}</span>
                     </div>
-                    <div className="mt-2 h-2 rounded-full bg-slate-200/70" />
-                    <div className={`-mt-2 h-2 rounded-full ${r.role === 'TOURIST' ? 'bg-teal-600' : r.role === 'VEHICLE_OWNER' ? 'bg-amber-500' : 'bg-purple-600'}`} style={{ width: `${pct}%` }} />
+                    <div className="mt-3 h-2 rounded-full bg-slate-200/70" />
+                    <div className={`-mt-2 h-2 rounded-full ${r.bar}`} style={{ width: `${pct}%` }} />
                   </div>
                 );
               })}
