@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import {
-  Star, ShieldCheck, Phone as PhoneIcon, Mail, Calendar, MapPin,
+  ShieldCheck, Phone as PhoneIcon, Mail, Calendar, MapPin,
   Car, CheckCircle2, Lock, Headset, AlertCircle,
   MessageSquare
 } from 'lucide-react';
@@ -369,17 +369,13 @@ export default function VehicleDetail() {
               {targetVehicle.make} {targetVehicle.model}{' '}
               <span className="text-slate-500 text-xl font-normal">({targetVehicle.year})</span>
             </h1>
-            <div className="mt-2 flex items-center gap-3">
-              <span className="flex items-center gap-1 text-amber-700 font-bold">
-                <Star className="h-4 w-4 fill-amber-500 text-amber-500" /> {targetVehicle.ratingAverage.toFixed(1)}
-              </span>
-              <span className="text-xs text-slate-500 font-medium">({targetVehicle.ratingCount} verified reviews)</span>
-              {targetVehicle.hasInsurance && (
+            {targetVehicle.hasInsurance && (
+              <div className="mt-2 flex items-center gap-3">
                 <span className="flex items-center gap-1 rounded-full bg-teal/10 px-2.5 py-0.5 text-xs font-semibold text-teal border border-teal/30">
                   <ShieldCheck className="h-3.5 w-3.5" /> Comprehensive Insurance Included
                 </span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* SPECS GRID */}

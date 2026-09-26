@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Star, Users, Fuel, Gauge, SlidersHorizontal, LayoutGrid, Box, Sparkles,
+  Users, Fuel, Gauge, SlidersHorizontal, LayoutGrid, Box, Sparkles,
   MapPin, Car, Bus, Truck, Compass,
 } from 'lucide-react';
 import type { Vehicle } from '@/types';
@@ -478,9 +478,6 @@ export default function Search() {
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
 
                       {/* TOP BADGES */}
-                      <span className="absolute top-3 right-3 rounded-full bg-slate-950/80 px-2.5 py-1 text-xs font-bold text-amber-400 backdrop-blur-md border border-white/20 flex items-center gap-1">
-                        <Star className="h-3 w-3 fill-amber-400" /> {v.ratingAverage.toFixed(1)}
-                      </span>
                       <span className="absolute top-3 left-3 rounded-full bg-slate-950/80 px-2.5 py-1 text-[10px] uppercase font-mono font-bold text-teal-300 border border-white/20 flex items-center gap-1">
                         <Car className="h-3 w-3 text-teal-400" /> {v.type}
                       </span>

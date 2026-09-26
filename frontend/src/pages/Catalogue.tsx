@@ -5,7 +5,7 @@ import type { RootState } from '@/store';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Car, Bus, Palmtree, MapPin, ArrowRight, Search, Sparkles,
-  CheckCircle, Calendar, ShieldCheck, X, Ticket, Star, Power, Lock, AlertTriangle, Navigation
+  CheckCircle, Calendar, ShieldCheck, X, Ticket, Power, Lock, AlertTriangle, Navigation
 } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import { MpesaStkPushModal } from '@/components/ui/MpesaStkPushModal';
@@ -353,12 +353,9 @@ export default function Catalogue() {
                   {/* DETAILS */}
                   <div className="p-6 flex flex-col justify-between flex-1 space-y-4">
                     <div>
-                      <div className="flex items-center justify-between text-xs text-teal-700 font-semibold mb-1">
+                      <div className="flex items-center text-xs text-teal-700 font-semibold mb-1">
                         <span className="flex items-center gap-1">
                           <MapPin className="h-3.5 w-3.5 text-teal-600" /> {item.location}
-                        </span>
-                        <span className="font-semibold text-slate-800 text-[11px] flex items-center gap-1">
-                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {item.rating} <span className="text-slate-400 font-normal">({item.reviews})</span>
                         </span>
                       </div>
                       <h3 className="font-serif text-xl font-bold text-slate-900 group-hover:text-amber-700 transition-colors">

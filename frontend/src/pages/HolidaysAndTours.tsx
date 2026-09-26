@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Palmtree, Home, Compass, MapPin, Search, Sparkles, Star,
+  Palmtree, Home, Compass, MapPin, Search, Sparkles,
   ShieldCheck, CheckCircle2, X, MessageSquare, Lock, UserPlus, ArrowRight
 } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
@@ -409,10 +409,6 @@ export default function HolidaysAndTours() {
                     {item.badge}
                   </span>
 
-                  <span className="absolute top-3 right-3 rounded-full bg-slate-950/85 backdrop-blur-md px-2.5 py-1 text-xs font-bold text-amber-400 border border-white/20 flex items-center gap-1">
-                    <Star className="h-3 w-3 fill-amber-400" /> {item.rating.toFixed(2)}
-                  </span>
-
                   {/* LOCATION BAR */}
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-white">
                     <span className="flex items-center gap-1 font-medium truncate drop-shadow-sm">
@@ -431,7 +427,6 @@ export default function HolidaysAndTours() {
                     <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
                       {item.category === 'TOUR' ? 'Safari Package' : 'Holiday Home'}
                     </span>
-                    <span className="text-xs text-slate-400">({item.reviews} reviews)</span>
                   </div>
 
                   <h3 className="font-serif text-xl font-bold text-slate-900 group-hover:text-amber-700 transition line-clamp-2">
