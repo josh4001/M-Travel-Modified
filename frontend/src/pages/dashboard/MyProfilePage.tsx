@@ -4,7 +4,8 @@ import { Link } from 'react-router-dom';
 import {
   User, Mail, Phone, Calendar, Shield, ShieldCheck, CheckCircle2,
   AlertCircle, Edit3, X, Save, ArrowLeft, Car, Sparkles, Check,
-  Copy, Key, Wallet, Lock
+  Copy, Key, Wallet, Lock, TrendingUp, TrendingDown,
+  HelpCircle, Activity
 } from 'lucide-react';
 import { setUser, selectUser } from '@/store/slices/authSlice';
 import { getLocalAccounts, updateUserProfile } from '@/lib/authService';
@@ -363,9 +364,29 @@ export default function MyProfilePage() {
     </div>
   );
 
+  // Reusable Security and Session Controls Card
+  const renderSecurityCard = () => (
+    <div className="rounded-3xl bg-white border border-slate-200/90 p-6 sm:p-7 shadow-xs text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="space-y-1">
+        <span className="font-bold text-slate-900 block uppercase tracking-wider text-[11px] flex items-center gap-2">
+          <Shield className="h-4 w-4 text-slate-600" /> Session &amp; Security Controls
+        </span>
+        <p className="text-slate-500 text-xs font-medium">
+          Active authenticated session protected with end-to-end encrypted tokens. Credential updates refresh security tokens automatically.
+        </p>
+      </div>
+      <div className="flex items-center gap-4 text-xs text-slate-600 shrink-0">
+        <span>Encryption: <strong className="font-mono text-slate-900">AES-256 / SHA-256</strong></span>
+        <span className="text-emerald-800 font-extrabold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-300 shadow-2xs flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> TLS Active
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-slate-50/50 py-8 px-4 sm:px-6 lg:px-8 font-display">
-      <div className="mx-auto max-w-6xl space-y-6">
+      <div className="mx-auto max-w-6xl space-y-8 pb-32">
 
         {/* ── TOP BREADCRUMB & BACK LINK ── */}
         <div className="flex items-center justify-between">
@@ -480,20 +501,20 @@ export default function MyProfilePage() {
 
         {/* ── TRAVELER ACCOUNT: PROMINENT & EXPANSIVE CREDIT RATING SECTION ── */}
         {isTraveler && creditProfile ? (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Account Credentials */}
             {renderCredentialsCard()}
 
             {/* Full-Width Spacious Traveler Credit Rating & Privilege Hub */}
-            <div className="rounded-3xl bg-white border border-slate-200/90 p-6 sm:p-8 space-y-6 shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                <div className="flex items-center gap-3">
+            <div className="rounded-3xl bg-white border border-slate-200/90 p-6 sm:p-8 space-y-7 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+                <div className="flex items-center gap-3.5">
                   <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-xs">
                     <ShieldCheck className="h-6 w-6" />
                   </div>
                   <div>
                     <h3 className="font-display font-bold text-slate-900 text-lg sm:text-xl tracking-tight">
-                      Traveler Standing &amp; Credit Rating
+                      Traveler Standing &amp; Credit Rating Hub
                     </h3>
                     <p className="text-xs text-slate-500 font-medium">
                       Standing evaluated from verified safari handovers, clean return inspections, and platform compliance
@@ -501,175 +522,259 @@ export default function MyProfilePage() {
                   </div>
                 </div>
 
-                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-xs whitespace-nowrap self-start sm:self-center">
+                <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black bg-emerald-600 text-white shadow-xs whitespace-nowrap self-start sm:self-center">
                   <Sparkles className="h-3.5 w-3.5 text-amber-300" />
                   {creditProfile.tier}
+                </span>
+              </div>
+
+              {/* 1. Score Showcase & 4 Spacious Stat Tiles Row */}
+              <div className="space-y-5">
+                {/* Score Banner */}
+                <div className="rounded-2xl border border-amber-300 bg-gradient-to-br from-amber-500/10 via-amber-100/30 to-amber-500/5 p-6 sm:p-7">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-amber-800 block">
+                        Reputation &amp; Standing Score
+                      </span>
+                      <div className="flex items-baseline gap-3">
+                        <span className="font-mono text-5xl sm:text-6xl font-black text-slate-900 tracking-tight">
+                          {creditProfile.score}
+                        </span>
+                        <span className="text-slate-600 text-sm sm:text-base font-bold">/ 850 Maximum Score</span>
+                      </div>
+                      <p className="text-xs text-slate-700 leading-relaxed font-medium max-w-2xl">
+                        Your credit score reflects clean vehicle handovers, prompt return inspections, and verified identity document standing across Kenya's tour network.
+                      </p>
+                    </div>
+
+                    <div className="w-full md:w-72 space-y-2 shrink-0">
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                        <span>Tier Standing</span>
+                        <span className="text-emerald-700">{creditProfile.tier}</span>
+                      </div>
+                      <div className="w-full bg-slate-200/80 rounded-full h-3 overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-600 rounded-full transition-all duration-700 shadow-xs"
+                          style={{ width: `${Math.min(100, Math.max(10, ((creditProfile.score - 300) / (850 - 300)) * 100))}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+                        <span>300 (Min)</span>
+                        <span>850 (Max)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4 Spacious Stat Tiles (Row of 4 on large screens, row of 2 on small) */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200/80 p-5 space-y-1 shadow-2xs">
+                    <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Completed Trips</span>
+                    <span className="font-mono font-bold text-2xl text-slate-900 block">{creditProfile.completedTrips}</span>
+                    <span className="text-[11px] text-slate-500 font-medium">Verified Expeditions</span>
+                  </div>
+
+                  <div className="rounded-2xl bg-emerald-50/50 border border-emerald-200/80 p-5 space-y-1 shadow-2xs">
+                    <span className="text-[11px] text-emerald-800 font-bold uppercase tracking-wider block">Clean Returns</span>
+                    <span className="font-mono font-bold text-2xl text-emerald-700 block">{creditProfile.cleanHandovers}</span>
+                    <span className="text-[11px] text-emerald-600 font-medium">100% Inspection Record</span>
+                  </div>
+
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200/80 p-5 space-y-1 shadow-2xs">
+                    <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Late Returns</span>
+                    <span className="font-mono font-bold text-2xl text-emerald-700 block">0</span>
+                    <span className="text-[11px] text-slate-500 font-medium">Always Prompt Drop-off</span>
+                  </div>
+
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200/80 p-5 space-y-1 shadow-2xs">
+                    <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">Damage Assessed</span>
+                    <span className="font-mono font-bold text-2xl text-emerald-700 block">KES 0</span>
+                    <span className="text-[11px] text-slate-500 font-medium">Zero Incident History</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Unlocked VIP Traveler Privileges Grid */}
+              <div className="rounded-2xl border border-emerald-300 bg-emerald-50/60 p-6 sm:p-7 space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-emerald-200/60">
+                  <span className="text-sm font-bold text-emerald-950 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-emerald-600" /> Unlocked VIP Traveler Privileges
+                  </span>
+                  <span className="text-xs font-bold text-emerald-800 bg-white px-3 py-1 rounded-full border border-emerald-200 shadow-2xs">
+                    Active VIP Benefits
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-3 bg-white p-4.5 rounded-2xl border border-emerald-200/80 shadow-2xs">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <strong className="text-slate-900 block text-xs sm:text-sm font-bold">Instant Deposit Release</strong>
+                      <span className="text-slate-600 text-xs leading-relaxed">
+                        Zero-delay security deposit refund via M-Pesa immediately on clean return vehicle inspection.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 bg-white p-4.5 rounded-2xl border border-emerald-200/80 shadow-2xs">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <strong className="text-slate-900 block text-xs sm:text-sm font-bold">Priority Safari Fleet Dispatch</strong>
+                      <span className="text-slate-600 text-xs leading-relaxed">
+                        Priority vehicle allocation on high-demand 4x4 Land Cruisers, Safari Vans &amp; Tour Buses.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 bg-white p-4.5 rounded-2xl border border-emerald-200/80 shadow-2xs">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <strong className="text-slate-900 block text-xs sm:text-sm font-bold">1-Hour Courtesy Grace Window</strong>
+                      <span className="text-slate-600 text-xs leading-relaxed">
+                        Complimentary buffer window for national park gate clearance or highway traffic delays.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 bg-white p-4.5 rounded-2xl border border-emerald-200/80 shadow-2xs">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <strong className="text-slate-900 block text-xs sm:text-sm font-bold">Complimentary Co-Driver</strong>
+                      <span className="text-slate-600 text-xs leading-relaxed">
+                        Free registration of an authorized second expedition driver on your official rental agreement.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs border-t border-emerald-200/60">
+                  <span className="text-slate-600 font-medium">
+                    Maintain a clean return record to keep VIP Standing active on future safari adventures.
+                  </span>
+                  <Link
+                    to="/catalogue"
+                    className="btn-primary !px-5 !py-2 text-xs font-bold flex items-center justify-center gap-1.5 shrink-0"
+                  >
+                    <Car className="h-3.5 w-3.5" /> Explore Live Fleet
+                  </Link>
+                </div>
+              </div>
+
+              {/* 3. Credit Score Dynamics Guide */}
+              <div className="rounded-2xl bg-slate-50 border border-slate-200/80 p-5 sm:p-6 space-y-4 text-xs">
+                <div className="flex items-center gap-2 text-slate-800 font-bold text-sm">
+                  <HelpCircle className="h-4 w-4 text-amber-600" />
+                  <span>How M-Travel Credit Scores Work</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white p-4 rounded-xl border border-slate-200/80 space-y-1">
+                    <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
+                      <TrendingUp className="h-4 w-4" /> What Increases Score
+                    </div>
+                    <p className="text-slate-600 text-[11px] leading-relaxed">
+                      On-time vehicle drop-offs (+15 pts), spotless inspection returns (+20 pts), and completed safari bookings (+10 pts).
+                    </p>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-xl border border-slate-200/80 space-y-1">
+                    <div className="flex items-center gap-1.5 text-rose-700 font-bold">
+                      <TrendingDown className="h-4 w-4" /> What Decreases Score
+                    </div>
+                    <p className="text-slate-600 text-[11px] leading-relaxed">
+                      Late vehicle returns without prior notice (-25 pts), assessed damage or missing gear (-50 pts), unpaid park citations (-30 pts).
+                    </p>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-xl border border-slate-200/80 space-y-1">
+                    <div className="flex items-center gap-1.5 text-amber-700 font-bold">
+                      <Activity className="h-4 w-4" /> Default Starting Score
+                    </div>
+                    <p className="text-slate-600 text-[11px] leading-relaxed">
+                      Every new verified traveler account starts with a baseline credit score of <strong>650 (Tier B+ Renter)</strong> before their first vehicle hire.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Session Security Card */}
+            {renderSecurityCard()}
+          </div>
+        ) : null}
+
+        {/* ── FLEET HOST ACCOUNT: FULL-WIDTH SPACIOUS OPERATIONS HUB ── */}
+        {isHost && (
+          <div className="space-y-8">
+            {/* Account Credentials */}
+            {renderCredentialsCard()}
+
+            {/* Full-Width Spacious Host Operations & Fleet Partner Hub */}
+            <div className="rounded-3xl bg-white border border-slate-200/90 p-6 sm:p-8 space-y-7 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+                <div className="flex items-center gap-3.5">
+                  <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-500/20 shadow-xs">
+                    <Car className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-bold text-slate-900 text-lg sm:text-xl tracking-tight">
+                      Host Operations &amp; Fleet Standing
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Vehicle onboarding, booking dispatches, and daily automated revenue settlements
+                    </p>
+                  </div>
+                </div>
+
+                <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 text-amber-950 border border-amber-300 shadow-2xs whitespace-nowrap self-start sm:self-center">
+                  <Car className="h-3.5 w-3.5 text-amber-600" /> Verified Fleet Partner
                 </span>
               </div>
 
               {/* 2-Column Responsive Split with Ample Space */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-                {/* Score Showcase & Metric Breakdown (5 Cols) */}
+                {/* Partner Standing & Direct Actions (5 Cols) */}
                 <div className="lg:col-span-5 rounded-2xl border border-amber-300 bg-gradient-to-br from-amber-500/10 via-amber-100/30 to-amber-500/5 p-6 flex flex-col justify-between space-y-5">
                   <div className="space-y-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-amber-800 block">
-                      Reputation Metric
+                      Partner Operations Standing
                     </span>
-                    <div className="flex items-baseline gap-2.5">
-                      <span className="font-mono text-5xl font-bold text-slate-900 tracking-tight">{creditProfile.score}</span>
-                      <span className="text-slate-500 text-sm font-semibold">/ 850 Max Score</span>
-                    </div>
-
-                    {/* Progress Gauge */}
-                    <div className="w-full bg-slate-200/80 rounded-full h-2.5 overflow-hidden my-2">
-                      <div
-                        className="h-full bg-emerald-600 rounded-full transition-all duration-700"
-                        style={{ width: `${Math.min(100, Math.max(10, ((creditProfile.score - 300) / (850 - 300)) * 100))}%` }}
-                      />
-                    </div>
-
-                    <p className="text-xs text-slate-700 leading-relaxed font-medium pt-1">
-                      Your credit score reflects clean vehicle handovers, prompt return inspections, and verified identity document standing across Kenya's tour network.
-                    </p>
-                  </div>
-
-                  {/* 4 Stat Tiles */}
-                  <div className="grid grid-cols-2 gap-3 text-xs font-semibold pt-2">
-                    <div className="rounded-xl bg-white p-3.5 border border-amber-200 text-slate-800 shadow-2xs">
-                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Completed Trips</span>
-                      <span className="font-mono font-bold text-lg text-slate-900">{creditProfile.completedTrips}</span>
-                    </div>
-                    <div className="rounded-xl bg-white p-3.5 border border-amber-200 text-slate-800 shadow-2xs">
-                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Clean Returns</span>
-                      <span className="font-mono font-bold text-lg text-emerald-700">{creditProfile.cleanHandovers}</span>
-                    </div>
-                    <div className="rounded-xl bg-white p-3.5 border border-amber-200 text-slate-800 shadow-2xs">
-                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Late Returns</span>
-                      <span className="font-mono font-bold text-sm text-emerald-700">0 Prompt</span>
-                    </div>
-                    <div className="rounded-xl bg-white p-3.5 border border-amber-200 text-slate-800 shadow-2xs">
-                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Damage Assessed</span>
-                      <span className="font-mono font-bold text-sm text-emerald-700">KES 0 Clean</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* VIP Traveler Privileges (7 Cols) */}
-                <div className="lg:col-span-7 rounded-2xl border border-emerald-300 bg-emerald-50/70 p-6 flex flex-col justify-between space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-emerald-200/60">
-                    <span className="text-xs font-bold text-emerald-950 flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-emerald-600" /> Unlocked VIP Traveler Privileges
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-800 bg-white px-3 py-1 rounded-full border border-emerald-200 shadow-2xs">
-                      Active Privileges
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700">
-                    <div className="flex items-start gap-2.5 bg-white p-3.5 rounded-xl border border-emerald-200/80 shadow-2xs">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <strong className="text-slate-900 block text-xs">Instant Deposit Release</strong>
-                        <span className="text-slate-600 text-[11px] leading-relaxed">Zero-delay security deposit refund via M-Pesa immediately on clean return.</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2.5 bg-white p-3.5 rounded-xl border border-emerald-200/80 shadow-2xs">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <strong className="text-slate-900 block text-xs">Priority Safari Fleet Dispatch</strong>
-                        <span className="text-slate-600 text-[11px] leading-relaxed">Priority allocation on high-demand 4x4 Land Cruisers &amp; Tour Buses.</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2.5 bg-white p-3.5 rounded-xl border border-emerald-200/80 shadow-2xs">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <strong className="text-slate-900 block text-xs">1-Hour Courtesy Grace Window</strong>
-                        <span className="text-slate-600 text-[11px] leading-relaxed">Complimentary buffer for national park gate clearance or highway traffic.</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2.5 bg-white p-3.5 rounded-xl border border-emerald-200/80 shadow-2xs">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <strong className="text-slate-900 block text-xs">Complimentary Co-Driver</strong>
-                        <span className="text-slate-600 text-[11px] leading-relaxed">Free registration of an authorized second expedition driver on your rental agreement.</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex items-center justify-between text-xs border-t border-emerald-200/60">
-                    <span className="text-slate-600 font-medium text-[11px]">Next credit tier assessment:</span>
-                    <Link
-                      to="/catalogue"
-                      className="btn-primary !px-4 !py-1.5 text-xs font-bold flex items-center gap-1.5"
-                    >
-                      <Car className="h-3.5 w-3.5" /> Explore Live Fleet
-                    </Link>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-            {/* Session Security Card */}
-            <div className="rounded-3xl bg-white border border-slate-200/90 p-5 shadow-xs text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="space-y-0.5">
-                <span className="font-bold text-slate-900 block uppercase tracking-wider text-[11px]">
-                  Session &amp; Security Controls
-                </span>
-                <p className="text-slate-500 text-[11px]">
-                  Active authenticated session protected with end-to-end encrypted tokens.
-                </p>
-              </div>
-              <div className="flex items-center gap-3 text-[11px] text-slate-600">
-                <span>Encryption: <strong className="font-mono">AES-256 / SHA-256</strong></span>
-                <span className="text-emerald-700 font-bold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">TLS Active</span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* ── FLEET HOST & ADMIN ACCOUNTS: 2-COLUMN GRID ── */
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            {/* Left Column (2 Cols): Credentials */}
-            <div className="lg:col-span-2 space-y-6">
-              {renderCredentialsCard()}
-            </div>
-
-            {/* Right Column (1 Col): Role Operations & Governance */}
-            <div className="space-y-6">
-
-              {/* 1. FLEET HOST SPECIFIC DETAILS (NO GPS TELEMETRY STATEMENT) */}
-              {isHost && (
-                <div className="rounded-3xl bg-white border border-slate-200/90 p-6 space-y-4 shadow-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-4 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-xl bg-amber-100 text-amber-700">
-                        <Car className="h-4 w-4" />
-                      </div>
-                      <span className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
-                        Host Operations
-                      </span>
-                    </div>
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 whitespace-nowrap self-start sm:self-auto shadow-2xs">
-                      Fleet Partner
-                    </span>
-                  </div>
-
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4.5 space-y-2 text-xs">
-                    <p className="font-bold text-amber-900">Host Operations &amp; Payout Standing</p>
-                    <p className="text-slate-600 leading-relaxed text-[11px]">
+                    <h4 className="font-bold text-slate-900 text-lg">
+                      Fleet Host Management Center
+                    </h4>
+                    <p className="text-xs text-slate-700 leading-relaxed font-medium">
                       Your host credentials govern vehicle onboarding, fleet verification, and automated daily booking payouts.
                     </p>
                   </div>
 
-                  <div className="space-y-2.5 pt-1">
+                  {/* 4 Partner Metrics */}
+                  <div className="grid grid-cols-2 gap-3 text-xs font-semibold pt-1">
+                    <div className="rounded-xl bg-white p-3.5 border border-amber-200 text-slate-800 shadow-2xs">
+                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Partner Status</span>
+                      <span className="font-bold text-sm text-amber-900">Verified Host</span>
+                    </div>
+                    <div className="rounded-xl bg-white p-3.5 border border-amber-200 text-slate-800 shadow-2xs">
+                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Payout Cycle</span>
+                      <span className="font-bold text-sm text-emerald-700">Daily M-Pesa</span>
+                    </div>
+                    <div className="rounded-xl bg-white p-3.5 border border-amber-200 text-slate-800 shadow-2xs">
+                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Safety Status</span>
+                      <span className="font-bold text-sm text-emerald-700">100% Certified</span>
+                    </div>
+                    <div className="rounded-xl bg-white p-3.5 border border-amber-200 text-slate-800 shadow-2xs">
+                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Account Health</span>
+                      <span className="font-bold text-sm text-emerald-700">Good Standing</span>
+                    </div>
+                  </div>
+
+                  {/* Direct Action Buttons */}
+                  <div className="space-y-2.5 pt-2">
                     <Link
                       to="/dashboard/owner?tab=fleet"
-                      className="w-full text-xs font-bold btn-primary !py-2.5 flex items-center justify-center gap-2"
+                      className="w-full text-xs font-bold btn-primary !py-2.5 flex items-center justify-center gap-2 shadow-xs"
                     >
                       <Car className="h-3.5 w-3.5" /> View My Registered Cars
                     </Link>
@@ -681,59 +786,208 @@ export default function MyProfilePage() {
                     </Link>
                   </div>
                 </div>
-              )}
 
-              {/* 2. ADMIN SPECIFIC DETAILS (UNSQUEEZED ROOT AUTHORITY STATEMENT) */}
-              {isAdmin && (
-                <div className="rounded-3xl bg-white border border-slate-200/90 p-6 space-y-4 shadow-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-4 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-xl bg-purple-100 text-purple-700">
-                        <Shield className="h-4 w-4" />
-                      </div>
-                      <span className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
-                        Platform Governance
-                      </span>
-                    </div>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-900 border border-purple-300 whitespace-nowrap self-start sm:self-auto shadow-2xs">
-                      <ShieldCheck className="h-3.5 w-3.5 text-purple-700" />
-                      Root Authority
+                {/* Fleet Host Privileges & Operations (7 Cols) */}
+                <div className="lg:col-span-7 rounded-2xl border border-amber-200 bg-amber-50/50 p-6 flex flex-col justify-between space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-amber-200/60">
+                    <span className="text-xs font-bold text-amber-950 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-amber-600" /> Host Capabilities &amp; Privileges
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-900 bg-white px-3 py-1 rounded-full border border-amber-200 shadow-2xs">
+                      Active Host Rights
                     </span>
                   </div>
 
-                  <div className="rounded-2xl border border-purple-200 bg-purple-50/50 p-4.5 space-y-2 text-xs">
-                    <p className="font-bold text-purple-950">Administrative Mission Control</p>
-                    <p className="text-slate-600 leading-relaxed text-[11px]">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs text-slate-700">
+                    <div className="flex items-start gap-2.5 bg-white p-4 rounded-xl border border-amber-200/80 shadow-2xs">
+                      <CheckCircle2 className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="text-slate-900 block text-xs font-bold">Automated Daily Payouts</strong>
+                        <span className="text-slate-600 text-[11px] leading-relaxed">Direct M-Pesa settlements upon booking completion with transparent ledger tracking.</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5 bg-white p-4 rounded-xl border border-amber-200/80 shadow-2xs">
+                      <CheckCircle2 className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="text-slate-900 block text-xs font-bold">Self-Managed Fleet Availability</strong>
+                        <span className="text-slate-600 text-[11px] leading-relaxed">Update rental rates, blackout dates, and chauffeur preferences at any time.</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5 bg-white p-4 rounded-xl border border-amber-200/80 shadow-2xs">
+                      <CheckCircle2 className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="text-slate-900 block text-xs font-bold">Fast-Track Fleet Onboarding</strong>
+                        <span className="text-slate-600 text-[11px] leading-relaxed">Expedited verification for 4x4 Land Cruisers, Safari Vans, and Tour Buses.</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5 bg-white p-4 rounded-xl border border-amber-200/80 shadow-2xs">
+                      <CheckCircle2 className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="text-slate-900 block text-xs font-bold">Dedicated Host Concierge</strong>
+                        <span className="text-slate-600 text-[11px] leading-relaxed">Priority desk assistance available 24/7 for booking coordination and traveler handovers.</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between text-xs border-t border-amber-200/60">
+                    <span className="text-slate-600 font-medium text-[11px]">Looking to register an additional vehicle?</span>
+                    <Link
+                      to="/dashboard/owner?tab=add"
+                      className="btn-primary !px-4 !py-1.5 text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                    >
+                      <Car className="h-3.5 w-3.5" /> Register Vehicle
+                    </Link>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Session Security Card */}
+            {renderSecurityCard()}
+          </div>
+        )}
+
+        {/* ── ADMIN ACCOUNT: FULL-WIDTH SPACIOUS GOVERNANCE HUB ── */}
+        {isAdmin && (
+          <div className="space-y-8">
+            {/* Account Credentials */}
+            {renderCredentialsCard()}
+
+            {/* Full-Width Spacious Platform Governance & Administrative Command Hub */}
+            <div className="rounded-3xl bg-white border border-slate-200/90 p-6 sm:p-8 space-y-7 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+                <div className="flex items-center gap-3.5">
+                  <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-600 border border-purple-500/20 shadow-xs">
+                    <ShieldCheck className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-bold text-slate-900 text-lg sm:text-xl tracking-tight">
+                      Platform Governance &amp; Administrative Command Hub
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Root administrative governance across user roles, fleet approvals, dispute resolutions, and platform financial settlements
+                    </p>
+                  </div>
+                </div>
+
+                <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-purple-100 text-purple-950 border border-purple-300 shadow-2xs whitespace-nowrap self-start sm:self-center">
+                  <ShieldCheck className="h-3.5 w-3.5 text-purple-700" /> Root Authority
+                </span>
+              </div>
+
+              {/* 2-Column Responsive Split with Ample Space */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                {/* Governance Standing & Direct Action (5 Cols) */}
+                <div className="lg:col-span-5 rounded-2xl border border-purple-300 bg-gradient-to-br from-purple-500/10 via-purple-100/30 to-purple-500/5 p-6 flex flex-col justify-between space-y-5">
+                  <div className="space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-purple-800 block">
+                      Governance &amp; Authority Scope
+                    </span>
+                    <h4 className="font-bold text-slate-900 text-lg">
+                      Administrative Mission Control
+                    </h4>
+                    <p className="text-xs text-slate-700 leading-relaxed font-medium">
                       You hold root administrative governance across user roles, fleet approvals, dispute resolutions, and platform financial settlements.
                     </p>
                   </div>
 
-                  <div className="space-y-2 pt-1">
+                  {/* 4 Governance Metrics */}
+                  <div className="grid grid-cols-2 gap-3 text-xs font-semibold pt-1">
+                    <div className="rounded-xl bg-white p-3.5 border border-purple-200 text-slate-800 shadow-2xs">
+                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">System Role</span>
+                      <span className="font-bold text-sm text-purple-900">Super Admin</span>
+                    </div>
+                    <div className="rounded-xl bg-white p-3.5 border border-purple-200 text-slate-800 shadow-2xs">
+                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Authority Tier</span>
+                      <span className="font-bold text-sm text-purple-900">Root Access</span>
+                    </div>
+                    <div className="rounded-xl bg-white p-3.5 border border-purple-200 text-slate-800 shadow-2xs">
+                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Network Scope</span>
+                      <span className="font-bold text-sm text-emerald-700">Pan-African</span>
+                    </div>
+                    <div className="rounded-xl bg-white p-3.5 border border-purple-200 text-slate-800 shadow-2xs">
+                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Audit Logging</span>
+                      <span className="font-bold text-sm text-emerald-700">Continuous</span>
+                    </div>
+                  </div>
+
+                  {/* Direct Launch Button */}
+                  <div className="pt-2">
                     <Link
                       to="/dashboard/admin"
-                      className="w-full text-xs font-bold btn-primary !py-2.5 flex items-center justify-center gap-2"
+                      className="w-full text-xs font-bold btn-primary !py-3 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-700 to-indigo-700 text-white hover:from-purple-800 hover:to-indigo-800 shadow-md"
                     >
-                      <ShieldCheck className="h-3.5 w-3.5" /> Open Admin Mission Control
+                      <ShieldCheck className="h-4 w-4" /> Open Admin Mission Control
                     </Link>
                   </div>
                 </div>
-              )}
 
-              {/* SECURITY & SESSION CARD */}
-              <div className="rounded-3xl bg-white border border-slate-200/90 p-5 space-y-3 shadow-xs text-xs">
-                <span className="font-bold text-slate-900 block uppercase tracking-wider text-[11px]">
-                  Session &amp; Security Controls
-                </span>
-                <p className="text-slate-500 leading-relaxed text-[11px]">
-                  Active JWT session tied to your device. Any credential update automatically invalidates previous session tokens for verified security.
-                </p>
-                <div className="pt-1 flex items-center justify-between text-[11px] text-slate-600 border-t border-slate-100">
-                  <span>Encryption: <strong className="font-mono">AES-256 / SHA-256</strong></span>
-                  <span className="text-emerald-700 font-bold">TLS Active</span>
+                {/* Governance Powers & Capabilities (7 Cols) */}
+                <div className="lg:col-span-7 rounded-2xl border border-purple-200 bg-purple-50/50 p-6 flex flex-col justify-between space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-purple-200/60">
+                    <span className="text-xs font-bold text-purple-950 flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-purple-600" /> Platform Governance Capabilities
+                    </span>
+                    <span className="text-[10px] font-bold text-purple-900 bg-white px-3 py-1 rounded-full border border-purple-200 shadow-2xs">
+                      Administrative Powers
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs text-slate-700">
+                    <div className="flex items-start gap-2.5 bg-white p-4 rounded-xl border border-purple-200/80 shadow-2xs">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="text-slate-900 block text-xs font-bold">Fleet Approvals &amp; Auditing</strong>
+                        <span className="text-slate-600 text-[11px] leading-relaxed">Review, inspect, and approve host vehicle registrations across all tour categories.</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5 bg-white p-4 rounded-xl border border-purple-200/80 shadow-2xs">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="text-slate-900 block text-xs font-bold">Financial Settlement Oversight</strong>
+                        <span className="text-slate-600 text-[11px] leading-relaxed">Monitor wallet disbursements, M-Pesa transactions, and host platform commissions.</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5 bg-white p-4 rounded-xl border border-purple-200/80 shadow-2xs">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="text-slate-900 block text-xs font-bold">Booking &amp; Dispute Arbitration</strong>
+                        <span className="text-slate-600 text-[11px] leading-relaxed">Supervise live bookings, resolve customer disputes, and manage cancellation overrides.</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5 bg-white p-4 rounded-xl border border-purple-200/80 shadow-2xs">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="text-slate-900 block text-xs font-bold">Role Governance &amp; Security Audits</strong>
+                        <span className="text-slate-600 text-[11px] leading-relaxed">Manage user privileges, access scopes, and cryptographic token verification across the platform.</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between text-xs border-t border-purple-200/60">
+                    <span className="text-slate-600 font-medium text-[11px]">Direct administrative shortcut:</span>
+                    <Link
+                      to="/catalogue?category=vehicles"
+                      className="btn-secondary !px-4 !py-1.5 text-xs font-bold flex items-center gap-1.5"
+                    >
+                      <Car className="h-3.5 w-3.5" /> Review Live Fleet
+                    </Link>
+                  </div>
                 </div>
-              </div>
 
+              </div>
             </div>
+
+            {/* Session Security Card */}
+            {renderSecurityCard()}
           </div>
         )}
 
