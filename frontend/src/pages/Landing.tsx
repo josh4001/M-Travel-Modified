@@ -9,6 +9,14 @@ import { Hero3DCanvas } from '@/components/ui/Hero3DCanvas';
 import { Card3D } from '@/components/ui/Card3D';
 import { AiConciergeShowcase } from '@/components/ui/AiConciergeShowcase';
 import { OffersRewards } from '@/components/ui/OffersRewards';
+import {
+  SavannahHeroWatermark,
+  PalmFrondsWatermark,
+  LionWatermark,
+  SafariCruiserWatermark
+} from '@/components/ui/SafariBackgroundWatermarks';
+import { HeroSafariSearchBar } from '@/components/ui/HeroSafariSearchBar';
+import { TravelerSmilesShowcase } from '@/components/ui/TravelerSmilesShowcase';
 
 const journey = [
   { label: 'Explore', desc: 'Browse curated safari cruisers, luxury vans, and private villas.' },
@@ -35,16 +43,40 @@ export default function Landing() {
       {/* 3D BACKGROUND CANVAS */}
       <Hero3DCanvas />
 
-      {/* HERO SECTION WITH M-TRAVEL LUXURY FLOATING SEARCH WIDGET */}
-      <section className="relative px-6 pt-10 pb-16 md:pt-14 md:pb-20">
-        <div className="mx-auto max-w-7xl space-y-8 md:space-y-10">
+      {/* HERO SECTION WITH SUBTLE SAVANNAH WATERMARK & FLOATING SEARCH WIDGET */}
+      <section className="relative px-6 pt-10 pb-16 md:pt-14 md:pb-20 overflow-hidden">
+        {/* Subtle Savannah Horizon Vector Watermark (Non-intrusive, pointer-events-none) */}
+        <SavannahHeroWatermark className="top-0 left-0 right-0 h-[620px] opacity-[0.05] md:opacity-[0.07]" />
+        <PalmFrondsWatermark className="top-10 right-4 w-72 h-72 opacity-[0.04] md:opacity-[0.06] -scale-x-100" />
+
+        <div className="mx-auto max-w-7xl space-y-8 md:space-y-10 relative z-10">
           {/* HERO HEADLINE & 3D GLOBE */}
           <div className="grid max-w-7xl items-center gap-10 lg:grid-cols-[1.15fr_1fr]">
             <motion.div initial="hidden" animate="show" variants={fadeUp} className="max-w-2xl">
+              {/* Trust & Authority Badges with Smiling Traveler Social Proof */}
               <div className="mb-5 flex flex-wrap items-center gap-3">
                 <span className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-800 shadow-sm">
                   <Crown className="h-3.5 w-3.5 text-amber-600" /> East Africa's Premier Travel Marketplace
                 </span>
+
+                {/* Smiling Traveler Avatars Social Proof Pill */}
+                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/95 backdrop-blur-md px-3.5 py-1.5 text-xs text-slate-700 shadow-2xs">
+                  <div className="flex -space-x-1.5 overflow-hidden">
+                    <img className="inline-block h-5 w-5 rounded-full ring-2 ring-white object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Smiling Explorer" />
+                    <img className="inline-block h-5 w-5 rounded-full ring-2 ring-white object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" alt="Smiling Explorer" />
+                    <img className="inline-block h-5 w-5 rounded-full ring-2 ring-white object-cover" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&q=80" alt="Smiling Explorer" />
+                  </div>
+                  <span className="font-bold text-[11px] text-slate-800">
+                    Loved by 14,800+ Happy Explorers
+                  </span>
+                  <div className="flex text-amber-400">
+                    <Star className="h-3 w-3 fill-amber-400" />
+                    <Star className="h-3 w-3 fill-amber-400" />
+                    <Star className="h-3 w-3 fill-amber-400" />
+                    <Star className="h-3 w-3 fill-amber-400" />
+                    <Star className="h-3 w-3 fill-amber-400" />
+                  </div>
+                </div>
               </div>
 
               <h1 className="font-serif text-5xl font-bold leading-[1.06] tracking-tight md:text-7xl text-slate-900">
@@ -98,6 +130,16 @@ export default function Landing() {
               <RouteGlobe />
             </motion.div>
           </div>
+
+          {/* BILLION-DOLLAR SAFARI QUICK-SEARCH CONSOLE */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.6 }}
+            className="pt-4"
+          >
+            <HeroSafariSearchBar />
+          </motion.div>
         </div>
 
         {/* JOURNEY PIPELINE WITH PRECISE CIRCLE CONNECTOR ALIGNMENT */}
@@ -133,13 +175,25 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      {/* CATEGORIES WITH 3D TACTILE CARDS (UNIFORM HEIGHT & ALIGNED FOOTERS) */}
-      <section className="px-6 py-20 relative bg-white border-y border-slate-200/70">
-        <div className="mx-auto max-w-7xl">
-          <div className="flex items-end justify-between border-b border-slate-200/80 pb-6">
+      {/* CATEGORIES WITH 3D TACTILE CARDS & SUBTLE WATERMARKS */}
+      <section className="px-6 py-20 relative bg-white border-y border-slate-200/70 overflow-hidden">
+        {/* Subtle Watermarks */}
+        <LionWatermark className="top-4 right-4 w-72 h-72 opacity-[0.035] md:opacity-[0.05]" />
+        <SafariCruiserWatermark className="bottom-2 left-6 w-80 h-40 opacity-[0.035] md:opacity-[0.05]" />
+
+        <div className="mx-auto max-w-7xl relative z-10">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-slate-200/80 pb-6 gap-4">
             <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={fadeUp}>
-              <span className="text-xs uppercase tracking-widest text-amber-700 font-bold">Curated Fleet & Stays</span>
-              <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight md:text-4xl text-slate-900">
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="flex -space-x-1 overflow-hidden">
+                  <img className="inline-block h-4 w-4 rounded-full ring-1 ring-white object-cover" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&q=80" alt="Smiling Guest" />
+                  <img className="inline-block h-4 w-4 rounded-full ring-1 ring-white object-cover" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80" alt="Smiling Guest" />
+                </div>
+                <span className="text-[11px] font-bold text-amber-800 tracking-wide uppercase">
+                  Curated Fleet &amp; Stays • Loved by 99.4% of Guests
+                </span>
+              </div>
+              <h2 className="mt-1 font-serif text-3xl font-bold tracking-tight md:text-4xl text-slate-900">
                 Everywhere you need to go in Kenya
               </h2>
             </motion.div>
@@ -189,6 +243,9 @@ export default function Landing() {
       {/* M-TRAVEL PRIVILEGE CLUB & SPECIAL OFFERS SECTION */}
       <OffersRewards />
 
+      {/* REAL EXPEDITIONS, GENUINE SMILES TRAVELER SHOWCASE */}
+      <TravelerSmilesShowcase />
+
       {/* AI SAFARI & TOUR CONCIERGE SHOWCASE SECTION */}
       <AiConciergeShowcase />
 
@@ -215,10 +272,23 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* FINAL HIGH-IMPACT CTA */}
-      <section className="px-6 py-24 text-center relative bg-white">
-        <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={fadeUp} className="mx-auto max-w-3xl">
+      {/* FINAL HIGH-IMPACT CTA WITH SAVANNAH WATERMARK & SMILING CONCIERGE */}
+      <section className="px-6 py-24 text-center relative bg-white overflow-hidden">
+        {/* Subtle Savannah Horizon Watermark */}
+        <SavannahHeroWatermark className="top-0 left-0 right-0 h-full opacity-[0.035] md:opacity-[0.05]" />
+
+        <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={fadeUp} className="mx-auto max-w-3xl relative z-10">
           <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50/80 via-white to-amber-50/40 p-10 md:p-14 text-center shadow-card relative overflow-hidden">
+            {/* Smiling Concierge Micro-Badge */}
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-100/70 px-4 py-1.5 text-xs font-bold text-amber-900 shadow-2xs mb-5">
+              <img
+                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80"
+                alt="Smiling Concierge"
+                className="w-5 h-5 rounded-full object-cover ring-1 ring-white"
+              />
+              <span className="text-[11px] font-bold">We can't wait to welcome you to Kenya! 🇰🇪</span>
+            </div>
+
             <h2 className="font-serif text-3xl font-bold tracking-tight md:text-5xl text-slate-900">
               Ready for your next Kenya adventure?
             </h2>

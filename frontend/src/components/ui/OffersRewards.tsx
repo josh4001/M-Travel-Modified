@@ -48,7 +48,7 @@ export const OffersRewards: React.FC = () => {
               The M-TRAVEL Privilege Club is Coming Soon
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed">
-              We are crafting an exclusive rewards journey for our travelers! In our upcoming release, every booking — from 4x4 safari cruisers and executive sedans to intercity coaches — will earn you <span className="text-amber-700 font-bold">Explorer Loyalty Points</span> redeemable for complimentary vehicle upgrades, VIP airport concierge, and bespoke seasonal travel perks.
+              We are crafting an exclusive rewards journey for our travelers! In our upcoming release, every booking — from 4x4 safari cruisers and safari vans to intercity coaches — will earn you <span className="text-amber-700 font-bold">Explorer Loyalty Points</span> redeemable for complimentary vehicle upgrades, VIP airport concierge, and bespoke seasonal travel perks.
             </p>
 
             <div className="pt-2">
