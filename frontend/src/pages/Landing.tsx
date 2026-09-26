@@ -204,7 +204,7 @@ export default function Landing() {
             </p>
           </div>
 
-          <AiTravelAssistant />
+          <AiTravelAssistant showCalculator={false} />
         </div>
       </section>
 

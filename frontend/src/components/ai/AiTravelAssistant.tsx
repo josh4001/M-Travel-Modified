@@ -262,9 +262,11 @@ const PRESET_PROMPTS = [
 export function AiTravelAssistant({
   isModal = false,
   onClose,
+  showCalculator = false,
 }: {
   isModal?: boolean;
   onClose?: () => void;
+  showCalculator?: boolean;
 }) {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([
@@ -396,9 +398,9 @@ export function AiTravelAssistant({
       </div>
 
       {/* BODY */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden min-h-0">
+      <div className={`flex-1 grid grid-cols-1 ${showCalculator ? 'lg:grid-cols-12' : ''} overflow-hidden min-h-0`}>
         {/* CHAT PANEL */}
-        <div className="lg:col-span-7 flex flex-col border-r border-slate-200 bg-slate-50/40 overflow-hidden">
+        <div className={`${showCalculator ? 'lg:col-span-7 border-r' : 'w-full'} flex flex-col border-slate-200 bg-slate-50/40 overflow-hidden`}>
           {/* MESSAGES */}
           <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((msg) => (
@@ -522,129 +524,131 @@ export function AiTravelAssistant({
         </div>
 
         {/* CALCULATOR PANEL */}
-        <div className="lg:col-span-5 p-4 flex flex-col space-y-4 bg-slate-50/70 border-l border-slate-200 overflow-y-auto">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-3 shrink-0">
-            <h4 className="font-display font-semibold text-slate-900 flex items-center gap-1.5 text-sm">
-              <Calculator className="h-4 w-4 text-amber-600" /> Trip Cost Calculator
-            </h4>
-            <span className="text-[10px] text-teal font-mono font-semibold">Live Estimates</span>
-          </div>
-
-          <div>
-            <label className="block text-xs text-slate-700 font-semibold mb-1">Destination</label>
-            <select
-              className="input-field text-sm"
-              value={selectedDestId}
-              onChange={(e) => setSelectedDestId(e.target.value)}
-            >
-              {KENYA_DESTINATIONS.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <label className="block text-[10px] text-slate-700 font-semibold mb-1">Days</label>
-              <input
-                type="number"
-                min={1}
-                max={30}
-                className="input-field text-sm !px-2 !py-2"
-                value={calcDays}
-                onChange={(e) => setCalcDays(Number(e.target.value))}
-              />
+        {showCalculator && (
+          <div className="lg:col-span-5 p-4 flex flex-col space-y-4 bg-slate-50/70 border-l border-slate-200 overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 shrink-0">
+              <h4 className="font-display font-semibold text-slate-900 flex items-center gap-1.5 text-sm">
+                <Calculator className="h-4 w-4 text-amber-600" /> Trip Cost Calculator
+              </h4>
+              <span className="text-[10px] text-teal font-mono font-semibold">Live Estimates</span>
             </div>
+
             <div>
-              <label className="block text-[10px] text-slate-700 font-semibold mb-1">Passengers</label>
-              <input
-                type="number"
-                min={1}
-                max={calcVehicleType === 'BUS' ? 55 : 15}
-                className="input-field text-sm !px-2 !py-2"
-                value={calcPassengers}
-                onChange={(e) => setCalcPassengers(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] text-slate-700 font-semibold mb-1">Vehicle</label>
+              <label className="block text-xs text-slate-700 font-semibold mb-1">Destination</label>
               <select
-                className="input-field text-xs !px-1 !py-2"
-                value={calcVehicleType}
-                onChange={(e) => setCalcVehicleType(e.target.value)}
+                className="input-field text-sm"
+                value={selectedDestId}
+                onChange={(e) => setSelectedDestId(e.target.value)}
               >
-                <option value="SUV">4x4 SUV</option>
-                <option value="VAN">Safari Van</option>
-                <option value="BUS">Bus</option>
-                <option value="CAR">Sedan</option>
+                {KENYA_DESTINATIONS.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
               </select>
             </div>
-          </div>
 
-          {/* DESTINATION PREVIEW */}
-          <div className="rounded-xl border border-slate-200 overflow-hidden relative group shadow-sm">
-            <img
-              src={currentDestination.imageUrl}
-              alt={currentDestination.name}
-              className="h-36 w-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent" />
-            <div className="absolute bottom-2 left-3">
-              <h5 className="font-display font-semibold text-sm text-white">{currentDestination.name}</h5>
-              <p className="text-[10px] text-slate-200">{currentDestination.location}</p>
-            </div>
-          </div>
-
-          {/* COST BREAKDOWN */}
-          <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-              <span className="text-xs text-slate-600 font-medium">Estimated Total</span>
-              <div className="text-right">
-                <span className="font-mono text-xl font-bold text-amber-600">
-                  KES {calculatedResult.totalKes.toLocaleString()}
-                </span>
-                <span className="block text-[10px] text-slate-500">≈ ${calculatedResult.totalUsd} USD</span>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="block text-[10px] text-slate-700 font-semibold mb-1">Days</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  className="input-field text-sm !px-2 !py-2"
+                  value={calcDays}
+                  onChange={(e) => setCalcDays(Number(e.target.value))}
+                />
               </div>
-            </div>
-
-            <div className="space-y-1.5 text-xs text-slate-700">
-              <div className="flex justify-between">
-                <span>
-                  {calcVehicleType === 'BUS' ? 'Bus' : calcVehicleType === 'SUV' ? '4x4 SUV' : calcVehicleType === 'VAN' ? 'Safari Van' : 'Sedan'} hire ({calcDays}d × {calculatedResult.dailyRate.toLocaleString()}):
-                </span>
-                <span className="font-mono font-semibold">KES {calculatedResult.vehicleTotal.toLocaleString()}</span>
+              <div>
+                <label className="block text-[10px] text-slate-700 font-semibold mb-1">Passengers</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={calcVehicleType === 'BUS' ? 55 : 15}
+                  className="input-field text-sm !px-2 !py-2"
+                  value={calcPassengers}
+                  onChange={(e) => setCalcPassengers(Number(e.target.value))}
+                />
               </div>
-              <div className="flex justify-between">
-                <span>Fuel ({currentDestination.distanceFromNairobiKm * 2} km):</span>
-                <span className="font-mono font-semibold">KES {calculatedResult.fuelEst.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Park fees ({calcPassengers} pax):</span>
-                <span className="font-mono font-semibold">KES {calculatedResult.parkFees.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Driver allowance:</span>
-                <span className="font-mono font-semibold">KES {calculatedResult.driverAllowance.toLocaleString()}</span>
+              <div>
+                <label className="block text-[10px] text-slate-700 font-semibold mb-1">Vehicle</label>
+                <select
+                  className="input-field text-xs !px-1 !py-2"
+                  value={calcVehicleType}
+                  onChange={(e) => setCalcVehicleType(e.target.value)}
+                >
+                  <option value="SUV">4x4 SUV</option>
+                  <option value="VAN">Safari Van</option>
+                  <option value="BUS">Bus</option>
+                  <option value="CAR">Sedan</option>
+                </select>
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                if (calcVehicleType === 'BUS') {
-                  navigate('/catalogue?category=buses');
-                } else {
-                  navigate(`/search?type=${calcVehicleType}`);
-                }
-              }}
-              className="btn-primary w-full text-xs !py-2.5 font-semibold flex items-center justify-center gap-1.5"
-            >
-              {calcVehicleType === 'BUS' ? <Bus className="h-4 w-4" /> : <Car className="h-4 w-4" />}
-              <span>Book {calcVehicleType === 'BUS' ? 'Bus' : calcVehicleType} for {currentDestination.name}</span>
-            </button>
+            {/* DESTINATION PREVIEW */}
+            <div className="rounded-xl border border-slate-200 overflow-hidden relative group shadow-sm">
+              <img
+                src={currentDestination.imageUrl}
+                alt={currentDestination.name}
+                className="h-36 w-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent" />
+              <div className="absolute bottom-2 left-3">
+                <h5 className="font-display font-semibold text-sm text-white">{currentDestination.name}</h5>
+                <p className="text-[10px] text-slate-200">{currentDestination.location}</p>
+              </div>
+            </div>
+
+            {/* COST BREAKDOWN */}
+            <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <span className="text-xs text-slate-600 font-medium">Estimated Total</span>
+                <div className="text-right">
+                  <span className="font-mono text-xl font-bold text-amber-600">
+                    KES {calculatedResult.totalKes.toLocaleString()}
+                  </span>
+                  <span className="block text-[10px] text-slate-500">≈ ${calculatedResult.totalUsd} USD</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 text-xs text-slate-700">
+                <div className="flex justify-between">
+                  <span>
+                    {calcVehicleType === 'BUS' ? 'Bus' : calcVehicleType === 'SUV' ? '4x4 SUV' : calcVehicleType === 'VAN' ? 'Safari Van' : 'Sedan'} hire ({calcDays}d × {calculatedResult.dailyRate.toLocaleString()}):
+                  </span>
+                  <span className="font-mono font-semibold">KES {calculatedResult.vehicleTotal.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Fuel ({currentDestination.distanceFromNairobiKm * 2} km):</span>
+                  <span className="font-mono font-semibold">KES {calculatedResult.fuelEst.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Park fees ({calcPassengers} pax):</span>
+                  <span className="font-mono font-semibold">KES {calculatedResult.parkFees.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>Driver allowance:</span>
+                  <span className="font-mono font-semibold">KES {calculatedResult.driverAllowance.toLocaleString()}</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  if (calcVehicleType === 'BUS') {
+                    navigate('/catalogue?category=buses');
+                  } else {
+                    navigate(`/search?type=${calcVehicleType}`);
+                  }
+                }}
+                className="btn-primary w-full text-xs !py-2.5 font-semibold flex items-center justify-center gap-1.5"
+              >
+                {calcVehicleType === 'BUS' ? <Bus className="h-4 w-4" /> : <Car className="h-4 w-4" />}
+                <span>Book {calcVehicleType === 'BUS' ? 'Bus' : calcVehicleType} for {currentDestination.name}</span>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
