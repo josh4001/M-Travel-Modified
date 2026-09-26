@@ -1091,7 +1091,7 @@ export default function AdminDashboard() {
               {
                 role: 'VEHICLE_OWNER',
                 label: 'Fleet Hosts & Partners',
-                subtitle: 'Vehicle onboarding, dispatch & telemetry',
+                subtitle: 'Vehicle onboarding, verification & dispatch',
                 count: hostCount,
                 pct: hostPct,
                 icon: Car,
@@ -1102,7 +1102,7 @@ export default function AdminDashboard() {
                   badge: 'bg-amber-100 text-amber-800 border-amber-200',
                   pill: 'bg-amber-50 text-amber-700 border-amber-200/60',
                 },
-                privilege: 'Fleet Telematics & Host Payouts',
+                privilege: 'Fleet Management & Host Payouts',
               },
               {
                 role: 'ADMIN',
