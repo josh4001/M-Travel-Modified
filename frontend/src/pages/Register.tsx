@@ -31,24 +31,26 @@ const ROLES = [
 ] as const;
 
 export default function Register() {
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const redirectUrl = searchParams.get('redirect') || (location.state as any)?.redirect;
+  const reason = searchParams.get('reason');
+  const roleParam = searchParams.get('role');
+  const isBookingNotice = reason === 'booking' || Boolean(redirectUrl) || Boolean((location.state as any)?.message);
+  const bannerMessage = (location.state as any)?.message || 'Fill out your profile details below to register as a traveler. You will be returned right back to complete your reservation immediately!';
+
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
     password: '',
-    role: 'TOURIST',
+    role: roleParam?.toUpperCase() === 'VEHICLE_OWNER' ? 'VEHICLE_OWNER' : 'TOURIST',
   });
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
-  const [searchParams] = useSearchParams();
-  const location = useLocation();
-
-  const redirectUrl = searchParams.get('redirect') || (location.state as any)?.redirect;
-  const reason = searchParams.get('reason');
-  const isBookingNotice = reason === 'booking' || Boolean(redirectUrl) || Boolean((location.state as any)?.message);
 
   function update<K extends keyof typeof form>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -103,9 +105,9 @@ export default function Register() {
               <div className="rounded-2xl bg-amber-500/15 border border-amber-400/40 p-4 text-xs text-amber-200 flex items-start gap-3 shadow-lg">
                 <Lock className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-bold text-amber-300 text-sm">Create Account to Complete Booking</h4>
+                  <h4 className="font-bold text-amber-300 text-sm">Register as Traveler to Complete Booking</h4>
                   <p className="text-xs text-slate-200 mt-1 leading-relaxed">
-                    Fill out your profile details below to register. You will be returned right back to complete your vehicle booking immediately!
+                    {bannerMessage}
                   </p>
                 </div>
               </div>

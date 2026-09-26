@@ -5,7 +5,7 @@ import type { RootState } from '@/store';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Palmtree, Home, Compass, MapPin, Search, Sparkles, Star,
-  ShieldCheck, CheckCircle2, X, MessageSquare
+  ShieldCheck, CheckCircle2, X, MessageSquare, Lock, UserPlus, ArrowRight
 } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import { MpesaStkPushModal } from '@/components/ui/MpesaStkPushModal';
@@ -47,6 +47,7 @@ export default function HolidaysAndTours() {
   );
 
   const [selectedItem, setSelectedItem] = useState<TravelDestinationItem | null>(null);
+  const [authRequiredItem, setAuthRequiredItem] = useState<TravelDestinationItem | null>(null);
   const [showMpesaModal, setShowMpesaModal] = useState(false);
   const [bookingSuccessRef, setBookingSuccessRef] = useState<string | null>(null);
   const [lastEmailSent, setLastEmailSent] = useState<DispatchedEmail | null>(null);
@@ -64,6 +65,24 @@ export default function HolidaysAndTours() {
     window.addEventListener('mt_destinations_updated', handleUpdate);
     return () => window.removeEventListener('mt_destinations_updated', handleUpdate);
   }, []);
+
+  // Handle returning from login/register with ?book=<id>
+  useEffect(() => {
+    const bookId = searchParams.get('book');
+    if (bookId && destinations.length > 0) {
+      const target = destinations.find((d) => d.id === bookId);
+      if (target) {
+        if (user) {
+          setSelectedItem(target);
+          setShowMpesaModal(true);
+          searchParams.delete('book');
+          setSearchParams(searchParams, { replace: true });
+        } else {
+          setAuthRequiredItem(target);
+        }
+      }
+    }
+  }, [searchParams, user, destinations, setSearchParams]);
 
   const handleTabChange = (cat: TabFilter) => {
     setActiveCategory(cat);
@@ -91,6 +110,10 @@ export default function HolidaysAndTours() {
   });
 
   const handleBookNow = (item: TravelDestinationItem) => {
+    if (!user) {
+      setAuthRequiredItem(item);
+      return;
+    }
     setSelectedItem(item);
     setShowMpesaModal(true);
   };
@@ -243,6 +266,38 @@ export default function HolidaysAndTours() {
           <span>Curated & Updated Exclusively by M-TRAVEL Administration</span>
         </div>
       </div>
+
+      {/* PUBLIC TRAVELER BANNER (WHEN NOT LOGGED IN) */}
+      {!user && (
+        <div className="rounded-2xl border border-amber-200/90 bg-gradient-to-r from-amber-50/90 via-white to-amber-50/60 p-4 text-xs text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-amber-500/15 border border-amber-300 text-amber-800 flex items-center justify-center shrink-0">
+              <Lock className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="font-bold text-slate-900 text-xs sm:text-sm">Browsing M-TRAVEL Holidays & Stays</p>
+              <p className="text-slate-600 text-[11px] sm:text-xs">
+                To confirm bookings, lock travel dates, and receive official digital itineraries, please register or sign in as a traveler.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              to="/register?role=TOURIST&redirect=/holidays-and-tours"
+              className="btn-primary !py-2 !px-3.5 text-xs font-bold shadow-xs flex items-center gap-1.5"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              <span>Register as Traveler</span>
+            </Link>
+            <Link
+              to="/login?redirect=/holidays-and-tours"
+              className="btn-secondary !py-2 !px-3 text-xs font-semibold"
+            >
+              Sign In
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* SUCCESS CONFIRMATION MODAL */}
       {bookingSuccessRef && (
@@ -542,6 +597,14 @@ export default function HolidaysAndTours() {
                 </div>
               )}
 
+              {/* TRAVELER ACCOUNT NOTICE IN DETAIL MODAL */}
+              {!user && (
+                <div className="rounded-2xl border border-amber-200/90 bg-amber-50/80 p-3 text-xs text-amber-900 flex items-center gap-2.5">
+                  <Lock className="h-4 w-4 text-amber-700 shrink-0" />
+                  <span>Traveler account required to reserve — clicking <strong>Reserve Now</strong> will guide you to register or sign in.</span>
+                </div>
+              )}
+
               {/* MODAL ACTIONS */}
               <div className="border-t border-slate-200 pt-5 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
@@ -571,6 +634,130 @@ export default function HolidaysAndTours() {
                     Reserve Now
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* TRAVELER REGISTRATION REQUIRED POPUP MODAL */}
+      <AnimatePresence>
+        {authRequiredItem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 p-6 md:p-8 shadow-2xl space-y-6 text-slate-900"
+            >
+              {/* CLOSE BUTTON */}
+              <button
+                onClick={() => setAuthRequiredItem(null)}
+                className="absolute top-5 right-5 h-9 w-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 transition"
+                title="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              {/* HEADER BADGE */}
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3.5 py-1 text-xs font-bold text-amber-800">
+                  <Lock className="h-3.5 w-3.5 text-amber-600" />
+                  <span>Traveler Account Required</span>
+                </div>
+                <h3 className="font-serif text-2xl md:text-3xl font-bold text-slate-950 tracking-tight">
+                  Register as a Traveler to Reserve
+                </h3>
+                <p className="text-xs md:text-sm text-slate-600 leading-relaxed">
+                  To confirm your reservation and receive your official digital itinerary, vouchers, and 24/7 concierge assistance, please register or sign in as a traveler.
+                </p>
+              </div>
+
+              {/* SELECTED ITEM PREVIEW CARD */}
+              <div className="rounded-2xl border border-slate-200/90 bg-[#FAF8F5] p-3.5 flex items-center gap-4 shadow-xs">
+                <img
+                  src={authRequiredItem.imageUrl}
+                  alt={authRequiredItem.title}
+                  className="h-16 w-20 rounded-xl object-cover shrink-0 border border-slate-200"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-800 uppercase font-mono">
+                      {authRequiredItem.badge}
+                    </span>
+                    <span className="text-[10px] text-slate-500 flex items-center gap-0.5 truncate">
+                      <MapPin className="h-3 w-3 text-slate-400 shrink-0" /> {authRequiredItem.location}
+                    </span>
+                  </div>
+                  <h4 className="font-serif font-bold text-sm text-slate-900 truncate mt-1">
+                    {authRequiredItem.title}
+                  </h4>
+                  <div className="mt-1 flex items-baseline gap-1">
+                    <span className="font-serif font-bold text-amber-700 text-sm">
+                      {formatPrice(authRequiredItem.priceKES)}
+                    </span>
+                    <span className="text-[11px] text-slate-500">{authRequiredItem.priceUnit}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* BENEFITS CHECKLIST */}
+              <div className="space-y-2 rounded-2xl bg-amber-50/50 border border-amber-200/60 p-3.5 text-xs text-slate-700">
+                <p className="font-bold text-amber-900 text-[11px] uppercase tracking-wider">
+                  Why you need a Traveler Account:
+                </p>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                    <span>Instant M-Pesa receipt verification & booking confirmation</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                    <span>Official safari voucher & stay access credentials sent to your email</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                    <span>Live 24/7 dedicated WhatsApp & phone concierge support</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ACTION BUTTONS */}
+              <div className="space-y-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const returnUrl = `/holidays-and-tours?book=${authRequiredItem.id}`;
+                    navigate(`/register?role=TOURIST&redirect=${encodeURIComponent(returnUrl)}&reason=booking`, {
+                      state: {
+                        message: `Please register as a traveler to complete your reservation for "${authRequiredItem.title}".`,
+                        redirect: returnUrl,
+                      },
+                    });
+                  }}
+                  className="btn-primary w-full !py-3 font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span>Register as Traveler & Continue</span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const returnUrl = `/holidays-and-tours?book=${authRequiredItem.id}`;
+                    navigate(`/login?redirect=${encodeURIComponent(returnUrl)}&reason=booking`, {
+                      state: {
+                        message: `Please sign in to complete your reservation for "${authRequiredItem.title}".`,
+                        redirect: returnUrl,
+                      },
+                    });
+                  }}
+                  className="btn-secondary w-full !py-2.5 font-bold text-xs flex items-center justify-center gap-1.5"
+                >
+                  <Lock className="h-3.5 w-3.5 text-slate-600" />
+                  <span>Already have an account? Sign In</span>
+                </button>
               </div>
             </motion.div>
           </div>
