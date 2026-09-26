@@ -448,7 +448,22 @@ export default function Catalogue() {
                         </span>
                       </div>
 
-                      {isVehicle && hireStatus.isHired ? (
+                      {isAdmin ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isVehicle) {
+                              navigate(`/vehicles/${item.id}`);
+                            } else {
+                              setSelectedItem(item);
+                            }
+                          }}
+                          className="rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold transition shadow-xs cursor-pointer"
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5 text-amber-600" />
+                          <span>View Description &amp; Specs</span>
+                        </button>
+                      ) : isVehicle && hireStatus.isHired ? (
                         <button
                           disabled
                           className="rounded-xl bg-slate-100 border border-slate-200 text-slate-400 !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold cursor-not-allowed shadow-none"
@@ -655,7 +670,17 @@ export default function Catalogue() {
                         </span>
                       </div>
 
-                      {isSelectedVehicle && selectedHireStatus.isHired ? (
+                      {isAdmin ? (
+                        <div className="rounded-2xl border border-slate-200 bg-slate-100 p-3.5 text-center space-y-1">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                            <ShieldCheck className="h-4 w-4 text-amber-600" />
+                            Admin Fleet Monitoring View
+                          </span>
+                          <p className="text-[11px] text-slate-500">
+                            You are viewing this fleet item with Administrator credentials. Booking and reservations are reserved exclusively for travelers.
+                          </p>
+                        </div>
+                      ) : isSelectedVehicle && selectedHireStatus.isHired ? (
                         <button
                           disabled
                           className="w-full font-bold !py-3 text-sm flex items-center justify-center gap-2 rounded-2xl bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300"

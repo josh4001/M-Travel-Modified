@@ -30,6 +30,7 @@ export default function VehicleDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useSelector(selectUser);
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
   const { formatPrice } = useCurrency();
 
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
@@ -733,97 +734,118 @@ export default function VehicleDetail() {
             </p>
           </div>
 
-          {/* M-PESA PAYMENT SECTION */}
-          <div className="space-y-3 border-t border-slate-200 pt-4">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 font-display flex items-center gap-2">
-                <MpesaLogo variant="icon" />
-                <span>Instant M-PESA Mobile Checkout</span>
-              </label>
-              <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                Safaricom M-PESA
-              </span>
-            </div>
-
-            <div className="space-y-1.5 rounded-xl border border-emerald-300 bg-emerald-50/50 p-3">
-              <label className="block text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
-                <PhoneIcon className="h-3.5 w-3.5" /> Mobile Number for Reservation Prompt
-              </label>
-              <input
-                type="tel"
-                required
-                placeholder="e.g. 0712345678 or 254712345678"
-                className="input-field text-xs !py-2 bg-white focus:border-emerald-500 font-mono text-slate-900 font-bold"
-                value={mpesaPhone}
-                onChange={(e) => {
-                  setMpesaPhone(e.target.value);
-                  setPaymentError(null);
-                }}
-              />
-              <p className="text-[10px] text-slate-600 font-medium">
-                A secure M-PESA authorization prompt will be sent to your phone to confirm reservation of {formatPrice(grandTotal)}
-              </p>
-            </div>
-          </div>
-
-          {paymentError && (
-            <div className="rounded-xl border border-red-300 bg-red-50 p-3 text-xs text-red-700 font-medium flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
-              <span>{paymentError}</span>
-            </div>
-          )}
-
-          {/* ACTION BUTTON */}
-          {!isAvailableForHire ? (
-            hireStatus.isHired ? (
-              <button
-                disabled
-                className="w-full text-sm !py-3 font-bold rounded-2xl bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300 flex items-center justify-center gap-2 shadow-none"
-              >
-                <Lock className="h-4 w-4 text-slate-400" />
-                Vehicle Currently In Use (Returns {hireStatus.returnDate || 'Soon'})
-              </button>
-            ) : (
-              <button
-                disabled
-                className="w-full text-sm !py-3 font-bold rounded-2xl bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300 flex items-center justify-center gap-2 shadow-none"
-              >
-                <Lock className="h-4 w-4 text-slate-400" />
-                Vehicle Unavailable for Hire at the Moment
-              </button>
-            )
-          ) : !user ? (
-            <div className="space-y-3">
-              <div className="rounded-2xl border border-amber-300 bg-amber-50/90 p-3.5 text-xs text-amber-950 space-y-1 shadow-sm">
-                <div className="flex items-center gap-2 font-bold text-amber-900">
-                  <Lock className="h-4 w-4 text-amber-700" />
-                  <span>Account Required to Book</span>
+          {/* M-PESA PAYMENT SECTION OR ADMIN OVERSIGHT */}
+          {isAdmin ? (
+            <div className="space-y-3 border-t border-slate-200 pt-4">
+              <div className="rounded-2xl border border-primary-200 bg-primary-50/70 p-4 text-xs text-primary-950 space-y-2 shadow-sm">
+                <div className="flex items-center gap-2 font-bold text-primary-900 text-sm">
+                  <ShieldCheck className="h-5 w-5 text-primary-600" />
+                  <span>Admin Fleet Oversight Mode</span>
                 </div>
-                <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
-                  Please sign in or create an account to reserve this {targetVehicle.make} {targetVehicle.model}. You will return here immediately after signing in to finalize your booking.
+                <p className="text-xs text-primary-800 leading-relaxed font-medium">
+                  You are viewing this fleet unit in Administrative Mode. Traveler reservation, payment authorization, and M-Pesa checkouts are reserved for registered traveler accounts.
                 </p>
+                <div className="pt-2 flex items-center justify-between border-t border-primary-200/60 text-[11px] text-primary-700">
+                  <span>Unit Registration: <strong className="font-mono text-slate-800">{targetVehicle.plateNumber || targetVehicle.registrationNumber || 'Assigned'}</strong></span>
+                  <span>Daily Rate: <strong className="font-mono text-slate-800">{formatPrice(targetVehicle.dailyRate || targetVehicle.pricePerDay || 0)}</strong></span>
+                </div>
               </div>
-              <button
-                onClick={() => {
-                  const returnUrl = location.pathname + location.search;
-                  navigate(`/login?redirect=${encodeURIComponent(returnUrl)}&reason=booking`, {
-                    state: {
-                      message: `Please sign in or create an account to book the ${targetVehicle.make} ${targetVehicle.model}.`,
-                      redirect: returnUrl,
-                    },
-                  });
-                }}
-                className="btn-primary w-full text-sm !py-3.5 font-bold shadow-md flex items-center justify-center gap-2"
-              >
-                <Lock className="h-4 w-4" /> Sign In / Create Account to Book
-              </button>
             </div>
           ) : (
-            <MpesaLogo
-              label={`Confirm & Secure Reservation (${formatPrice(grandTotal)})`}
-              onClick={handleBooking}
-              loading={paymentLoading}
-            />
+            <>
+              {/* M-PESA PAYMENT SECTION */}
+              <div className="space-y-3 border-t border-slate-200 pt-4">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 font-display flex items-center gap-2">
+                    <MpesaLogo variant="icon" />
+                    <span>Instant M-PESA Mobile Checkout</span>
+                  </label>
+                  <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    Safaricom M-PESA
+                  </span>
+                </div>
+
+                <div className="space-y-1.5 rounded-xl border border-emerald-300 bg-emerald-50/50 p-3">
+                  <label className="block text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
+                    <PhoneIcon className="h-3.5 w-3.5" /> Mobile Number for Reservation Prompt
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="e.g. 0712345678 or 254712345678"
+                    className="input-field text-xs !py-2 bg-white focus:border-emerald-500 font-mono text-slate-900 font-bold"
+                    value={mpesaPhone}
+                    onChange={(e) => {
+                      setMpesaPhone(e.target.value);
+                      setPaymentError(null);
+                    }}
+                  />
+                  <p className="text-[10px] text-slate-600 font-medium">
+                    A secure M-PESA authorization prompt will be sent to your phone to confirm reservation of {formatPrice(grandTotal)}
+                  </p>
+                </div>
+              </div>
+
+              {paymentError && (
+                <div className="rounded-xl border border-red-300 bg-red-50 p-3 text-xs text-red-700 font-medium flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
+                  <span>{paymentError}</span>
+                </div>
+              )}
+
+              {/* ACTION BUTTON */}
+              {!isAvailableForHire ? (
+                hireStatus.isHired ? (
+                  <button
+                    disabled
+                    className="w-full text-sm !py-3 font-bold rounded-2xl bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300 flex items-center justify-center gap-2 shadow-none"
+                  >
+                    <Lock className="h-4 w-4 text-slate-400" />
+                    Vehicle Currently In Use (Returns {hireStatus.returnDate || 'Soon'})
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className="w-full text-sm !py-3 font-bold rounded-2xl bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300 flex items-center justify-center gap-2 shadow-none"
+                  >
+                    <Lock className="h-4 w-4 text-slate-400" />
+                    Vehicle Unavailable for Hire at the Moment
+                  </button>
+                )
+              ) : !user ? (
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-amber-300 bg-amber-50/90 p-3.5 text-xs text-amber-950 space-y-1 shadow-sm">
+                    <div className="flex items-center gap-2 font-bold text-amber-900">
+                      <Lock className="h-4 w-4 text-amber-700" />
+                      <span>Account Required to Book</span>
+                    </div>
+                    <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
+                      Please sign in or create an account to reserve this {targetVehicle.make} {targetVehicle.model}. You will return here immediately after signing in to finalize your booking.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const returnUrl = location.pathname + location.search;
+                      navigate(`/login?redirect=${encodeURIComponent(returnUrl)}&reason=booking`, {
+                        state: {
+                          message: `Please sign in or create an account to book the ${targetVehicle.make} ${targetVehicle.model}.`,
+                          redirect: returnUrl,
+                        },
+                      });
+                    }}
+                    className="btn-primary w-full text-sm !py-3.5 font-bold shadow-md flex items-center justify-center gap-2"
+                  >
+                    <Lock className="h-4 w-4" /> Sign In / Create Account to Book
+                  </button>
+                </div>
+              ) : (
+                <MpesaLogo
+                  label={`Confirm & Secure Reservation (${formatPrice(grandTotal)})`}
+                  onClick={handleBooking}
+                  loading={paymentLoading}
+                />
+              )}
+            </>
           )}
         </div>
       </div>
