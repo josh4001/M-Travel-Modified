@@ -14,7 +14,7 @@ const journey = [
   { label: 'Explore', desc: 'Browse curated safari cruisers, luxury vans, and private villas.' },
   { label: 'Reserve', desc: 'Select your travel dates & confirm your bespoke journey in seconds.' },
   { label: 'Ride', desc: 'Enjoy full comprehensive insurance & 24/7 roadside concierge.' },
-  { label: 'Arrive', desc: 'Experience Kenya in comfort & earn Privilege Explorer points.' },
+  { label: 'Arrive', desc: 'Experience Kenya in comfort with world-class hospitality and support.' },
 ];
 
 const categories = [
