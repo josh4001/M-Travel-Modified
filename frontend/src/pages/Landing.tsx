@@ -87,8 +87,24 @@ export default function Landing() {
                 </Link>
               </div>
 
+              {/* HERO CARTOON SAFARI SPECIALIST BADGE (ZERO OBSTRUCTION) */}
+              <div className="mt-8 flex items-center gap-4 p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50/80 border border-amber-300/80 shadow-2xs max-w-xl">
+                <div className="shrink-0">
+                  <HeroCartoonExplorer size={76} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                    <span>Jambo! Your Kenya Safari Specialist</span>
+                    <span className="text-orange-500 font-bold">✨</span>
+                  </p>
+                  <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-0.5">
+                    Hand-inspected 4x4 Land Cruisers, executive safari vans, and coastal holiday stays ready for your Kenyan expedition.
+                  </p>
+                </div>
+              </div>
+
               {/* LIVE PLATFORM METRICS WITH SAVANNAH GRASS ACCENT */}
-              <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-slate-200/80 pt-6 relative">
+              <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-slate-200/80 pt-6 relative">
                 <div>
                   <p className="font-mono text-2xl font-bold text-slate-900">500+</p>
                   <p className="text-[11px] text-slate-500 font-medium">Cruisers & Villas</p>
@@ -106,14 +122,14 @@ export default function Landing() {
                   <p className="text-[11px] text-slate-500 font-medium">VIP Concierge</p>
                 </div>
 
-                {/* Savannah grass tuft tucked beside metrics */}
+                {/* Savannah grass tuft tucked beside metrics in System Orange */}
                 <div className="absolute -bottom-2 -right-4 opacity-40 pointer-events-none hidden sm:block">
                   <SavannahGrassTuft size={80} />
                 </div>
               </div>
             </motion.div>
 
-            {/* 3D GLOBE WITH CHEERFUL CARTOON SAFARI EXPLORER COMPANION */}
+            {/* 3D GLOBE (CLEAN & UNOBSTRUCTED) */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -123,16 +139,6 @@ export default function Landing() {
               {/* Ambient Glow Aura */}
               <div className="absolute -inset-1.5 rounded-[32px] bg-gradient-to-tr from-amber-500/25 via-amber-400/10 to-rose-500/15 blur-2xl opacity-75 -z-10" />
               <RouteGlobe />
-
-              {/* CARTOON EXPLORER COMPANION WAVING AT THE GLOBE */}
-              <div className="absolute -bottom-6 -left-6 sm:-left-10 z-20 pointer-events-none filter drop-shadow-lg">
-                <HeroCartoonExplorer size={170} />
-              </div>
-
-              {/* Savannah Flora Accent beside the explorer */}
-              <div className="absolute -bottom-4 left-24 opacity-60 pointer-events-none">
-                <SavannahGrassTuft size={90} />
-              </div>
             </motion.div>
           </div>
         </div>
@@ -286,13 +292,13 @@ export default function Landing() {
         {/* Subtle Savannah Horizon Watermark */}
         <SavannahHeroWatermark className="top-0 left-0 right-0 h-full opacity-[0.035] md:opacity-[0.05]" />
 
-        <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={fadeUp} className="mx-auto max-w-3xl relative z-10 pt-14">
-          {/* Peeking Cartoon Explorer Touching Top Edge of CTA Card */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20">
-            <PeekingExplorerIllustration bubbleText="Ready for the adventure? 🦁" />
-          </div>
+        <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={fadeUp} className="mx-auto max-w-3xl relative z-10">
+          <div className="rounded-3xl border-2 border-amber-300/80 bg-gradient-to-br from-amber-50/90 via-white to-amber-50/40 p-8 sm:p-12 md:p-14 text-center shadow-card relative overflow-hidden">
+            {/* Peeking Cartoon Explorer in System Orange (Positioned cleanly above heading with ZERO text overlap) */}
+            <div className="flex justify-center mb-6">
+              <PeekingExplorerIllustration bubbleText="Ready for your adventure?" />
+            </div>
 
-          <div className="rounded-3xl border-2 border-amber-300/80 bg-gradient-to-br from-amber-50/90 via-white to-amber-50/40 p-10 md:p-14 text-center shadow-card relative overflow-hidden">
             <h2 className="font-serif text-3xl font-bold tracking-tight md:text-5xl text-slate-900">
               Ready for your next Kenya adventure?
             </h2>

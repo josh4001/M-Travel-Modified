@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Car, Bus, Palmtree, Home, Wallet, ShieldCheck, MapPinned, Headset, CheckCircle, Sparkles } from 'lucide-react';
+import { Car, Bus, Palmtree, Home, Wallet, ShieldCheck, MapPinned, Headset, CheckCircle, Sparkles, Award, Smartphone } from 'lucide-react';
 import { CatalogueTabs } from '@/components/ui/CatalogueTabs';
 import { PinterestThemes } from '@/components/ui/PinterestThemes';
 import {
@@ -125,37 +125,45 @@ export default function Services() {
               Whether you are booking a rugged 4x4 game drive cruiser to the Maasai Mara, an executive coastal safari van, or a private beachfront villa, M-TRAVEL delivers dependable, stress-free hospitality on every journey.
             </p>
 
-            {/* Satisfaction Guarantees Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              <div className="flex items-center gap-2.5 rounded-2xl bg-white/90 border border-amber-200/80 p-3 shadow-2xs">
-                <span className="text-xl">🛡️</span>
+            {/* Satisfaction Guarantees Grid with Premium Brand Icons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+              <div className="flex items-center gap-3.5 rounded-2xl bg-white/95 border border-amber-200/90 p-3.5 shadow-2xs hover:border-amber-400 hover:shadow-xs transition-all group">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-[0_4px_12px_rgba(245,158,11,0.35)] shrink-0 ring-2 ring-amber-300/40 group-hover:scale-105 transition-transform">
+                  <ShieldCheck className="h-5 w-5" strokeWidth={2.2} />
+                </div>
                 <div>
                   <h4 className="text-xs font-bold text-slate-900">Mechanically Inspected Fleet</h4>
-                  <p className="text-[11px] text-slate-500">Every 4x4 &amp; van verified for road safety</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Every 4x4 &amp; van verified for road safety</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 rounded-2xl bg-white/90 border border-amber-200/80 p-3 shadow-2xs">
-                <span className="text-xl">🧭</span>
+              <div className="flex items-center gap-3.5 rounded-2xl bg-white/95 border border-amber-200/90 p-3.5 shadow-2xs hover:border-amber-400 hover:shadow-xs transition-all group">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-[0_4px_12px_rgba(245,158,11,0.35)] shrink-0 ring-2 ring-amber-300/40 group-hover:scale-105 transition-transform">
+                  <Award className="h-5 w-5" strokeWidth={2.2} />
+                </div>
                 <div>
                   <h4 className="text-xs font-bold text-slate-900">Certified Professional Drivers</h4>
-                  <p className="text-[11px] text-slate-500">Experienced terrain &amp; wildlife experts</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Experienced terrain &amp; wildlife experts</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 rounded-2xl bg-white/90 border border-amber-200/80 p-3 shadow-2xs">
-                <span className="text-xl">📱</span>
+              <div className="flex items-center gap-3.5 rounded-2xl bg-white/95 border border-amber-200/90 p-3.5 shadow-2xs hover:border-amber-400 hover:shadow-xs transition-all group">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-[0_4px_12px_rgba(245,158,11,0.35)] shrink-0 ring-2 ring-amber-300/40 group-hover:scale-105 transition-transform">
+                  <Smartphone className="h-5 w-5" strokeWidth={2.2} />
+                </div>
                 <div>
                   <h4 className="text-xs font-bold text-slate-900">Direct M-Pesa Confirmations</h4>
-                  <p className="text-[11px] text-slate-500">Instant receipts &amp; secure booking tickets</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Instant receipts &amp; secure booking tickets</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 rounded-2xl bg-white/90 border border-amber-200/80 p-3 shadow-2xs">
-                <span className="text-xl">🛎️</span>
+              <div className="flex items-center gap-3.5 rounded-2xl bg-white/95 border border-amber-200/90 p-3.5 shadow-2xs hover:border-amber-400 hover:shadow-xs transition-all group">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-[0_4px_12px_rgba(245,158,11,0.35)] shrink-0 ring-2 ring-amber-300/40 group-hover:scale-105 transition-transform">
+                  <Headset className="h-5 w-5" strokeWidth={2.2} />
+                </div>
                 <div>
                   <h4 className="text-xs font-bold text-slate-900">24/7 Roadside Assistance</h4>
-                  <p className="text-[11px] text-slate-500">Rapid local concierge response across Kenya</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Rapid local concierge response across Kenya</p>
                 </div>
               </div>
             </div>

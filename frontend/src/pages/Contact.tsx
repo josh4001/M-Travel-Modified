@@ -27,29 +27,32 @@ export default function Contact() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-12 md:py-16 relative overflow-hidden">
-      {/* Decorative Tropical Palm Tree in Background */}
-      <div className="absolute top-6 right-2 md:right-8 opacity-25 md:opacity-40 pointer-events-none -z-10">
+      {/* Decorative Tropical Palm Tree in Background in System Orange */}
+      <div className="absolute top-6 right-2 md:right-8 opacity-20 md:opacity-35 pointer-events-none -z-10">
         <PalmTreeCartoon size={160} />
       </div>
 
-      {/* HEADER SECTION WITH EXCITED CARTOON SAFARI EXPLORER TOUCHING THE STATEMENT */}
-      <motion.div initial="hidden" animate="show" variants={fadeUp} className="relative pt-16 md:pt-20">
-        {/* Cartoon Traveler wearing explorer hat touching/resting hands on top of the statement */}
-        <div className="absolute top-0 left-6 sm:left-14 z-20">
-          <PeekingExplorerIllustration bubbleText="Jambo! We're here to help! 🦒" />
-        </div>
-
-        {/* Statement Box */}
+      {/* HEADER SECTION WITH ORANGE CARTOON SAFARI EXPLORER FITTED SAFELY BESIDE STATEMENT */}
+      <motion.div initial="hidden" animate="show" variants={fadeUp} className="relative">
         <div className="relative rounded-3xl border-2 border-amber-300/90 bg-gradient-to-br from-amber-50/95 via-white to-amber-50/40 p-6 sm:p-8 md:p-10 shadow-sm">
-          <span className="mb-2 inline-block rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-800">
-            Get in touch with M-TRAVEL
-          </span>
-          <h1 className="font-display text-3xl font-bold tracking-tight md:text-5xl text-slate-900">
-            We'd love to hear from you.
-          </h1>
-          <p className="mt-3 max-w-2xl text-slate-600 text-sm md:text-base leading-relaxed">
-            Questions about a vehicle booking, safari package, listing your vehicle, or corporate partnership — reach out to our team directly.
-          </p>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="max-w-xl">
+              <span className="mb-2 inline-block rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-700">
+                Get in touch with M-TRAVEL
+              </span>
+              <h1 className="font-display text-3xl font-bold tracking-tight md:text-5xl text-slate-900">
+                We'd love to hear from you.
+              </h1>
+              <p className="mt-3 text-slate-600 text-sm md:text-base leading-relaxed">
+                Questions about a vehicle booking, safari package, listing your vehicle, or corporate partnership — reach out to our team directly.
+              </p>
+            </div>
+
+            {/* Cartoon Explorer in M-Travel Orange — perfectly fitted with ZERO text overlap */}
+            <div className="shrink-0 flex flex-col items-center pt-2 md:pt-0">
+              <PeekingExplorerIllustration bubbleText="Jambo! We're here to help!" />
+            </div>
+          </div>
         </div>
       </motion.div>
 
