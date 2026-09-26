@@ -1,8 +1,13 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Car, Bus, Palmtree, Home, Wallet, ShieldCheck, MapPinned, Headset } from 'lucide-react';
+import { Car, Bus, Palmtree, Home, Wallet, ShieldCheck, MapPinned, Headset, CheckCircle, Sparkles } from 'lucide-react';
 import { CatalogueTabs } from '@/components/ui/CatalogueTabs';
 import { PinterestThemes } from '@/components/ui/PinterestThemes';
+import {
+  SatisfiedExplorerIllustration,
+  PalmTreeCartoon,
+  SavannahGrassTuft
+} from '@/components/ui/CartoonSafariIllustrations';
 
 const services = [
   {
@@ -77,6 +82,86 @@ export default function Services() {
 
       {/* TOURISM VIBES AND MOOD BOARDS */}
       <PinterestThemes />
+
+      {/* ── TRAVELER SATISFACTION & SERVICE EXCELLENCE BANNER WITH CARTOON EXPLORER ── */}
+      <motion.div
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true }}
+        variants={fadeUp}
+        className="rounded-3xl border-2 border-amber-300/90 bg-gradient-to-r from-amber-50/95 via-white to-amber-100/50 p-6 md:p-10 shadow-sm relative overflow-hidden"
+      >
+        {/* Background Tropical Palm & Savannah Grass Illustrations */}
+        <div className="absolute top-2 right-4 opacity-20 md:opacity-35 pointer-events-none -z-10">
+          <PalmTreeCartoon size={140} />
+        </div>
+        <div className="absolute -bottom-4 right-32 opacity-30 pointer-events-none -z-10">
+          <SavannahGrassTuft size={110} />
+        </div>
+
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-8 relative z-10">
+          {/* Satisfied Cartoon Explorer with Thumbs-up */}
+          <div className="shrink-0 flex flex-col items-center">
+            <SatisfiedExplorerIllustration />
+            <div className="mt-2 text-center">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[11px] font-black uppercase tracking-wider shadow-2xs">
+                <CheckCircle className="h-3.5 w-3.5 text-emerald-600" /> 100% Safari Ready
+              </span>
+            </div>
+          </div>
+
+          {/* Description & Confidence Commitments */}
+          <div className="flex-1 space-y-4 text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3.5 py-1 text-xs font-bold text-amber-900 shadow-2xs">
+              <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+              <span>Service Excellence Commitment</span>
+            </div>
+
+            <h2 className="font-serif text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
+              Designed for Pure Travel Joy &amp; Complete Peace of Mind
+            </h2>
+
+            <p className="text-sm md:text-base text-slate-600 leading-relaxed max-w-2xl">
+              Whether you are booking a rugged 4x4 game drive cruiser to the Maasai Mara, an executive coastal safari van, or a private beachfront villa, M-TRAVEL delivers dependable, stress-free hospitality on every journey.
+            </p>
+
+            {/* Satisfaction Guarantees Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div className="flex items-center gap-2.5 rounded-2xl bg-white/90 border border-amber-200/80 p-3 shadow-2xs">
+                <span className="text-xl">🛡️</span>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">Mechanically Inspected Fleet</h4>
+                  <p className="text-[11px] text-slate-500">Every 4x4 &amp; van verified for road safety</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 rounded-2xl bg-white/90 border border-amber-200/80 p-3 shadow-2xs">
+                <span className="text-xl">🧭</span>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">Certified Professional Drivers</h4>
+                  <p className="text-[11px] text-slate-500">Experienced terrain &amp; wildlife experts</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 rounded-2xl bg-white/90 border border-amber-200/80 p-3 shadow-2xs">
+                <span className="text-xl">📱</span>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">Direct M-Pesa Confirmations</h4>
+                  <p className="text-[11px] text-slate-500">Instant receipts &amp; secure booking tickets</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 rounded-2xl bg-white/90 border border-amber-200/80 p-3 shadow-2xs">
+                <span className="text-xl">🛎️</span>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">24/7 Roadside Assistance</h4>
+                  <p className="text-[11px] text-slate-500">Rapid local concierge response across Kenya</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* CORE FEATURES GRID */}
       <div>
