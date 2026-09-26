@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Car, Calendar, Wallet, MapPin, Star, Clock,
-  CheckCircle, XCircle, AlertCircle, ArrowRight, TrendingUp, Smartphone, X,
+  CheckCircle, CheckCircle2, XCircle, AlertCircle, ArrowRight, TrendingUp, Smartphone, X,
   Compass, Mountain, Trees, Waves, Sparkles, Bell, Palmtree, User, Shield
 } from 'lucide-react';
 import type { RootState } from '@/store';
@@ -675,6 +675,54 @@ export default function TouristDashboard() {
                   </div>
                 </div>
               </div>
+
+              {/* UNLOCKED VIP TRAVELER PRIVILEGES */}
+              {creditProfile.tier === 'VIP Renter (A+)' && (
+                <div className="rounded-2xl border border-emerald-300 bg-emerald-50/80 p-4 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-emerald-600" /> Unlocked VIP Traveler Privileges
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+                      4x4 &amp; Bus Fleet
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 text-[11px] text-slate-700">
+                    <div className="flex items-start gap-2 bg-white p-2.5 rounded-xl border border-emerald-200/80">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="text-slate-900 block">Instant Deposit Release</strong>
+                        <span className="text-slate-600">Zero-delay security deposit refund via M-Pesa immediately upon clean return inspection.</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2 bg-white p-2.5 rounded-xl border border-emerald-200/80">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="text-slate-900 block">Priority Safari Fleet Dispatch</strong>
+                        <span className="text-slate-600">Priority vehicle allocation for high-demand 4x4 Land Cruisers, Safari Vans, and Tour Buses.</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2 bg-white p-2.5 rounded-xl border border-emerald-200/80">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="text-slate-900 block">1-Hour Courtesy Return Grace Window</strong>
+                        <span className="text-slate-600">Complimentary 1-hour return buffer for national park gate clearance or highway traffic delays.</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2 bg-white p-2.5 rounded-xl border border-emerald-200/80">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="text-slate-900 block">Complimentary Co-Driver Authorization</strong>
+                        <span className="text-slate-600">Free registration of an authorized second expedition driver on your rental agreement.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <button
                 onClick={() => setShowProfileModal(false)}

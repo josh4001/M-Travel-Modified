@@ -2209,7 +2209,7 @@ export default function AdminDashboard() {
               <p className="font-mono text-3xl font-bold text-emerald-700 mt-2">
                 {getStoredCreditProfiles().filter(p => p.score >= 750).length}
               </p>
-              <p className="text-xs text-emerald-700 font-medium mt-1">Score 750 - 850 (Eligible for all vehicles)</p>
+              <p className="text-xs text-emerald-700 font-medium mt-1">Score 750 - 850 (Priority 4x4 &amp; bus dispatch, zero-delay deposit release)</p>
             </div>
 
             <div className="rounded-2xl bg-amber-50/80 border border-amber-200 p-5 shadow-sm">

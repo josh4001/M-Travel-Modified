@@ -1184,12 +1184,11 @@ export default function OwnerDashboard() {
 
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-800">Vehicle Category</label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {[
                 { type: '4x4', label: '4x4 Safari' },
+                { type: 'VAN', label: 'Safari Van' },
                 { type: 'BUS', label: 'Bus' },
-                { type: 'VAN', label: 'Alphard Van' },
-                { type: 'SEDAN', label: 'Sedan' },
               ].map(({ type, label }) => (
                 <button
                   key={type} type="button"
