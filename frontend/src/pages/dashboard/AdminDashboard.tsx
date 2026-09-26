@@ -1060,35 +1060,188 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          {/* ROLE BREAKDOWN */}
-          <div className="rounded-3xl bg-white border border-slate-200/90 p-6 space-y-4 shadow-sm">
-            <h3 className="font-serif font-bold text-slate-900 text-lg flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-amber-600" /> Platform Role Distribution &amp; Governance
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { role: 'TOURIST',       label: 'Tourists & Travelers', icon: Users,  cls: 'text-teal-800 border-teal-200 bg-teal-50/70', bar: 'bg-teal-600' },
-                { role: 'VEHICLE_OWNER', label: 'Fleet Hosts',          icon: Car,    cls: 'text-amber-800 border-amber-200 bg-amber-50/70', bar: 'bg-amber-500' },
-                { role: 'ADMIN',         label: 'Administrators',       icon: Shield, cls: 'text-slate-900 border-slate-200 bg-slate-100/70', bar: 'bg-slate-900' },
-              ].map(r => {
-                const count = users.filter(u => u.role === r.role).length;
-                const pct = (count / Math.max(users.length, 1)) * 100;
-                return (
-                  <div key={r.role} className={`rounded-2xl border p-4.5 ${r.cls}`}>
-                    <div className="flex justify-between items-center font-bold text-slate-900">
-                      <span className="flex items-center gap-1.5 text-xs">
-                        <r.icon className="h-4 w-4" />
-                        {r.label}
-                      </span>
-                      <span className="font-mono text-xl">{count}</span>
+          {/* ROLE BREAKDOWN & GOVERNANCE */}
+          {(() => {
+            const touristCount = users.filter(u => u.role === 'TOURIST' || u.role === 'CUSTOMER' || !u.role).length;
+            const hostCount = users.filter(u => u.role === 'VEHICLE_OWNER' || u.role === 'OWNER' || u.role === 'HOST' || u.role === 'FLEET_HOST').length;
+            const adminCount = users.filter(u => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN').length;
+            const totalAccounts = Math.max(users.length, 1);
+
+            const touristPct = Math.round((touristCount / totalAccounts) * 100);
+            const hostPct = Math.round((hostCount / totalAccounts) * 100);
+            const adminPct = Math.max(0, 100 - touristPct - hostPct);
+
+            const roleTiers = [
+              {
+                role: 'TOURIST',
+                label: 'Tourists & Travelers',
+                subtitle: 'Safari expeditions & private rentals',
+                count: touristCount,
+                pct: touristPct,
+                icon: Users,
+                theme: {
+                  card: 'bg-gradient-to-br from-teal-50/70 via-white to-emerald-50/20 border-teal-200/90 text-teal-950',
+                  iconBox: 'bg-teal-100/90 text-teal-700 border border-teal-200',
+                  bar: 'bg-teal-600',
+                  badge: 'bg-teal-100 text-teal-800 border-teal-200',
+                  pill: 'bg-teal-50 text-teal-700 border-teal-200/60',
+                },
+                privilege: 'Public & Verified Traveler Portal',
+              },
+              {
+                role: 'VEHICLE_OWNER',
+                label: 'Fleet Hosts & Partners',
+                subtitle: 'Vehicle onboarding, dispatch & telemetry',
+                count: hostCount,
+                pct: hostPct,
+                icon: Car,
+                theme: {
+                  card: 'bg-gradient-to-br from-amber-50/70 via-white to-amber-50/20 border-amber-200/90 text-amber-950',
+                  iconBox: 'bg-amber-100/90 text-amber-700 border border-amber-200',
+                  bar: 'bg-amber-500',
+                  badge: 'bg-amber-100 text-amber-800 border-amber-200',
+                  pill: 'bg-amber-50 text-amber-700 border-amber-200/60',
+                },
+                privilege: 'Fleet Telematics & Host Payouts',
+              },
+              {
+                role: 'ADMIN',
+                label: 'Platform Administrators',
+                subtitle: 'Global command, audits & financial governance',
+                count: adminCount,
+                pct: adminPct,
+                icon: Shield,
+                theme: {
+                  card: 'bg-gradient-to-br from-slate-100/70 via-white to-slate-50/30 border-slate-300 text-slate-900',
+                  iconBox: 'bg-slate-900 text-amber-400 border border-slate-700',
+                  bar: 'bg-slate-900',
+                  badge: 'bg-slate-100 text-slate-800 border-slate-200',
+                  pill: 'bg-slate-50 text-slate-700 border-slate-200/70',
+                },
+                privilege: 'Full Root Authority & Dispatch',
+              },
+            ];
+
+            return (
+              <div className="rounded-3xl bg-white border border-slate-200/90 p-6 sm:p-7 space-y-6 shadow-xs">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-amber-50 border border-amber-200/60 text-amber-600">
+                        <BarChart3 className="h-5 w-5" />
+                      </div>
+                      <h3 className="font-display font-bold text-slate-900 text-lg sm:text-xl tracking-tight">
+                        Platform Role Distribution &amp; Governance
+                      </h3>
                     </div>
-                    <div className="mt-3 h-2 rounded-full bg-slate-200/70" />
-                    <div className={`-mt-2 h-2 rounded-full ${r.bar}`} style={{ width: `${pct}%` }} />
+                    <p className="text-xs text-slate-500 font-medium pl-9">
+                      Real-time user authorization, credential segregation, and access control across the M-Travel ecosystem
+                    </p>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+
+                  <div className="flex items-center gap-2.5 self-start sm:self-center">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                      RBAC Enforced
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                      {users.length} Active Accounts
+                    </span>
+                  </div>
+                </div>
+
+                {/* Macro Platform Segmented Track */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <span>Ecosystem Composition</span>
+                    <span className="font-mono text-slate-700">100% Governed</span>
+                  </div>
+                  <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden flex p-0.5 border border-slate-200/60 shadow-inner">
+                    <div
+                      style={{ width: `${touristPct}%` }}
+                      title={`Tourists: ${touristPct}%`}
+                      className="h-full bg-teal-500 rounded-l-full transition-all duration-700"
+                    />
+                    <div
+                      style={{ width: `${hostPct}%` }}
+                      title={`Fleet Hosts: ${hostPct}%`}
+                      className="h-full bg-amber-500 transition-all duration-700"
+                    />
+                    <div
+                      style={{ width: `${adminPct}%` }}
+                      title={`Admins: ${adminPct}%`}
+                      className="h-full bg-slate-900 rounded-r-full transition-all duration-700"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 pt-1 gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-teal-500" />
+                      <span className="font-medium">Tourists &amp; Travelers ({touristPct}%)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-amber-500" />
+                      <span className="font-medium">Fleet Hosts ({hostPct}%)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-slate-900" />
+                      <span className="font-medium">Administrators ({adminPct}%)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  {roleTiers.map(r => (
+                    <div
+                      key={r.role}
+                      className={`rounded-2xl border p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-5 ${r.theme.card}`}
+                    >
+                      <div className="space-y-4">
+                        <div className="flex items-start justify-between">
+                          <div className={`p-2.5 rounded-2xl ${r.theme.iconBox} shadow-xs`}>
+                            <r.icon className="h-5 w-5" />
+                          </div>
+                          <span className={`px-2.5 py-1 text-xs font-mono font-bold rounded-full border ${r.theme.badge}`}>
+                            {r.pct}% Share
+                          </span>
+                        </div>
+
+                        <div>
+                          <h4 className="font-bold text-slate-900 text-base">{r.label}</h4>
+                          <p className="text-xs text-slate-600 font-medium mt-0.5 leading-snug">{r.subtitle}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 pt-2">
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Assigned</span>
+                          <div className="flex items-baseline gap-1">
+                            <span className="font-mono text-3xl font-bold text-slate-900">{r.count}</span>
+                            <span className="text-xs text-slate-500 font-medium">users</span>
+                          </div>
+                        </div>
+
+                        <div className="w-full bg-slate-200/70 rounded-full h-2 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-700 ${r.theme.bar}`}
+                            style={{ width: `${Math.max(r.pct, 4)}%` }}
+                          />
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-200/50 flex items-center justify-between text-[11px]">
+                          <span className="text-slate-500 font-medium">Access Scope</span>
+                          <span className={`font-semibold px-2 py-0.5 rounded-md border ${r.theme.pill}`}>
+                            {r.privilege}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ROUTE ALERTS */}
           <div className="rounded-2xl bg-white border border-slate-200/90 p-6 space-y-4 shadow-sm">
