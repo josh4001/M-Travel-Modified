@@ -21,4 +21,8 @@ export class UsersService {
   async updateProfile(id: string, data: { firstName?: string; lastName?: string; avatarUrl?: string }) {
     return this.prisma.user.update({ where: { id }, data });
   }
+
+  async deleteAccount(id: string) {
+    return this.prisma.user.delete({ where: { id } });
+  }
 }

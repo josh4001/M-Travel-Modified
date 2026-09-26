@@ -119,13 +119,26 @@ const DEFAULT_ACCOUNTS: LocalAccount[] = [
 
 const USERS_STORAGE_KEY = 'mt_user_credentials_v2';
 const LEGACY_STORAGE_KEYS = ['mt_user_credentials', 'mt_users', 'mt_accounts'];
+const DELETED_ACCOUNTS_KEY = 'mt_deleted_accounts_v1';
+
+export function getDeletedAccountEmails(): string[] {
+  try {
+    const raw = localStorage.getItem(DELETED_ACCOUNTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
 
 export function getLocalAccounts(): LocalAccount[] {
   const mergedMap = new Map<string, LocalAccount>();
+  const deletedEmails = new Set(getDeletedAccountEmails().map((e) => e.toLowerCase()));
 
-  // 1. Seed defaults
+  // 1. Seed defaults (except deleted accounts)
   for (const def of DEFAULT_ACCOUNTS) {
-    mergedMap.set(def.email.toLowerCase(), def);
+    if (!deletedEmails.has(def.email.toLowerCase())) {
+      mergedMap.set(def.email.toLowerCase(), def);
+    }
   }
 
   // 2. Read legacy keys
@@ -138,7 +151,7 @@ export function getLocalAccounts(): LocalAccount[] {
           for (const item of parsed) {
             if (item?.email) {
               const clean = item.email.toLowerCase();
-              if (!mergedMap.has(clean)) {
+              if (!deletedEmails.has(clean) && !mergedMap.has(clean)) {
                 mergedMap.set(clean, {
                   id: item.id || `user-${Date.now()}`,
                   email: item.email,
@@ -168,21 +181,23 @@ export function getLocalAccounts(): LocalAccount[] {
         for (const item of parsed) {
           if (item?.email) {
             const clean = item.email.toLowerCase();
-            // Do NOT overwrite official system accounts with stale data
-            const isSystemDef = DEFAULT_ACCOUNTS.some((d) => d.email.toLowerCase() === clean);
-            if (!isSystemDef) {
-              mergedMap.set(clean, {
-                id: item.id || `user-${Date.now()}`,
-                email: item.email,
-                password: item.password || 'Tourist@2026',
-                role: item.role || 'TOURIST',
-                firstName: item.firstName || 'Explorer',
-                lastName: item.lastName || '',
-                phone: item.phone,
-                avatarUrl: item.avatarUrl,
-                isActive: item.isActive !== false,
-                createdAt: item.createdAt || item.created_at || '2025-11-15T08:00:00.000Z',
-              });
+            if (!deletedEmails.has(clean)) {
+              // Do NOT overwrite official system accounts with stale data
+              const isSystemDef = DEFAULT_ACCOUNTS.some((d) => d.email.toLowerCase() === clean);
+              if (!isSystemDef) {
+                mergedMap.set(clean, {
+                  id: item.id || `user-${Date.now()}`,
+                  email: item.email,
+                  password: item.password || 'Tourist@2026',
+                  role: item.role || 'TOURIST',
+                  firstName: item.firstName || 'Explorer',
+                  lastName: item.lastName || '',
+                  phone: item.phone,
+                  avatarUrl: item.avatarUrl,
+                  isActive: item.isActive !== false,
+                  createdAt: item.createdAt || item.created_at || '2025-11-15T08:00:00.000Z',
+                });
+              }
             }
           }
         }
@@ -190,9 +205,11 @@ export function getLocalAccounts(): LocalAccount[] {
     }
   } catch { /* empty */ }
 
-  // 4. Always re-assert default system accounts to guarantee correct roles
+  // 4. Always re-assert default system accounts to guarantee correct roles (unless deleted)
   for (const def of DEFAULT_ACCOUNTS) {
-    mergedMap.set(def.email.toLowerCase(), def);
+    if (!deletedEmails.has(def.email.toLowerCase())) {
+      mergedMap.set(def.email.toLowerCase(), def);
+    }
   }
 
   // Actively purge any legacy driver accounts from memory and storage
@@ -517,6 +534,79 @@ export async function updateUserProfile(
 }
 
 // ---------------------------------------------------------------------------
+// Delete Account
+// ---------------------------------------------------------------------------
+export async function deleteUserAccount(
+  userIdOrEmail: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const accounts = getLocalAccounts();
+    const targetAccount = accounts.find(
+      (a) => a.id === userIdOrEmail || a.email.toLowerCase() === userIdOrEmail.toLowerCase()
+    );
+
+    const targetEmail = (targetAccount?.email || userIdOrEmail).toLowerCase();
+    const targetId = targetAccount?.id || userIdOrEmail;
+
+    // 1. Record in tombstone deleted accounts list
+    try {
+      const deleted = getDeletedAccountEmails();
+      if (!deleted.map((e) => e.toLowerCase()).includes(targetEmail)) {
+        deleted.push(targetEmail);
+        localStorage.setItem(DELETED_ACCOUNTS_KEY, JSON.stringify(deleted));
+      }
+    } catch {}
+
+    // 2. Remove from active local accounts list
+    const filteredAccounts = accounts.filter(
+      (a) => a.id !== targetId && a.email.toLowerCase() !== targetEmail
+    );
+    try {
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(filteredAccounts));
+      localStorage.setItem('mt_user_credentials', JSON.stringify(filteredAccounts));
+    } catch {}
+
+    // 3. Remove from Supabase users table
+    try {
+      await supabase.from('users').delete().eq('id', targetId);
+    } catch (e) {
+      console.warn('Supabase delete notice:', e);
+    }
+
+    // 4. Clean up any related credit score profile if traveler
+    try {
+      const creditProfiles = getStoredCreditProfiles();
+      const updatedProfiles = creditProfiles.filter(
+        (p) => p.userId !== targetId && p.touristEmail.toLowerCase() !== targetEmail
+      );
+      saveCreditProfiles(updatedProfiles);
+    } catch {}
+
+    // 5. Audit Log
+    logAuditEvent(
+      'USER_ACCOUNT_DELETED',
+      'User',
+      targetEmail,
+      `User account for ${targetAccount?.firstName || ''} ${targetAccount?.lastName || ''} (${targetEmail}) was permanently deleted`,
+      `${targetAccount?.firstName || ''} ${targetAccount?.lastName || ''}`.trim() || 'User',
+      targetAccount?.role || 'USER'
+    );
+
+    // 6. Purge active local session tokens & emit account updates
+    logout();
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('mt_accounts_updated'));
+      window.dispatchEvent(new CustomEvent('mt_user_deleted', { detail: { id: targetId, email: targetEmail } }));
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to delete account' };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Register
 // ---------------------------------------------------------------------------
 export async function register(payload: {
@@ -528,6 +618,13 @@ export async function register(payload: {
   role?: string;
 }): Promise<AuthResponse> {
   const cleanEmail = payload.email.trim().toLowerCase();
+
+  // Remove from deleted accounts tombstone if previously deleted
+  try {
+    const deleted = getDeletedAccountEmails().filter(e => e.toLowerCase() !== cleanEmail);
+    localStorage.setItem(DELETED_ACCOUNTS_KEY, JSON.stringify(deleted));
+  } catch {}
+
   const roleMap: Record<string, string> = {
     TOURIST: 'TOURIST',
     VEHICLE_OWNER: 'VEHICLE_OWNER',

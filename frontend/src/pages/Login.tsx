@@ -19,6 +19,7 @@ export default function Login() {
 
   const redirectUrl = searchParams.get('redirect') || (location.state as any)?.redirect;
   const reason = searchParams.get('reason');
+  const isDeletedNotice = searchParams.get('deleted') === 'true';
   const isBookingNotice = reason === 'booking' || Boolean(redirectUrl) || Boolean((location.state as any)?.message);
   const bannerMessage = (location.state as any)?.message || 'Please sign in or create an account to complete your vehicle booking.';
 
@@ -85,6 +86,19 @@ export default function Login() {
               Sign in to your bespoke African safari itineraries, private fleet & reservations.
             </p>
           </div>
+
+          {/* ACCOUNT DELETION NOTICE BANNER */}
+          {isDeletedNotice && (
+            <div className="my-4 rounded-2xl bg-rose-500/20 border border-rose-400/50 p-4 text-xs text-rose-200 flex items-start gap-3 shadow-lg animate-in fade-in">
+              <CheckCircle2 className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-white text-sm">Account Successfully Deleted</h4>
+                <p className="text-xs text-slate-200 mt-1 leading-relaxed">
+                  Your M-Travel account and associated personal data have been permanently erased from our system. If you ever wish to return in future, you are always welcome to create a fresh account.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* BOOKING INTENT NOTICE BANNER */}
           {isBookingNotice && (

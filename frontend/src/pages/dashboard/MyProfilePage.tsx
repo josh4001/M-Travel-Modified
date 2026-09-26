@@ -5,10 +5,10 @@ import {
   User, Mail, Phone, Calendar, Shield, ShieldCheck, CheckCircle2,
   AlertCircle, Edit3, X, Save, ArrowLeft, Car, Sparkles, Check,
   Copy, Key, Wallet, Lock, TrendingUp, TrendingDown,
-  HelpCircle, Activity
+  HelpCircle, Activity, Trash2, AlertTriangle
 } from 'lucide-react';
-import { setUser, selectUser } from '@/store/slices/authSlice';
-import { getLocalAccounts, updateUserProfile } from '@/lib/authService';
+import { setUser, selectUser, logout } from '@/store/slices/authSlice';
+import { getLocalAccounts, updateUserProfile, deleteUserAccount } from '@/lib/authService';
 import { getTravelerCreditProfile } from '@/lib/creditScoreStore';
 
 export default function MyProfilePage() {
@@ -30,6 +30,36 @@ export default function MyProfilePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // Delete account modal and process states
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    if (deleteConfirmInput.trim().toUpperCase() !== 'DELETE') {
+      setDeleteError('Please type "DELETE" exactly to confirm account deletion.');
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await deleteUserAccount(user.id);
+      if (res.success) {
+        dispatch(logout());
+        window.location.href = '/login?deleted=true';
+      } else {
+        setDeleteError(res.error || 'Failed to delete account. Please try again.');
+        setIsDeleting(false);
+      }
+    } catch (err: any) {
+      setDeleteError(err?.message || 'Unexpected error occurred while deleting account.');
+      setIsDeleting(false);
+    }
+  };
 
   // Sync form when account loads or user changes
   useEffect(() => {
@@ -361,6 +391,68 @@ export default function MyProfilePage() {
           </div>
         </form>
       )}
+    </div>
+  );
+
+  // Reusable Danger Zone / Delete Account Card
+  const renderDeleteAccountCard = () => (
+    <div className="rounded-3xl bg-white border border-rose-200/90 p-6 sm:p-7 shadow-xs text-xs space-y-4 relative overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-rose-100">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs">
+            <Trash2 className="h-5 w-5" />
+          </div>
+          <div>
+            <h4 className="font-display font-bold text-slate-900 text-base sm:text-lg tracking-tight">
+              Account Termination &amp; Data Deletion
+            </h4>
+            <p className="text-slate-500 text-xs font-medium">
+              Permanent account termination, credential deletion, and data removal
+            </p>
+          </div>
+        </div>
+
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300 self-start sm:self-center shadow-2xs">
+          <AlertTriangle className="h-3.5 w-3.5 text-rose-600" /> Irreversible Action
+        </span>
+      </div>
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 pt-1">
+        <div className="space-y-1.5 max-w-2xl">
+          <p className="text-slate-700 text-xs leading-relaxed font-medium">
+            {isTraveler && (
+              <>
+                Terminating your traveler account permanently purges your identity records, booking history, and credit rating standing ({creditProfile?.score || 650} pts). You will immediately lose access to your traveler portal and VIP booking privileges.
+              </>
+            )}
+            {isHost && (
+              <>
+                Terminating your host account permanently delists your registered vehicles from the safari catalogue, archives your host profile, and disconnects automated booking payouts. Pending earnings will be settled to your contact phone.
+              </>
+            )}
+            {isAdmin && (
+              <>
+                Terminating this administrator account revokes root platform oversight, invalidates administrative cryptographic keys, and removes mission control access across the network.
+              </>
+            )}
+          </p>
+          <span className="text-[11px] text-slate-400 font-medium block">
+            Once deleted, this account cannot be recovered. If you ever wish to return in future, you will need to register a brand new account.
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setShowDeleteModal(true);
+            setDeleteConfirmInput('');
+            setDeleteError(null);
+          }}
+          className="btn-secondary !border-rose-300 !text-rose-700 hover:!bg-rose-50 hover:!border-rose-400 !px-5 !py-2.5 text-xs font-bold flex items-center justify-center gap-2 shadow-xs cursor-pointer shrink-0 self-start md:self-center"
+        >
+          <Trash2 className="h-4 w-4 text-rose-600" /> Delete My Account
+        </button>
+      </div>
     </div>
   );
 
@@ -700,6 +792,9 @@ export default function MyProfilePage() {
 
             </div>
 
+            {/* Danger Zone: Account Deletion */}
+            {renderDeleteAccountCard()}
+
             {/* Session Security Card */}
             {renderSecurityCard()}
           </div>
@@ -846,6 +941,9 @@ export default function MyProfilePage() {
               </div>
             </div>
 
+            {/* Danger Zone: Account Deletion */}
+            {renderDeleteAccountCard()}
+
             {/* Session Security Card */}
             {renderSecurityCard()}
           </div>
@@ -986,12 +1084,87 @@ export default function MyProfilePage() {
               </div>
             </div>
 
+            {/* Danger Zone: Account Deletion */}
+            {renderDeleteAccountCard()}
+
             {/* Session Security Card */}
             {renderSecurityCard()}
           </div>
         )}
 
       </div>
+
+      {/* ── DELETE ACCOUNT CONFIRMATION MODAL ── */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 p-6 sm:p-7 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200 font-display">
+            <div className="text-center space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-xs">
+                <AlertTriangle className="h-7 w-7" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 tracking-tight">
+                Permanently Delete Account?
+              </h3>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                This action is permanent and completely irreversible. All personal credentials, contact records, and access permissions for <strong className="text-slate-900 font-mono">{user.email}</strong> will be permanently purged from M-Travel.
+              </p>
+            </div>
+
+            {deleteError && (
+              <div className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-700 font-medium flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
+                <span>{deleteError}</span>
+              </div>
+            )}
+
+            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-2">
+              <label className="block text-xs font-bold text-slate-700">
+                To confirm, please type <span className="font-mono text-rose-600 uppercase font-black">DELETE</span> below:
+              </label>
+              <input
+                type="text"
+                autoFocus
+                value={deleteConfirmInput}
+                onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                placeholder="Type DELETE to confirm"
+                className="input-field text-center font-mono font-bold tracking-widest text-xs !py-2.5 bg-white border-slate-300 focus:border-rose-500 uppercase text-slate-900"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmInput('');
+                  setDeleteError(null);
+                }}
+                disabled={isDeleting}
+                className="btn-secondary w-1/2 !py-2.5 text-xs font-semibold cursor-pointer"
+              >
+                Cancel &amp; Keep
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirmInput.trim().toUpperCase() !== 'DELETE' || isDeleting}
+                className="btn-primary w-1/2 !py-2.5 text-xs font-bold !bg-rose-600 hover:!bg-rose-700 !border-rose-600 text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-3.5 w-3.5" /> Confirm Delete
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
