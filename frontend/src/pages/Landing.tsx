@@ -2,12 +2,12 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
   Car, Bus, Palmtree, Home, ShieldCheck, Star, ArrowRight,
-  Bot, Compass, Crown, Search, CalendarCheck, Sparkles
+  Compass, Crown, Search, CalendarCheck, Sparkles
 } from 'lucide-react';
 import { RouteGlobe } from '@/components/RouteGlobe';
 import { Hero3DCanvas } from '@/components/ui/Hero3DCanvas';
 import { Card3D } from '@/components/ui/Card3D';
-import { AiTravelAssistant } from '@/components/ai/AiTravelAssistant';
+import { AiConciergeShowcase } from '@/components/ui/AiConciergeShowcase';
 import { OffersRewards } from '@/components/ui/OffersRewards';
 
 const journey = [
@@ -189,24 +189,8 @@ export default function Landing() {
       {/* M-TRAVEL PRIVILEGE CLUB & SPECIAL OFFERS SECTION */}
       <OffersRewards />
 
-      {/* AI SAFARI & TOUR CONCIERGE FEATURED SECTION */}
-      <section className="px-6 py-20 relative bg-white border-y border-slate-200/70">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-10 text-center max-w-2xl mx-auto">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-4 py-1 text-xs font-bold text-amber-800 border border-amber-200">
-              <Bot className="h-4 w-4 text-amber-600" /> M-TRAVEL AI Travel Concierge
-            </span>
-            <h2 className="mt-3 font-serif text-3xl md:text-5xl font-bold text-slate-900">
-              Ask. Plan. Journey with M-TRAVEL.
-            </h2>
-            <p className="mt-2 text-slate-600 text-sm md:text-base">
-              Our AI concierge answers any travel question — destination guides, vehicle recommendations, cost breakdowns, visa info, packing lists, and live itinerary links.
-            </p>
-          </div>
-
-          <AiTravelAssistant showCalculator={false} />
-        </div>
-      </section>
+      {/* AI SAFARI & TOUR CONCIERGE SHOWCASE SECTION */}
+      <AiConciergeShowcase />
 
       {/* TRUST & INFRASTRUCTURE STRIP */}
       <section className="border-b border-slate-200/70 bg-[#FAF8F5] px-6 py-16">
