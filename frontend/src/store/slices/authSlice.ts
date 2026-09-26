@@ -9,6 +9,7 @@ export interface AuthUser {
   lastName?: string;
   phone?: string;
   avatarUrl?: string;
+  createdAt?: string;
 }
 
 interface AuthState {

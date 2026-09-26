@@ -31,27 +31,53 @@ export function Navbar() {
     window.location.href = '/login';
   };
 
-  const getRoleBadge = () => {
+  const getRoleBadge = (onClickExtra?: () => void) => {
     if (!user) return null;
     const role = user.role?.toUpperCase();
+    const isProfilePage = location.pathname === '/profile' || location.pathname === '/dashboard/profile';
+
+    let badgeContent = null;
     if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
-      return (
-        <span className="flex items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-[11px] font-bold text-purple-700">
+      badgeContent = (
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold transition-all duration-200 cursor-pointer shadow-xs ${
+          isProfilePage
+            ? 'border-purple-400 bg-purple-100 text-purple-900 ring-2 ring-purple-300'
+            : 'border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 hover:border-purple-300 hover:scale-105'
+        }`}>
           <Shield className="h-3 w-3 text-purple-600" /> Admin
         </span>
       );
-    }
-    if (role === 'VEHICLE_OWNER' || role === 'OWNER' || role === 'HOST' || role === 'FLEET_HOST') {
-      return (
-        <span className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-bold text-amber-800">
+    } else if (role === 'VEHICLE_OWNER' || role === 'OWNER' || role === 'HOST' || role === 'FLEET_HOST') {
+      badgeContent = (
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold transition-all duration-200 cursor-pointer shadow-xs ${
+          isProfilePage
+            ? 'border-amber-400 bg-amber-100 text-amber-900 ring-2 ring-amber-300'
+            : 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:border-amber-300 hover:scale-105'
+        }`}>
           <Car className="h-3 w-3 text-amber-600" /> Fleet Host
         </span>
       );
+    } else {
+      badgeContent = (
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold transition-all duration-200 cursor-pointer shadow-xs ${
+          isProfilePage
+            ? 'border-emerald-400 bg-emerald-100 text-emerald-900 ring-2 ring-emerald-300'
+            : 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 hover:border-emerald-300 hover:scale-105'
+        }`}>
+          <UserIcon className="h-3 w-3 text-emerald-600" /> Traveler
+        </span>
+      );
     }
+
     return (
-      <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-800">
-        <UserIcon className="h-3 w-3 text-emerald-600" /> Traveler
-      </span>
+      <Link
+        to="/profile"
+        onClick={onClickExtra}
+        title="My Profile — Click to view & edit your profile details"
+        className="cursor-pointer group flex items-center"
+      >
+        {badgeContent}
+      </Link>
     );
   };
 
@@ -255,9 +281,13 @@ export function Navbar() {
             {user ? (
               <>
                 {getRoleBadge()}
-                <span className="text-xs font-semibold text-slate-700">
+                <Link
+                  to="/profile"
+                  title="My Profile — View credentials and settings"
+                  className="text-xs font-semibold text-slate-700 hover:text-amber-800 transition"
+                >
                   {user.firstName ? `${user.firstName} ${user.lastName ?? ''}` : user.email}
-                </span>
+                </Link>
                 <button
                   onClick={handleSignOut}
                   className="btn-secondary !px-4 !py-1.5 text-xs font-semibold tracking-wide uppercase"
@@ -299,10 +329,14 @@ export function Navbar() {
             <div className="flex flex-col gap-2.5">
               {user && (
                 <div className="flex items-center justify-between border-b border-slate-150 pb-3">
-                  <span className="text-xs font-semibold text-slate-800">
+                  <Link
+                    to="/profile"
+                    onClick={() => setOpen(false)}
+                    className="text-xs font-semibold text-slate-800 hover:text-amber-800 transition"
+                  >
                     {user.firstName ? `${user.firstName} ${user.lastName ?? ''}` : user.email}
-                  </span>
-                  {getRoleBadge()}
+                  </Link>
+                  {getRoleBadge(() => setOpen(false))}
                 </div>
               )}
 

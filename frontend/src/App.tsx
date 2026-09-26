@@ -23,6 +23,7 @@ import TouristDashboard from '@/pages/dashboard/TouristDashboard';
 import OwnerDashboard from '@/pages/dashboard/OwnerDashboard';
 import AdminDashboard from '@/pages/dashboard/AdminDashboard';
 import WalletPage from '@/pages/dashboard/WalletPage';
+import MyProfilePage from '@/pages/dashboard/MyProfilePage';
 import HolidaysAndTours from '@/pages/HolidaysAndTours';
 import NotFound from '@/pages/NotFound';
 import UberLocationPrompt from '@/components/common/UberLocationPrompt';
@@ -185,6 +186,22 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['TOURIST', 'CUSTOMER', 'VEHICLE_OWNER', 'ADMIN', 'SUPER_ADMIN']}>
                 <WalletPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <MyProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/profile"
+            element={
+              <ProtectedRoute>
+                <MyProfilePage />
               </ProtectedRoute>
             }
           />

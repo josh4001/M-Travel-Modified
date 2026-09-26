@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Car, Calendar, Wallet, MapPin, Star, Clock,
-  CheckCircle, CheckCircle2, XCircle, AlertCircle, ArrowRight, TrendingUp, Smartphone, X,
-  Compass, Mountain, Trees, Waves, Sparkles, Bell, Palmtree, User, Shield
+  CheckCircle, XCircle, AlertCircle, ArrowRight, TrendingUp, Smartphone, X,
+  Compass, Mountain, Trees, Waves, Sparkles, Bell, Palmtree
 } from 'lucide-react';
 import type { RootState } from '@/store';
 import { supabase, cancelBookingInSupabase } from '@/lib/supabaseClient';
@@ -17,7 +17,6 @@ import {
 import { MpesaStkPushModal } from '@/components/ui/MpesaStkPushModal';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
 import { DestinationVoucherModal } from '@/components/ui/DestinationVoucherModal';
-import { getTravelerCreditProfile } from '@/lib/creditScoreStore';
 
 interface WalletData {
   balance: number;
@@ -49,9 +48,6 @@ export default function TouristDashboard() {
   // M-Pesa STK push modal
   const [showMpesa, setShowMpesa] = useState(false);
   const [mpesaBooking, setMpesaBooking] = useState<StoredBooking | null>(null);
-
-  // Profile Modal state
-  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Cancel confirmation
   const [cancelConfirm, setCancelConfirm] = useState<string | null>(null);
@@ -197,22 +193,16 @@ export default function TouristDashboard() {
               Explore Kenya's finest vehicles and unforgettable experiences.
             </p>
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                onClick={() => setShowProfileModal(true)}
-                className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/20 transition backdrop-blur-xs cursor-pointer"
-              >
-                <User className="h-4 w-4 text-mtravel-lightGold" /> My Profile &amp; Credit Score
-              </button>
-              {pending.length > 0 && (
+            {pending.length > 0 && (
+              <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   onClick={() => handlePayNow(pending[0])}
                   className="inline-flex items-center gap-2 rounded-full border border-amber-300/60 bg-amber-400/20 px-6 py-2.5 text-sm font-bold text-amber-300 transition hover:bg-amber-400/30"
                 >
                   <Smartphone className="h-4 w-4" /> Pay Now via M-Pesa ({pending.length})
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -600,140 +590,6 @@ export default function TouristDashboard() {
         />
       )}
 
-      {/* ── TRAVELER ACCOUNT PROFILE & CREDIT RATING MODAL ── */}
-      {showProfileModal && (() => {
-        const creditProfile = getTravelerCreditProfile(user?.id || 'user-tourist-1', {
-          name: `${user?.firstName || 'Sarah'} ${user?.lastName || 'Ochieng'}`.trim(),
-          email: user?.email || 'sarah.ochieng@gmail.com',
-          phone: user?.phone || '0712345678',
-        });
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md font-display">
-            <div className="relative w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl text-slate-800 space-y-5 max-h-[90vh] overflow-y-auto">
-              <button
-                onClick={() => setShowProfileModal(false)}
-                className="absolute right-4 top-4 rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200 transition"
-              >
-                <X className="h-4 w-4" />
-              </button>
-
-              <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                  <User className="h-6 w-6" />
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-mono font-bold text-amber-700">Account Credentials &amp; Rating</span>
-                  <h3 className="font-display text-xl font-bold text-slate-900">{user?.firstName || 'Sarah'} {user?.lastName || 'Ochieng'}</h3>
-                  <span className="text-xs text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Verified Traveler Account</span>
-                </div>
-              </div>
-
-              {/* Account Details Box */}
-              <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-2 text-xs">
-                <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
-                  <span className="text-slate-500 font-semibold">Registered Email:</span>
-                  <span className="font-mono font-bold text-slate-900">{user?.email || 'sarah.ochieng@gmail.com'}</span>
-                </div>
-                <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
-                  <span className="text-slate-500 font-semibold">Contact Phone:</span>
-                  <span className="font-mono font-bold text-slate-900">{user?.phone || '0712345678'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500 font-semibold">Account Role:</span>
-                  <span className="font-bold text-amber-700">Tourist / Traveler</span>
-                </div>
-              </div>
-
-              {/* Traveler Credit Score Card */}
-              <div className="rounded-2xl border border-amber-300 bg-gradient-to-br from-amber-500/10 via-amber-100/40 to-amber-500/5 p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <Shield className="h-4 w-4 text-amber-600" /> Traveler Credit Rating
-                  </span>
-                  <span className="rounded-full bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-0.5 uppercase tracking-wider">
-                    {creditProfile.tier}
-                  </span>
-                </div>
-
-                <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-4xl font-bold text-slate-900">{creditProfile.score}</span>
-                  <span className="text-slate-500 text-sm font-semibold">/ 850 Max Score</span>
-                </div>
-
-                <p className="text-xs text-slate-700 leading-relaxed">
-                  Your credit score reflects clean vehicle handovers, prompt return inspections, and verified identity document standing.
-                </p>
-
-                <div className="grid grid-cols-2 gap-2 text-xs font-semibold pt-1">
-                  <div className="rounded-xl bg-white p-2.5 border border-amber-200 text-slate-800">
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Completed Trips</span>
-                    <span className="font-mono font-bold text-base text-slate-900">{creditProfile.completedTrips}</span>
-                  </div>
-                  <div className="rounded-xl bg-white p-2.5 border border-amber-200 text-slate-800">
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase">Clean Returns</span>
-                    <span className="font-mono font-bold text-base text-emerald-700">{creditProfile.cleanHandovers}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* UNLOCKED VIP TRAVELER PRIVILEGES */}
-              {creditProfile.tier === 'VIP Renter (A+)' && (
-                <div className="rounded-2xl border border-emerald-300 bg-emerald-50/80 p-4 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
-                      <Sparkles className="h-4 w-4 text-emerald-600" /> Unlocked VIP Traveler Privileges
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
-                      4x4 &amp; Bus Fleet
-                    </span>
-                  </div>
-
-                  <div className="space-y-1.5 text-[11px] text-slate-700">
-                    <div className="flex items-start gap-2 bg-white p-2.5 rounded-xl border border-emerald-200/80">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <strong className="text-slate-900 block">Instant Deposit Release</strong>
-                        <span className="text-slate-600">Zero-delay security deposit refund via M-Pesa immediately upon clean return inspection.</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2 bg-white p-2.5 rounded-xl border border-emerald-200/80">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <strong className="text-slate-900 block">Priority Safari Fleet Dispatch</strong>
-                        <span className="text-slate-600">Priority vehicle allocation for high-demand 4x4 Land Cruisers, Safari Vans, and Tour Buses.</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2 bg-white p-2.5 rounded-xl border border-emerald-200/80">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <strong className="text-slate-900 block">1-Hour Courtesy Return Grace Window</strong>
-                        <span className="text-slate-600">Complimentary 1-hour return buffer for national park gate clearance or highway traffic delays.</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2 bg-white p-2.5 rounded-xl border border-emerald-200/80">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <strong className="text-slate-900 block">Complimentary Co-Driver Authorization</strong>
-                        <span className="text-slate-600">Free registration of an authorized second expedition driver on your rental agreement.</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <button
-                onClick={() => setShowProfileModal(false)}
-                className="w-full rounded-xl bg-slate-900 text-white py-2.5 text-xs font-bold hover:bg-slate-800 transition"
-              >
-                Close Profile
-              </button>
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 }

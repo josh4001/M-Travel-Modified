@@ -7,6 +7,7 @@
 
 import { supabase } from './supabaseClient';
 import { logAuditEvent } from './rentalLifecycleStore';
+import { getStoredCreditProfiles, saveCreditProfiles } from './creditScoreStore';
 
 export interface AuthUser {
   id: string;
@@ -16,6 +17,7 @@ export interface AuthUser {
   lastName?: string;
   phone?: string;
   avatarUrl?: string;
+  createdAt?: string;
 }
 
 export interface AuthResponse {
@@ -37,6 +39,7 @@ export interface LocalAccount {
   phone?: string;
   avatarUrl?: string;
   isActive: boolean;
+  createdAt?: string;
 }
 
 const DEFAULT_ACCOUNTS: LocalAccount[] = [
@@ -50,6 +53,7 @@ const DEFAULT_ACCOUNTS: LocalAccount[] = [
     phone: '0712345678',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
     isActive: true,
+    createdAt: '2025-10-14T09:20:00.000Z',
   },
   {
     id: 'user-tourist-michael',
@@ -61,6 +65,7 @@ const DEFAULT_ACCOUNTS: LocalAccount[] = [
     phone: '0712345678',
     avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80',
     isActive: true,
+    createdAt: '2025-11-03T14:15:00.000Z',
   },
   {
     id: 'a0000000-0000-0000-0000-000000000002',
@@ -72,6 +77,7 @@ const DEFAULT_ACCOUNTS: LocalAccount[] = [
     phone: '0712345678',
     avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
     isActive: true,
+    createdAt: '2025-08-20T11:00:00.000Z',
   },
   {
     id: 'admin-safari-1',
@@ -83,6 +89,7 @@ const DEFAULT_ACCOUNTS: LocalAccount[] = [
     phone: '0700000000',
     avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
     isActive: true,
+    createdAt: '2025-06-01T08:00:00.000Z',
   },
   {
     id: 'admin-mtravel-1',
@@ -94,6 +101,7 @@ const DEFAULT_ACCOUNTS: LocalAccount[] = [
     phone: '+254 700 000 000',
     avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
     isActive: true,
+    createdAt: '2025-05-15T08:00:00.000Z',
   },
   {
     id: 'admin-default-root',
@@ -105,6 +113,7 @@ const DEFAULT_ACCOUNTS: LocalAccount[] = [
     phone: '+254 700 000 000',
     avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
     isActive: true,
+    createdAt: '2025-05-01T08:00:00.000Z',
   },
 ];
 
@@ -140,6 +149,7 @@ export function getLocalAccounts(): LocalAccount[] {
                   phone: item.phone || '',
                   avatarUrl: item.avatarUrl || item.avatar_url,
                   isActive: item.isActive !== false && item.is_active !== false,
+                  createdAt: item.createdAt || item.created_at || '2025-11-15T08:00:00.000Z',
                 });
               }
             }
@@ -171,6 +181,7 @@ export function getLocalAccounts(): LocalAccount[] {
                 phone: item.phone,
                 avatarUrl: item.avatarUrl,
                 isActive: item.isActive !== false,
+                createdAt: item.createdAt || item.created_at || '2025-11-15T08:00:00.000Z',
               });
             }
           }
@@ -208,7 +219,7 @@ function generateUserUUID(str?: string): string {
 
 function saveLocalAccount(acc: LocalAccount) {
   const accountId = generateUserUUID(acc.id);
-  const normalizedAccount: LocalAccount = { ...acc, id: accountId };
+  const normalizedAccount: LocalAccount = { ...acc, id: accountId, createdAt: acc.createdAt || new Date().toISOString() };
 
   const accounts = getLocalAccounts();
   const filtered = accounts.filter(a => a.email?.toLowerCase() !== normalizedAccount.email?.toLowerCase());
@@ -234,6 +245,7 @@ function saveLocalAccount(acc: LocalAccount) {
         avatar_url: normalizedAccount.avatarUrl || null,
         role: (normalizedAccount.role || 'TOURIST').toUpperCase(),
         is_active: normalizedAccount.isActive !== false,
+        created_at: normalizedAccount.createdAt,
         updated_at: new Date().toISOString(),
       };
 
@@ -375,6 +387,135 @@ export function updateUserStatus(userIdOrEmail: string, isActive: boolean): void
   } catch {}
 }
 
+export async function updateUserProfile(
+  userIdOrEmail: string,
+  updates: {
+    email?: string;
+    phone?: string;
+    firstName?: string;
+    lastName?: string;
+  }
+): Promise<{ success: boolean; user?: AuthUser; error?: string }> {
+  try {
+    const accounts = getLocalAccounts();
+    const accountIndex = accounts.findIndex(
+      (a) => a.id === userIdOrEmail || a.email.toLowerCase() === userIdOrEmail.toLowerCase()
+    );
+
+    if (accountIndex === -1) {
+      return { success: false, error: 'User account not found' };
+    }
+
+    const currentAcc = accounts[accountIndex];
+
+    // If email is changing, ensure it's not already used by someone else
+    if (updates.email && updates.email.trim().toLowerCase() !== currentAcc.email.toLowerCase()) {
+      const emailConflict = accounts.some(
+        (a, idx) => idx !== accountIndex && a.email.toLowerCase() === updates.email!.trim().toLowerCase()
+      );
+      if (emailConflict) {
+        return { success: false, error: 'This email address is already registered to another user.' };
+      }
+    }
+
+    const oldEmail = currentAcc.email;
+    const newEmail = updates.email?.trim() || currentAcc.email;
+    const newPhone = updates.phone !== undefined ? updates.phone.trim() : currentAcc.phone;
+    const newFirstName = updates.firstName?.trim() || currentAcc.firstName;
+    const newLastName = updates.lastName !== undefined ? updates.lastName.trim() : currentAcc.lastName;
+
+    const updatedAccount: LocalAccount = {
+      ...currentAcc,
+      email: newEmail,
+      phone: newPhone,
+      firstName: newFirstName,
+      lastName: newLastName,
+      createdAt: currentAcc.createdAt || '2025-11-15T08:00:00.000Z',
+    };
+
+    accounts[accountIndex] = updatedAccount;
+
+    // Persist to local storage
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(accounts));
+    localStorage.setItem('mt_user_credentials', JSON.stringify(accounts));
+
+    // Update active mt_user session
+    let updatedAuthUser: AuthUser = {
+      id: updatedAccount.id,
+      email: updatedAccount.email,
+      role: updatedAccount.role,
+      firstName: updatedAccount.firstName,
+      lastName: updatedAccount.lastName,
+      phone: updatedAccount.phone,
+      avatarUrl: updatedAccount.avatarUrl,
+      createdAt: updatedAccount.createdAt,
+    };
+
+    const currentMtUserRaw = localStorage.getItem('mt_user');
+    if (currentMtUserRaw) {
+      try {
+        const parsed = JSON.parse(currentMtUserRaw);
+        if (parsed.id === currentAcc.id || parsed.email.toLowerCase() === oldEmail.toLowerCase()) {
+          updatedAuthUser = {
+            ...parsed,
+            ...updatedAuthUser,
+          };
+          localStorage.setItem('mt_user', JSON.stringify(updatedAuthUser));
+        }
+      } catch {}
+    }
+
+    // Sync to Supabase if available
+    try {
+      await supabase.from('users').update({
+        email: newEmail.toLowerCase(),
+        phone: newPhone || null,
+        first_name: newFirstName,
+        last_name: newLastName,
+        updated_at: new Date().toISOString(),
+      }).eq('id', updatedAccount.id);
+    } catch (e) {
+      console.warn('Supabase profile update notice:', e);
+    }
+
+    // If traveler, synchronize their credit score profile with the new email/phone
+    try {
+      const creditProfiles = getStoredCreditProfiles();
+      const cpIndex = creditProfiles.findIndex(
+        (p) => p.userId === updatedAccount.id || p.touristEmail.toLowerCase() === oldEmail.toLowerCase()
+      );
+      if (cpIndex !== -1) {
+        creditProfiles[cpIndex] = {
+          ...creditProfiles[cpIndex],
+          touristEmail: newEmail,
+          touristPhone: newPhone || creditProfiles[cpIndex].touristPhone,
+          touristName: `${newFirstName} ${newLastName}`.trim(),
+        };
+        saveCreditProfiles(creditProfiles);
+      }
+    } catch {}
+
+    // Audit log
+    logAuditEvent(
+      'USER_PROFILE_UPDATED',
+      'User',
+      newEmail,
+      `User credentials updated: Email: ${newEmail}, Phone: ${newPhone}`,
+      `${newFirstName} ${newLastName}`.trim() || 'User',
+      updatedAccount.role
+    );
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('mt_accounts_updated'));
+      window.dispatchEvent(new CustomEvent('mt_user_updated', { detail: updatedAuthUser }));
+    }
+
+    return { success: true, user: updatedAuthUser };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to update profile' };
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Register
 // ---------------------------------------------------------------------------
@@ -407,6 +548,7 @@ export async function register(payload: {
     lastName: payload.lastName.trim() || (existing?.lastName ?? ''),
     phone: payload.phone?.trim() || existing?.phone,
     isActive: true,
+    createdAt: existing?.createdAt || new Date().toISOString(),
   };
 
   saveLocalAccount(accountRecord);
@@ -421,6 +563,7 @@ export async function register(payload: {
     firstName: payload.firstName.trim(),
     lastName: payload.lastName.trim(),
     phone: payload.phone?.trim(),
+    createdAt: accountRecord.createdAt,
   };
   localStorage.setItem('mt_user', JSON.stringify(authUser));
 
@@ -462,6 +605,7 @@ export async function login(
         lastName: matched.lastName,
         phone: matched.phone,
         avatarUrl: matched.avatarUrl,
+        createdAt: matched.createdAt || '2025-11-15T08:00:00.000Z',
       };
       localStorage.setItem('mt_user', JSON.stringify(authUser));
 
