@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bot, Send, Sparkles, Car, Calculator, Compass, Palmtree, CreditCard, MapPin } from 'lucide-react';
+import { Bot, Send, Sparkles, Car, Bus, Calculator, Compass, Palmtree, CreditCard, MapPin } from 'lucide-react';
 import { KENYA_DESTINATIONS } from '@/data/kenyaDestinations';
 import type { Destination } from '@/data/kenyaDestinations';
 
@@ -40,7 +40,7 @@ interface Message {
 const GENERAL_KNOWLEDGE: Record<string, string> = {
   greeting: "Jambo! I'm your M-TRAVEL AI Concierge — your expert guide to travel, safari planning, vehicle hire, and tour bookings across Kenya and East Africa. Ask me anything about destinations, costs, vehicles, best travel times, or how to plan your perfect trip!",
 
-  mtravel: "**M-TRAVEL** is Kenya's premier independent travel marketplace. We connect travelers with quality vehicles (custom 4x4 Land Cruisers, SUVs, executive vans), curated safari expeditions, holiday villas, and luxury bus routes — all supported by 24/7 dedicated concierge assistance. We partner with top local operators to give you unbiased, handpicked African journeys.",
+  mtravel: "**M-TRAVEL** is Kenya's premier independent travel marketplace. We connect travelers with quality vehicles (custom 4x4 Land Cruisers, SUVs, executive vans, buses), curated safari expeditions, holiday villas, and luxury bus routes — all supported by 24/7 dedicated concierge assistance. We partner with top local operators to give you unbiased, handpicked African journeys.",
 
   mpesa: "We provide **seamless digital checkout, major cards, and instant reservation confirmation**. All bookings are encrypted and you receive your verified itinerary, driver details, and booking pass immediately after reservation.",
 
@@ -62,7 +62,7 @@ const GENERAL_KNOWLEDGE: Record<string, string> = {
 
   tsavo: "**Tsavo West & East** form Kenya's largest national park system (22,000 sq km). Famous for red-dust elephants, Mzima Springs crystal pools, Shetani lava flows, and Aruba Dam. 330km from Nairobi. Entry ~KES 860. 4x4 required. A 3-day self-drive costs KES 40,000–80,000.",
 
-  vehicles: "**M-TRAVEL Fleet Standards**:\n• **4x4 Safari SUV (Prado/Land Cruiser)** — KES 12,000–18,000/day. Best for national parks, rough terrain, river crossings.\n• **Safari Van (Minibus)** — KES 8,000–12,000/day. Up to 7 passengers, pop-up roof, great for group safaris.\n• **Executive Sedan (Corolla/Premio)** — KES 5,000–7,000/day. Coastal trips, city drives, highway journeys.\n• **Pickup Truck** — KES 9,000–14,000/day. Heavy loads, rural roads, camping gear.",
+  vehicles: "**M-TRAVEL Fleet Standards**:\n• **4x4 Safari SUV (Prado/Land Cruiser)** — KES 12,000–18,000/day. Best for national parks, rough terrain, river crossings.\n• **Safari Van (Minibus)** — KES 8,000–12,000/day. Up to 7 passengers, pop-up roof, great for group safaris.\n• **Luxury Coach / Bus** — KES 18,000–25,000/day. Large group travel, corporate tours, and intercity transit.\n• **Executive Sedan (Corolla/Premio)** — KES 5,000–7,000/day. Coastal trips, city drives, highway journeys.\n• **Pickup Truck** — KES 9,000–14,000/day. Heavy loads, rural roads, camping gear.",
 
   packingList: "**Kenya Safari Packing Checklist**:\n• Sunscreen SPF 50+\n• Insect repellent (DEET)\n• Neutral earth-tone clothing (khaki, beige, olive)\n• Comfortable walking shoes / boots\n• Camera with optical zoom lens\n• Torch / headlamp\n• Anti-malaria medication (consult physician)\n• Hand sanitizer\n• Offline safari maps\n• Reusable thermal water bottle",
 
@@ -201,11 +201,12 @@ function buildAiResponse(query: string): {
     const passengers = paxMatch ? parseInt(paxMatch[1]) : 4;
     const vehicleType = matchedDest.suggestedVehicleTypes[0] || 'SUV';
 
-    const dailyRate = vehicleType === 'SUV' ? 12000 : vehicleType === 'VAN' ? 10000 : 7000;
+    const dailyRate = vehicleType === 'SUV' ? 12000 : vehicleType === 'VAN' ? 10000 : vehicleType === 'BUS' ? 20000 : 7000;
     const vehicleTotal = dailyRate * days;
-    const fuelEst = Math.round(matchedDest.distanceFromNairobiKm * 2 * 25 + days * 1500);
+    const fuelRatePerKm = vehicleType === 'BUS' ? 35 : 25;
+    const fuelEst = Math.round(matchedDest.distanceFromNairobiKm * 2 * fuelRatePerKm + days * 1500);
     const parkFees = matchedDest.kwsAdultFeeKes * passengers * days;
-    const driverAllowance = days * 2000;
+    const driverAllowance = days * (vehicleType === 'BUS' ? 2500 : 2000);
     const totalKes = vehicleTotal + fuelEst + parkFees + driverAllowance;
 
     const text = `Great choice! Here's everything you need to know about **${matchedDest.name}**:\n\n• **Location**: ${matchedDest.location}\n• **Highlights**: ${matchedDest.highlights.slice(0, 3).join(', ')}\n• **Best Time to Visit**: ${matchedDest.bestMonths}\n• **Recommended Vehicle**: ${matchedDest.vehicleReason}\n\nI've calculated your estimated trip cost below for ${days} days, ${passengers} passengers.`;
@@ -227,8 +228,8 @@ function buildAiResponse(query: string): {
         totalUsd: Math.round(totalKes / 130),
       },
       action: {
-        label: `Book a ${vehicleType} for ${matchedDest.name}`,
-        url: `/search?type=${vehicleType}`,
+        label: `Book a ${vehicleType === 'BUS' ? 'Bus' : vehicleType} for ${matchedDest.name}`,
+        url: vehicleType === 'BUS' ? '/catalogue?category=buses' : `/search?type=${vehicleType}`,
       },
     };
   }
@@ -261,9 +262,11 @@ const PRESET_PROMPTS = [
 export function AiTravelAssistant({
   isModal = false,
   onClose,
+  showCalculator = false,
 }: {
   isModal?: boolean;
   onClose?: () => void;
+  showCalculator?: boolean;
 }) {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([
@@ -335,11 +338,19 @@ export function AiTravelAssistant({
 
   const calculatedResult = React.useMemo(() => {
     const dest = currentDestination;
-    const dailyRate = calcVehicleType === 'SUV' ? 12000 : calcVehicleType === 'VAN' ? 10000 : 7000;
+    const dailyRate =
+      calcVehicleType === 'SUV'
+        ? 12000
+        : calcVehicleType === 'VAN'
+        ? 10000
+        : calcVehicleType === 'BUS'
+        ? 20000
+        : 7000;
     const vehicleTotal = dailyRate * calcDays;
-    const fuelEst = Math.round(dest.distanceFromNairobiKm * 2 * 25 + calcDays * 1500);
+    const fuelRatePerKm = calcVehicleType === 'BUS' ? 35 : 25;
+    const fuelEst = Math.round(dest.distanceFromNairobiKm * 2 * fuelRatePerKm + calcDays * 1500);
     const parkFees = dest.kwsAdultFeeKes * calcPassengers * calcDays;
-    const driverAllowance = calcDays * 2000;
+    const driverAllowance = calcDays * (calcVehicleType === 'BUS' ? 2500 : 2000);
     const totalKes = vehicleTotal + fuelEst + parkFees + driverAllowance;
     return {
       dailyRate,
@@ -387,9 +398,9 @@ export function AiTravelAssistant({
       </div>
 
       {/* BODY */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden min-h-0">
+      <div className={`flex-1 grid grid-cols-1 ${showCalculator ? 'lg:grid-cols-12' : ''} overflow-hidden min-h-0`}>
         {/* CHAT PANEL */}
-        <div className="lg:col-span-7 flex flex-col border-r border-slate-200 bg-slate-50/40 overflow-hidden">
+        <div className={`${showCalculator ? 'lg:col-span-7 border-r' : 'w-full'} flex flex-col border-slate-200 bg-slate-50/40 overflow-hidden`}>
           {/* MESSAGES */}
           <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((msg) => (
@@ -513,121 +524,131 @@ export function AiTravelAssistant({
         </div>
 
         {/* CALCULATOR PANEL */}
-        <div className="lg:col-span-5 p-4 flex flex-col space-y-4 bg-slate-50/70 border-l border-slate-200 overflow-y-auto">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-3 shrink-0">
-            <h4 className="font-display font-semibold text-slate-900 flex items-center gap-1.5 text-sm">
-              <Calculator className="h-4 w-4 text-amber-600" /> Trip Cost Calculator
-            </h4>
-            <span className="text-[10px] text-teal font-mono font-semibold">Live Estimates</span>
-          </div>
-
-          <div>
-            <label className="block text-xs text-slate-700 font-semibold mb-1">Destination</label>
-            <select
-              className="input-field text-sm"
-              value={selectedDestId}
-              onChange={(e) => setSelectedDestId(e.target.value)}
-            >
-              {KENYA_DESTINATIONS.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <label className="block text-[10px] text-slate-700 font-semibold mb-1">Days</label>
-              <input
-                type="number"
-                min={1}
-                max={30}
-                className="input-field text-sm !px-2 !py-2"
-                value={calcDays}
-                onChange={(e) => setCalcDays(Number(e.target.value))}
-              />
+        {showCalculator && (
+          <div className="lg:col-span-5 p-4 flex flex-col space-y-4 bg-slate-50/70 border-l border-slate-200 overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 shrink-0">
+              <h4 className="font-display font-semibold text-slate-900 flex items-center gap-1.5 text-sm">
+                <Calculator className="h-4 w-4 text-amber-600" /> Trip Cost Calculator
+              </h4>
+              <span className="text-[10px] text-teal font-mono font-semibold">Live Estimates</span>
             </div>
+
             <div>
-              <label className="block text-[10px] text-slate-700 font-semibold mb-1">Passengers</label>
-              <input
-                type="number"
-                min={1}
-                max={15}
-                className="input-field text-sm !px-2 !py-2"
-                value={calcPassengers}
-                onChange={(e) => setCalcPassengers(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] text-slate-700 font-semibold mb-1">Vehicle</label>
+              <label className="block text-xs text-slate-700 font-semibold mb-1">Destination</label>
               <select
-                className="input-field text-xs !px-1 !py-2"
-                value={calcVehicleType}
-                onChange={(e) => setCalcVehicleType(e.target.value)}
+                className="input-field text-sm"
+                value={selectedDestId}
+                onChange={(e) => setSelectedDestId(e.target.value)}
               >
-                <option value="SUV">4x4 SUV</option>
-                <option value="VAN">Safari Van</option>
-                <option value="CAR">Sedan</option>
+                {KENYA_DESTINATIONS.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
               </select>
             </div>
-          </div>
 
-          {/* DESTINATION PREVIEW */}
-          <div className="rounded-xl border border-slate-200 overflow-hidden relative group shadow-sm">
-            <img
-              src={currentDestination.imageUrl}
-              alt={currentDestination.name}
-              className="h-36 w-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent" />
-            <div className="absolute bottom-2 left-3">
-              <h5 className="font-display font-semibold text-sm text-white">{currentDestination.name}</h5>
-              <p className="text-[10px] text-slate-200">{currentDestination.location}</p>
-            </div>
-          </div>
-
-          {/* COST BREAKDOWN */}
-          <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-              <span className="text-xs text-slate-600 font-medium">Estimated Total</span>
-              <div className="text-right">
-                <span className="font-mono text-xl font-bold text-amber-600">
-                  KES {calculatedResult.totalKes.toLocaleString()}
-                </span>
-                <span className="block text-[10px] text-slate-500">≈ ${calculatedResult.totalUsd} USD</span>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="block text-[10px] text-slate-700 font-semibold mb-1">Days</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  className="input-field text-sm !px-2 !py-2"
+                  value={calcDays}
+                  onChange={(e) => setCalcDays(Number(e.target.value))}
+                />
               </div>
-            </div>
-
-            <div className="space-y-1.5 text-xs text-slate-700">
-              <div className="flex justify-between">
-                <span>
-                  {calcVehicleType} hire ({calcDays}d × {calculatedResult.dailyRate.toLocaleString()}):
-                </span>
-                <span className="font-mono font-semibold">KES {calculatedResult.vehicleTotal.toLocaleString()}</span>
+              <div>
+                <label className="block text-[10px] text-slate-700 font-semibold mb-1">Passengers</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={calcVehicleType === 'BUS' ? 55 : 15}
+                  className="input-field text-sm !px-2 !py-2"
+                  value={calcPassengers}
+                  onChange={(e) => setCalcPassengers(Number(e.target.value))}
+                />
               </div>
-              <div className="flex justify-between">
-                <span>Fuel ({currentDestination.distanceFromNairobiKm * 2} km):</span>
-                <span className="font-mono font-semibold">KES {calculatedResult.fuelEst.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Park fees ({calcPassengers} pax):</span>
-                <span className="font-mono font-semibold">KES {calculatedResult.parkFees.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Driver allowance:</span>
-                <span className="font-mono font-semibold">KES {calculatedResult.driverAllowance.toLocaleString()}</span>
+              <div>
+                <label className="block text-[10px] text-slate-700 font-semibold mb-1">Vehicle</label>
+                <select
+                  className="input-field text-xs !px-1 !py-2"
+                  value={calcVehicleType}
+                  onChange={(e) => setCalcVehicleType(e.target.value)}
+                >
+                  <option value="SUV">4x4 SUV</option>
+                  <option value="VAN">Safari Van</option>
+                  <option value="BUS">Bus</option>
+                  <option value="CAR">Sedan</option>
+                </select>
               </div>
             </div>
 
-            <button
-              onClick={() => navigate(`/search?type=${calcVehicleType}`)}
-              className="btn-primary w-full text-xs !py-2.5 font-semibold"
-            >
-              Book {calcVehicleType} for {currentDestination.name}
-            </button>
+            {/* DESTINATION PREVIEW */}
+            <div className="rounded-xl border border-slate-200 overflow-hidden relative group shadow-sm">
+              <img
+                src={currentDestination.imageUrl}
+                alt={currentDestination.name}
+                className="h-36 w-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent" />
+              <div className="absolute bottom-2 left-3">
+                <h5 className="font-display font-semibold text-sm text-white">{currentDestination.name}</h5>
+                <p className="text-[10px] text-slate-200">{currentDestination.location}</p>
+              </div>
+            </div>
+
+            {/* COST BREAKDOWN */}
+            <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <span className="text-xs text-slate-600 font-medium">Estimated Total</span>
+                <div className="text-right">
+                  <span className="font-mono text-xl font-bold text-amber-600">
+                    KES {calculatedResult.totalKes.toLocaleString()}
+                  </span>
+                  <span className="block text-[10px] text-slate-500">≈ ${calculatedResult.totalUsd} USD</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 text-xs text-slate-700">
+                <div className="flex justify-between">
+                  <span>
+                    {calcVehicleType === 'BUS' ? 'Bus' : calcVehicleType === 'SUV' ? '4x4 SUV' : calcVehicleType === 'VAN' ? 'Safari Van' : 'Sedan'} hire ({calcDays}d × {calculatedResult.dailyRate.toLocaleString()}):
+                  </span>
+                  <span className="font-mono font-semibold">KES {calculatedResult.vehicleTotal.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Fuel ({currentDestination.distanceFromNairobiKm * 2} km):</span>
+                  <span className="font-mono font-semibold">KES {calculatedResult.fuelEst.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Park fees ({calcPassengers} pax):</span>
+                  <span className="font-mono font-semibold">KES {calculatedResult.parkFees.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>Driver allowance:</span>
+                  <span className="font-mono font-semibold">KES {calculatedResult.driverAllowance.toLocaleString()}</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  if (calcVehicleType === 'BUS') {
+                    navigate('/catalogue?category=buses');
+                  } else {
+                    navigate(`/search?type=${calcVehicleType}`);
+                  }
+                }}
+                className="btn-primary w-full text-xs !py-2.5 font-semibold flex items-center justify-center gap-1.5"
+              >
+                {calcVehicleType === 'BUS' ? <Bus className="h-4 w-4" /> : <Car className="h-4 w-4" />}
+                <span>Book {calcVehicleType === 'BUS' ? 'Bus' : calcVehicleType} for {currentDestination.name}</span>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

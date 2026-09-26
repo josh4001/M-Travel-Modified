@@ -11,7 +11,7 @@ import { useCurrency } from '@/context/CurrencyContext';
 import { MpesaStkPushModal } from '@/components/ui/MpesaStkPushModal';
 import {
   saveBooking, getStoredVehicles, syncVehiclesFromSupabase, getVehicleHireStatus, toggleVehicleLiveStatus, isVehicleLive,
-  type StoredVehicle
+  isBusVehicle, type StoredVehicle
 } from '@/lib/bookingStore';
 import { sendNotification } from '@/lib/notificationService';
 import { sendTravelerBookingEmail } from '@/lib/communicationService';
@@ -51,17 +51,13 @@ export default function Catalogue() {
   const { formatPrice } = useCurrency();
 
   const categoryParam = searchParams.get('category');
-  const [activeTab, setActiveTab] = useState<TabType>(
-    categoryParam === 'buses' ? 'buses' : 'vehicles'
-  );
+  const activeTab: TabType = categoryParam === 'buses' ? 'buses' : 'vehicles';
   const [searchTerm, setSearchTerm] = useState('');
   const [storedVehicles, setStoredVehicles] = useState<StoredVehicle[]>(() => getStoredVehicles());
   const [adminNotice, setAdminNotice] = useState<string | null>(null);
-  const [liveTick, setLiveTick] = useState(0);
 
   const refreshVehicles = () => {
     setStoredVehicles(getStoredVehicles());
-    setLiveTick((t) => t + 1);
   };
 
   useEffect(() => {
@@ -92,22 +88,11 @@ export default function Catalogue() {
     const cat = searchParams.get('category');
     if (cat === 'tours' || cat === 'homes') {
       navigate(`/holidays-and-tours?tab=${cat === 'homes' ? 'homes' : 'tours'}`, { replace: true });
-      return;
-    }
-    if (cat === 'buses' || cat === 'vehicles') {
-      setActiveTab(cat);
-      if (cat === 'vehicles') {
-        syncVehiclesFromSupabase().then(() => refreshVehicles()).catch(() => {});
-      }
     }
   }, [searchParams, navigate]);
 
   const handleTabChange = (tab: TabType) => {
-    setActiveTab(tab);
-    setSearchParams({ category: tab });
-    if (tab === 'vehicles') {
-      syncVehiclesFromSupabase().then(() => refreshVehicles()).catch(() => {});
-    }
+    setSearchParams({ category: tab }, { replace: true });
   };
 
   const TABS: { id: TabType; label: string; icon: any; desc: string }[] = [
@@ -115,19 +100,9 @@ export default function Catalogue() {
     { id: 'buses',    label: 'Bus Reservations',  icon: Bus, desc: 'VIP Highway Coaches & Intercity Shuttles' },
   ];
 
-  const isBusVehicle = (v: StoredVehicle): boolean => {
-    if (!v) return false;
-    const typeStr = (v.type || '').toUpperCase();
-    const makeStr = (v.make || '').toLowerCase();
-    const modelStr = (v.model || '').toLowerCase();
-    const nameStr = `${makeStr} ${modelStr}`;
-    if (typeStr === 'BUS' || typeStr === 'MINIBUS' || typeStr === 'COASTER') return true;
-    if (nameStr.includes('coaster') || nameStr.includes('nqr bus') || nameStr.includes('bus')) return true;
-    return false;
-  };
-
   // Dynamic approved vehicles from registered hosts (only approved & live vehicles)
-  const approvedHostVehicles: CatalogueItem[] = storedVehicles
+  const rawVehicles = storedVehicles && storedVehicles.length > 0 ? storedVehicles : getStoredVehicles();
+  const approvedHostVehicles: CatalogueItem[] = rawVehicles
     .filter((v) => v.status === 'APPROVED' && isVehicleLive(v.id))
     .map((v) => {
       const isBus = isBusVehicle(v);
@@ -270,13 +245,13 @@ export default function Catalogue() {
       )}
 
       {/* CATALOGUE CARDS GRID */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence initial={false}>
         <motion.div
-          key={`${activeTab}-${searchTerm}-${liveTick}`}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -15 }}
-          transition={{ duration: 0.3 }}
+          key={activeTab}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
           className="grid gap-6 md:grid-cols-2 items-stretch"
         >
           {filteredItems.length === 0 ? (

@@ -277,6 +277,22 @@ export const isVehicleLive = (vehicleId: string): boolean => {
   return true;
 };
 
+/**
+ * Canonical helper to check if a vehicle is a bus or coach.
+ * Strictly matches explicit bus vehicle types or bus keywords,
+ * avoiding accidental matches on passenger vans/safari cruisers.
+ */
+export const isBusVehicle = (v: any): boolean => {
+  if (!v) return false;
+  const typeStr = (v.type || '').toUpperCase().trim();
+  const makeStr = (v.make || '').toLowerCase().trim();
+  const modelStr = (v.model || '').toLowerCase().trim();
+  const nameStr = `${makeStr} ${modelStr}`;
+  if (typeStr === 'BUS' || typeStr === 'MINIBUS' || typeStr === 'COASTER') return true;
+  if (nameStr.includes('coaster') || nameStr.includes('nqr bus') || nameStr.includes(' bus') || nameStr.startsWith('bus ')) return true;
+  return false;
+};
+
 // --- STRICT REGISTERED HOST FLEET (EXCLUSIVELY APPROVED VEHICLES) ---
 export const APPROVED_HOST_VEHICLE_IDS = new Set<string>();
 
@@ -602,216 +618,251 @@ export const getStoredVehicles = (): StoredVehicle[] => {
   }
 };
 
+let inFlightSyncBookingsPromise: Promise<StoredBooking[]> | null = null;
+
 /** Synchronize all bookings from Supabase into localStorage for cross-device parity */
 export const syncBookingsFromSupabase = async (): Promise<StoredBooking[]> => {
-  try {
-    const queryPromise = supabase
-      .from('bookings')
-      .select(`
-        *,
-        vehicles:vehicle_id(*, vehicle_images(*)),
-        users:user_id(*)
-      `)
-      .order('created_at', { ascending: false });
-
-    const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) =>
-      setTimeout(() => resolve({ data: null, error: new Error('Supabase sync timeout') }), 6000)
-    );
-
-    const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
-
-    if (error || !Array.isArray(data)) {
-      if (error) console.warn('syncBookingsFromSupabase notice/error:', error.message || error);
-      return getStoredBookings();
-    }
-
-    const currentLocal = getStoredBookings();
-    const localMap = new Map<string, StoredBooking>();
-    for (const b of currentLocal) {
-      if (b.id) localMap.set(b.id, b);
-      if (b.bookingRef) localMap.set(b.bookingRef, b);
-    }
-
-    const mappedSupabase: StoredBooking[] = data.map((b: any) => {
-      const existing = localMap.get(b.id) || localMap.get(b.booking_ref);
-      const vehicle = b.vehicles || {};
-      const user = b.users || {};
-
-      const touristName = [user.first_name, user.last_name].filter(Boolean).join(' ') || existing?.touristName || 'Traveler';
-      const vehicleMake = vehicle.make || existing?.vehicleMake || 'Safari Fleet';
-      const vehicleModel = vehicle.model || existing?.vehicleModel || 'Vehicle';
-      const vehicleName = existing?.vehicleName || `${vehicleMake} ${vehicleModel}`;
-
-      let vehicleImage = existing?.vehicleImage;
-      if (!vehicleImage && Array.isArray(vehicle.vehicle_images) && vehicle.vehicle_images.length > 0) {
-        vehicleImage = vehicle.vehicle_images[0]?.url;
-      }
-      if (!vehicleImage) {
-        vehicleImage = '/vehicles/prado-front.jpg';
-      }
-
-      return {
-        id: b.id,
-        bookingRef: b.booking_ref || `MT-${b.id.slice(0, 8).toUpperCase()}`,
-        vehicleId: b.vehicle_id || existing?.vehicleId || 'active-vehicle',
-        vehicleMake,
-        vehicleModel,
-        vehicleName,
-        vehicleImage,
-        touristId: b.user_id || existing?.touristId || 'tourist',
-        touristName,
-        touristPhone: user.phone || existing?.touristPhone || '0712345678',
-        touristEmail: user.email || existing?.touristEmail,
-        ownerId: vehicle.owner_id || existing?.ownerId || 'a0000000-0000-0000-0000-000000000002',
-        driverId: existing?.driverId,
-        driverName: existing?.driverName,
-        driverPhone: existing?.driverPhone,
-        startDate: b.start_date ? b.start_date.split('T')[0] : (existing?.startDate || new Date().toISOString().split('T')[0]),
-        endDate: b.end_date ? b.end_date.split('T')[0] : (existing?.endDate || new Date(Date.now() + 86400000).toISOString().split('T')[0]),
-        totalAmount: Number(b.total_amount || existing?.totalAmount || 0),
-        paymentStatus: ['PAID', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes((b.status || '').toUpperCase()) ? 'PAID' : (existing?.paymentStatus || 'PENDING'),
-        status: (b.status || existing?.status || 'PENDING').toUpperCase() as any,
-        pickupMethod: b.pickup_method || existing?.pickupMethod || 'SELF_COLLECT',
-        mpesaReceipt: existing?.mpesaReceipt,
-        createdAt: b.created_at || existing?.createdAt || new Date().toISOString(),
-      };
-    });
-
-    const sbIds = new Set(mappedSupabase.map(b => b.id));
-    const merged: StoredBooking[] = [...mappedSupabase];
-    for (const lb of currentLocal) {
-      if (!sbIds.has(lb.id)) {
-        merged.push(lb);
-      }
-    }
-
-    try {
-      localStorage.setItem(BOOKINGS_KEY, JSON.stringify(merged));
-    } catch (e) {
-      console.warn('LocalStorage quota warning in syncBookingsFromSupabase:', e);
-    }
-
-    window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: merged }));
-    return merged;
-  } catch (err) {
-    console.warn('syncBookingsFromSupabase caught exception:', err);
-    return getStoredBookings();
+  if (inFlightSyncBookingsPromise) {
+    return inFlightSyncBookingsPromise;
   }
-};
 
-/** Synchronize all vehicles registered by hosts from Supabase into localStorage */
-export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
-  try {
-    const queryPromise = supabase
-      .from('vehicles')
-      .select(`
-        *,
-        vehicle_images(id, url, is_primary),
-        users:owner_id(id, first_name, last_name, email, phone)
-      `)
-      .order('created_at', { ascending: false });
+  inFlightSyncBookingsPromise = (async () => {
+    try {
+      const queryPromise = supabase
+        .from('bookings')
+        .select(`
+          *,
+          vehicles:vehicle_id(*, vehicle_images(*)),
+          users:user_id(*)
+        `)
+        .order('created_at', { ascending: false });
 
-    const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) =>
-      setTimeout(() => resolve({ data: null, error: new Error('Supabase sync timeout') }), 6000)
-    );
+      const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: new Error('Supabase sync timeout') }), 6000)
+      );
 
-    const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
-    if (error) {
-      console.warn('syncVehiclesFromSupabase notice/error:', error.message || error);
-      return getStoredVehicles();
-    }
+      if (error || !Array.isArray(data)) {
+        if (error) console.warn('syncBookingsFromSupabase notice/error:', error.message || error);
+        return getStoredBookings();
+      }
 
-    if (!data || data.length === 0) {
-      const currentLocal = getStoredVehicles().filter(v => !isDemoVehicle(v));
-      try {
-        localStorage.setItem(VEHICLES_KEY, JSON.stringify(currentLocal));
-      } catch {}
-      window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: currentLocal }));
-      return currentLocal;
-    }
+      const currentLocal = getStoredBookings();
+      const localMap = new Map<string, StoredBooking>();
+      for (const b of currentLocal) {
+        if (b.id) localMap.set(b.id, b);
+        if (b.bookingRef) localMap.set(b.bookingRef, b);
+      }
 
-    const currentLocal = getStoredVehicles();
-    const localMap = new Map<string, StoredVehicle>();
-    for (const v of currentLocal) {
-      localMap.set(v.id, v);
-    }
+      const mappedSupabase: StoredBooking[] = data.map((b: any) => {
+        const existing = localMap.get(b.id) || localMap.get(b.booking_ref);
+        const vehicle = b.vehicles || {};
+        const user = b.users || {};
 
-    const overrides = getVehicleLiveOverrides();
-    const deletedIds = getDeletedVehicleIds();
+        const touristName = [user.first_name, user.last_name].filter(Boolean).join(' ') || existing?.touristName || 'Traveler';
+        const vehicleMake = vehicle.make || existing?.vehicleMake || 'Safari Fleet';
+        const vehicleModel = vehicle.model || existing?.vehicleModel || 'Vehicle';
+        const vehicleName = existing?.vehicleName || `${vehicleMake} ${vehicleModel}`;
 
-    // Map each Supabase vehicle into a StoredVehicle (strictly filter out demo seed records and deleted records)
-    const mappedSupabase: StoredVehicle[] = data
-      .filter((v: any) => !isDemoVehicle(v) && !deletedIds.has(v.id))
-      .map((v: any) => {
-        const existing = localMap.get(v.id);
-        const owner = v.users || {};
-        const ownerName = [owner.first_name, owner.last_name].filter(Boolean).join(' ') || existing?.ownerName || 'Fleet Host';
-        const ownerEmail = owner.email || existing?.ownerEmail || (ownerName.toLowerCase().includes('james') ? 'james.mwangi@mtravel.co.ke' : undefined);
-        const ownerId = existing?.ownerId || v.owner_id || 'a0000000-0000-0000-0000-000000000002';
-
-        const images: string[] = (Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0)
-          ? v.vehicle_images.map((img: any) => img.url).filter(Boolean)
-          : (existing?.images && existing.images.length > 0 ? existing.images : [getVehicleFallbackImage(v.make, v.model, v.type, v.id)]);
-
-        const isApprovedInDb = Boolean(v.is_approved);
-        const adminLiveOverride = overrides[v.id];
-        const isLive = adminLiveOverride !== undefined
-          ? adminLiveOverride
-          : (isApprovedInDb && v.is_available !== false);
-
-        const inferredType = existing?.type || (v.model?.toLowerCase().includes('bus') || v.make?.toLowerCase().includes('bus') ? 'BUS' : v.type);
+        let vehicleImage = existing?.vehicleImage;
+        if (!vehicleImage && Array.isArray(vehicle.vehicle_images) && vehicle.vehicle_images.length > 0) {
+          vehicleImage = vehicle.vehicle_images[0]?.url;
+        }
+        if (!vehicleImage) {
+          vehicleImage = '/vehicles/prado-front.jpg';
+        }
 
         return {
-          id: v.id,
-          make: (v.make || 'Toyota').trim(),
-          model: (v.model || 'Cruiser').trim(),
-          year: v.year || 2024,
-          type: (inferredType || 'SUV').toUpperCase(),
-          pricePerDay: Number(v.price_per_day || 15000),
-          seats: Number(v.seats || 7),
-          fuelType: v.fuel_type ? (v.fuel_type.charAt(0).toUpperCase() + v.fuel_type.slice(1).toLowerCase()) : 'Diesel',
-          transmission: v.transmission ? (v.transmission.charAt(0).toUpperCase() + v.transmission.slice(1).toLowerCase()) : 'Automatic',
-          address: v.address || existing?.address || 'Nairobi, Kenya',
-          ownerId,
-          ownerName,
-          ownerEmail,
-          images,
-          status: isApprovedInDb ? 'APPROVED' : (existing?.status === 'REJECTED' ? 'REJECTED' : 'PENDING_APPROVAL') as any,
-          isLive,
-          ratingAverage: Number(v.rating_average || 4.9),
-          ratingCount: Number(v.rating_count || 12),
-          hasInsurance: v.has_insurance !== false,
-          plateNumber: v.plate_number || existing?.plateNumber,
-          isSelfDriveAvailable: true,
-          isWithDriverAvailable: true,
-          latitude: v.latitude ?? -1.2921,
-          longitude: v.longitude ?? 36.8219,
-          documents: ensureVehicleComplianceDocs(v.id, { documents: existing?.documents, plateNumber: v.plate_number || existing?.plateNumber, createdAt: v.created_at || existing?.createdAt }),
-          createdAt: v.created_at || existing?.createdAt || new Date().toISOString(),
+          id: b.id,
+          bookingRef: b.booking_ref || `MT-${b.id.slice(0, 8).toUpperCase()}`,
+          vehicleId: b.vehicle_id || existing?.vehicleId || 'active-vehicle',
+          vehicleMake,
+          vehicleModel,
+          vehicleName,
+          vehicleImage,
+          touristId: b.user_id || existing?.touristId || 'tourist',
+          touristName,
+          touristPhone: user.phone || existing?.touristPhone || '0712345678',
+          touristEmail: user.email || existing?.touristEmail,
+          ownerId: vehicle.owner_id || existing?.ownerId || 'a0000000-0000-0000-0000-000000000002',
+          driverId: existing?.driverId,
+          driverName: existing?.driverName,
+          driverPhone: existing?.driverPhone,
+          startDate: b.start_date ? b.start_date.split('T')[0] : (existing?.startDate || new Date().toISOString().split('T')[0]),
+          endDate: b.end_date ? b.end_date.split('T')[0] : (existing?.endDate || new Date(Date.now() + 86400000).toISOString().split('T')[0]),
+          totalAmount: Number(b.total_amount || existing?.totalAmount || 0),
+          paymentStatus: ['PAID', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes((b.status || '').toUpperCase()) ? 'PAID' : (existing?.paymentStatus || 'PENDING'),
+          status: (b.status || existing?.status || 'PENDING').toUpperCase() as any,
+          pickupMethod: b.pickup_method || existing?.pickupMethod || 'SELF_COLLECT',
+          mpesaReceipt: existing?.mpesaReceipt,
+          createdAt: b.created_at || existing?.createdAt || new Date().toISOString(),
         };
       });
 
-    // Merge: Supabase vehicles take precedence, preserve valid local-only host additions
-    const sbIds = new Set(mappedSupabase.map(v => v.id));
-    const merged: StoredVehicle[] = [...mappedSupabase];
-    for (const lv of currentLocal) {
-      if (!sbIds.has(lv.id) && (APPROVED_HOST_VEHICLE_IDS.has(lv.id) || (!isDemoVehicle(lv) && isValidUUID(lv.id) && lv.ownerId && lv.createdAt))) {
-        merged.push(lv);
+      const sbIds = new Set(mappedSupabase.map(b => b.id));
+      const merged: StoredBooking[] = [...mappedSupabase];
+      for (const lb of currentLocal) {
+        if (!sbIds.has(lb.id)) {
+          merged.push(lb);
+        }
       }
-    }
 
-    try {
-      localStorage.setItem(VEHICLES_KEY, JSON.stringify(merged));
-    } catch (e) {
-      console.warn('LocalStorage quota warning in syncVehiclesFromSupabase:', e);
+      const prevRaw = localStorage.getItem(BOOKINGS_KEY);
+      const nextRaw = JSON.stringify(merged);
+      if (prevRaw !== nextRaw) {
+        try {
+          localStorage.setItem(BOOKINGS_KEY, nextRaw);
+        } catch (e) {
+          console.warn('LocalStorage quota warning in syncBookingsFromSupabase:', e);
+        }
+        window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: merged }));
+      }
+      return merged;
+    } catch (err) {
+      console.warn('syncBookingsFromSupabase caught exception:', err);
+      return getStoredBookings();
+    } finally {
+      inFlightSyncBookingsPromise = null;
     }
-    window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: merged }));
-    return merged;
-  } catch (err) {
-    console.warn('syncVehiclesFromSupabase caught exception:', err);
-    return getStoredVehicles();
+  })();
+
+  return inFlightSyncBookingsPromise;
+};
+
+let inFlightSyncVehiclesPromise: Promise<StoredVehicle[]> | null = null;
+
+/** Synchronize all vehicles registered by hosts from Supabase into localStorage */
+export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
+  if (inFlightSyncVehiclesPromise) {
+    return inFlightSyncVehiclesPromise;
   }
+
+  inFlightSyncVehiclesPromise = (async () => {
+    try {
+      const queryPromise = supabase
+        .from('vehicles')
+        .select(`
+          *,
+          vehicle_images(id, url, is_primary),
+          users:owner_id(id, first_name, last_name, email, phone)
+        `)
+        .order('created_at', { ascending: false });
+
+      const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: new Error('Supabase sync timeout') }), 6000)
+      );
+
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.warn('syncVehiclesFromSupabase notice/error:', error.message || error);
+        return getStoredVehicles();
+      }
+
+      if (!data || data.length === 0) {
+        const currentLocal = getStoredVehicles().filter(v => !isDemoVehicle(v));
+        const prevRaw = localStorage.getItem(VEHICLES_KEY);
+        const nextRaw = JSON.stringify(currentLocal);
+        if (prevRaw !== nextRaw) {
+          try {
+            localStorage.setItem(VEHICLES_KEY, nextRaw);
+          } catch {}
+          window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: currentLocal }));
+        }
+        return currentLocal;
+      }
+
+      const currentLocal = getStoredVehicles();
+      const localMap = new Map<string, StoredVehicle>();
+      for (const v of currentLocal) {
+        localMap.set(v.id, v);
+      }
+
+      const overrides = getVehicleLiveOverrides();
+      const deletedIds = getDeletedVehicleIds();
+
+      // Map each Supabase vehicle into a StoredVehicle (strictly filter out demo seed records and deleted records)
+      const mappedSupabase: StoredVehicle[] = data
+        .filter((v: any) => !isDemoVehicle(v) && !deletedIds.has(v.id))
+        .map((v: any) => {
+          const existing = localMap.get(v.id);
+          const owner = v.users || {};
+          const ownerName = [owner.first_name, owner.last_name].filter(Boolean).join(' ') || existing?.ownerName || 'Fleet Host';
+          const ownerEmail = owner.email || existing?.ownerEmail || (ownerName.toLowerCase().includes('james') ? 'james.mwangi@mtravel.co.ke' : undefined);
+          const ownerId = existing?.ownerId || v.owner_id || 'a0000000-0000-0000-0000-000000000002';
+
+          const images: string[] = (Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0)
+            ? v.vehicle_images.map((img: any) => img.url).filter(Boolean)
+            : (existing?.images && existing.images.length > 0 ? existing.images : [getVehicleFallbackImage(v.make, v.model, v.type, v.id)]);
+
+          const isApprovedInDb = Boolean(v.is_approved);
+          const adminLiveOverride = overrides[v.id];
+          const isLive = adminLiveOverride !== undefined
+            ? adminLiveOverride
+            : (isApprovedInDb && v.is_available !== false);
+
+          const inferredType = existing?.type || (v.model?.toLowerCase().includes('bus') || v.make?.toLowerCase().includes('bus') ? 'BUS' : v.type);
+
+          return {
+            id: v.id,
+            make: (v.make || 'Toyota').trim(),
+            model: (v.model || 'Cruiser').trim(),
+            year: v.year || 2024,
+            type: (inferredType || 'SUV').toUpperCase(),
+            pricePerDay: Number(v.price_per_day || 15000),
+            seats: Number(v.seats || 7),
+            fuelType: v.fuel_type ? (v.fuel_type.charAt(0).toUpperCase() + v.fuel_type.slice(1).toLowerCase()) : 'Diesel',
+            transmission: v.transmission ? (v.transmission.charAt(0).toUpperCase() + v.transmission.slice(1).toLowerCase()) : 'Automatic',
+            address: v.address || existing?.address || 'Nairobi, Kenya',
+            ownerId,
+            ownerName,
+            ownerEmail,
+            images,
+            status: isApprovedInDb ? 'APPROVED' : (existing?.status === 'REJECTED' ? 'REJECTED' : 'PENDING_APPROVAL') as any,
+            isLive,
+            ratingAverage: Number(v.rating_average || 4.9),
+            ratingCount: Number(v.ratingCount || 12),
+            hasInsurance: v.has_insurance !== false,
+            plateNumber: v.plate_number || existing?.plateNumber,
+            isSelfDriveAvailable: true,
+            isWithDriverAvailable: true,
+            latitude: v.latitude ?? -1.2921,
+            longitude: v.longitude ?? 36.8219,
+            documents: ensureVehicleComplianceDocs(v.id, { documents: existing?.documents, plateNumber: v.plate_number || existing?.plateNumber, createdAt: v.created_at || existing?.createdAt }),
+            createdAt: v.created_at || existing?.createdAt || new Date().toISOString(),
+          };
+        });
+
+      // Merge: Supabase vehicles take precedence, preserve valid local-only host additions
+      const sbIds = new Set(mappedSupabase.map(v => v.id));
+      const merged: StoredVehicle[] = [...mappedSupabase];
+      for (const lv of currentLocal) {
+        if (!sbIds.has(lv.id) && (APPROVED_HOST_VEHICLE_IDS.has(lv.id) || (!isDemoVehicle(lv) && isValidUUID(lv.id) && lv.ownerId && lv.createdAt))) {
+          merged.push(lv);
+        }
+      }
+
+      const prevRaw = localStorage.getItem(VEHICLES_KEY);
+      const nextRaw = JSON.stringify(merged);
+      if (prevRaw !== nextRaw) {
+        try {
+          localStorage.setItem(VEHICLES_KEY, nextRaw);
+        } catch (e) {
+          console.warn('LocalStorage quota warning in syncVehiclesFromSupabase:', e);
+        }
+        window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: merged }));
+      }
+      return merged;
+    } catch (err) {
+      console.warn('syncVehiclesFromSupabase caught exception:', err);
+      return getStoredVehicles();
+    } finally {
+      inFlightSyncVehiclesPromise = null;
+    }
+  })();
+
+  return inFlightSyncVehiclesPromise;
 };
 
 // Automatic initial sync in browser environment
