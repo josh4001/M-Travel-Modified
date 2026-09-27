@@ -11,7 +11,7 @@ import { useCurrency } from '@/context/CurrencyContext';
 import { MpesaStkPushModal } from '@/components/ui/MpesaStkPushModal';
 import {
   saveBooking, getStoredVehicles, syncVehiclesFromSupabase, getVehicleHireStatus, toggleVehicleLiveStatus, isVehicleLive,
-  isBusVehicle, type StoredVehicle
+  isBusVehicle, type StoredVehicle, type VehicleHireStatus
 } from '@/lib/bookingStore';
 import { sendNotification } from '@/lib/notificationService';
 import { sendTravelerBookingEmail } from '@/lib/communicationService';
@@ -317,7 +317,7 @@ export default function Catalogue() {
           ) : (
             filteredItems.map((item) => {
               const isVehicle = item.category === 'vehicles';
-              const hireStatus = isVehicle ? getVehicleHireStatus(item.id) : { isHired: false };
+              const hireStatus: VehicleHireStatus = isVehicle ? getVehicleHireStatus(item.id) : { isHired: false, isOnTrip: false, isAwaitingHandover: false };
               const isLive = isVehicle ? isVehicleLive(item.id) : true;
               const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 
@@ -341,10 +341,18 @@ export default function Catalogue() {
                     {isVehicle && (
                       <div className="absolute top-3 right-3">
                         <VehicleStatusBadge
-                          isHired={hireStatus.isHired}
+                          isHired={hireStatus.isOnTrip}
+                          isOnTrip={hireStatus.isOnTrip}
+                          isAwaitingHandover={hireStatus.isAwaitingHandover}
                           isLive={isLive}
                           variant="overlay"
-                          labelOverride={hireStatus.isHired ? 'In Use (Hired)' : undefined}
+                          labelOverride={
+                            hireStatus.isOnTrip
+                              ? 'On Trip'
+                              : hireStatus.isAwaitingHandover
+                              ? 'Booked & Reserved'
+                              : undefined
+                          }
                         />
                       </div>
                     )}
@@ -551,7 +559,7 @@ export default function Catalogue() {
               {/* MODAL RIGHT: CATEGORY SPECIFIC WORKFLOW */}
               {(() => {
                 const isSelectedVehicle = selectedItem.category === 'vehicles';
-                const selectedHireStatus = isSelectedVehicle ? getVehicleHireStatus(selectedItem.id) : { isHired: false };
+                const selectedHireStatus: VehicleHireStatus = isSelectedVehicle ? getVehicleHireStatus(selectedItem.id) : { isHired: false, isOnTrip: false, isAwaitingHandover: false };
                 const selectedIsLive = isSelectedVehicle ? isVehicleLive(selectedItem.id) : true;
                 const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 

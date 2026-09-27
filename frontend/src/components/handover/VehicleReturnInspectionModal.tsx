@@ -85,10 +85,10 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
     return 0;
   }, [returnFuel, initialFuel]);
 
-  const depositHeld = 10000;
+  const depositHeld = 0;
   const effectiveDamageCharge = damageFound ? (Number(damageCharge) || 0) : 0;
   const totalDeductions = calculatedFuelCharge + effectiveDamageCharge + lateReturnCharge;
-  const depositRefunded = Math.max(0, depositHeld - totalDeductions);
+  const depositRefunded = 0;
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -478,7 +478,7 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
                 type="text"
                 value={settlementNotes}
                 onChange={e => setSettlementNotes(e.target.value)}
-                placeholder="e.g. M-Pesa deposit refund of KES 10,000 processed."
+                placeholder="e.g. Vehicle returned in good condition. Return inspection verified."
                 className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg text-gray-900"
               />
             </div>
@@ -499,7 +499,7 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
               className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 hover:from-indigo-700 hover:to-blue-800 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/30 flex items-center gap-2 disabled:opacity-50 transition-all cursor-pointer"
             >
               <CheckCircle2 className="w-5 h-5" />
-              {isSubmitting ? 'Finalizing Inspection...' : 'Finalize Return & Close Booking 🏁'}
+              {isSubmitting ? 'Finalizing Inspection...' : 'Finalize Return & Close Booking'}
             </button>
           </div>
         </form>

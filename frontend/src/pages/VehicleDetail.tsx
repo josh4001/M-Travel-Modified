@@ -24,6 +24,7 @@ import {
   type DispatchedEmail
 } from '@/lib/communicationService';
 import { LuxuryEmailPreviewModal } from '@/components/ui/LuxuryEmailPreviewModal';
+import { getTravelerCreditProfile } from '@/lib/creditScoreStore';
 
 export default function VehicleDetail() {
   const { id } = useParams();
@@ -57,6 +58,18 @@ export default function VehicleDetail() {
   const hireStatus = getVehicleHireStatus(id ?? '');
   const isLive = isVehicleLive(id ?? '');
   const isAvailableForHire = isLive && !hireStatus.isHired;
+
+  // Real-time traveler credit eligibility check
+  const creditProfile = user?.id
+    ? getTravelerCreditProfile(user.id, {
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        email: user.email,
+        phone: user.phone,
+      })
+    : null;
+  const isCreditRestricted = Boolean(
+    creditProfile && (creditProfile.isRestricted || creditProfile.score < 550)
+  );
 
   // Query with Supabase direct fetch, stored vehicle support, and mock fallback
   const { data: vehicle, isLoading } = useQuery<Vehicle>({
@@ -161,6 +174,11 @@ export default function VehicleDetail() {
       return;
     }
 
+    if (isCreditRestricted) {
+      setPaymentError(`Booking restricted: Your account credit rating (${creditProfile?.score || 0}/850) is below the minimum threshold (550) or restricted by Admin. Please contact M-Travel Administration.`);
+      return;
+    }
+
     if (!mpesaPhone || mpesaPhone.length < 9) {
       setPaymentError('Please enter a valid M-Pesa phone number.');
       return;
@@ -217,7 +235,9 @@ export default function VehicleDetail() {
 
       // Save to centralized store for real-time dashboards & executive handovers
       const mpesaReceiptCode = payResult.reference || `QK${Math.floor(100000 + Math.random() * 900000)}`;
+      const hostOwnerId = targetVehicle.ownerId || (targetVehicle.owner as any)?.id || 'a0000000-0000-0000-0000-000000000002';
       const newBooking = saveBooking({
+        id: bookingId,
         bookingRef: finalRef,
         bookingType: 'VEHICLE',
         vehicleId: targetVehicle.id,
@@ -225,7 +245,7 @@ export default function VehicleDetail() {
         vehicleModel: targetVehicle.model,
         vehicleName: `${targetVehicle.make} ${targetVehicle.model}`,
         vehicleImage: targetVehicle.images?.[0]?.url || (targetVehicle as any).imageUrl || '/vehicles/prado-front.jpg',
-        ownerId: targetVehicle.ownerId || targetVehicle.owner?.id || 'owner-1',
+        ownerId: hostOwnerId,
         driverId: undefined,
         driverName: withDriver ? 'Verified Station Chauffeur' : undefined,
         driverPhone: withDriver ? '+254 791 888 840' : undefined,
@@ -437,15 +457,23 @@ export default function VehicleDetail() {
               <span className="text-xs text-slate-500 font-semibold font-sans"> / day</span>
             </div>
             <VehicleStatusBadge
-              isHired={hireStatus.isHired}
+              isHired={hireStatus.isOnTrip}
+              isOnTrip={hireStatus.isOnTrip}
+              isAwaitingHandover={hireStatus.isAwaitingHandover}
               isLive={isLive}
               variant="light"
-              labelOverride={hireStatus.isHired ? 'In Use (Hired)' : undefined}
+              labelOverride={
+                hireStatus.isOnTrip
+                  ? 'In Use (On Trip)'
+                  : hireStatus.isAwaitingHandover
+                  ? 'Booked (Awaiting Handover)'
+                  : undefined
+              }
             />
           </div>
 
           {/* AVAILABILITY NOTICES */}
-          {hireStatus.isHired && (
+          {hireStatus.isOnTrip && (
             <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 space-y-1">
               <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
                 <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
@@ -453,6 +481,18 @@ export default function VehicleDetail() {
               </div>
               <p className="text-xs text-amber-800 leading-relaxed font-medium">
                 This vehicle is currently on a trip with a traveler until <strong>{hireStatus.returnDate || 'return'}</strong>. It is locked for booking until safely inspected and returned.
+              </p>
+            </div>
+          )}
+
+          {hireStatus.isAwaitingHandover && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-4 space-y-1">
+              <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
+                <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
+                Booked &amp; Reserved — Awaiting Executive Handover
+              </div>
+              <p className="text-xs text-amber-800 leading-relaxed font-medium">
+                This vehicle has been booked and reserved. The trip officially begins once the traveler is verified and keys are handed over at the executive inspection station.
               </p>
             </div>
           )}
@@ -478,8 +518,8 @@ export default function VehicleDetail() {
               <p className="text-xs text-slate-800 font-medium">
                 Ref: <span className="font-mono text-amber-700 font-bold">{bookedRef}</span>
               </p>
-              <p className="text-[11px] text-slate-600 font-medium">
-                Your payment has been processed. Notification sent to owner &amp; platform admin.
+              <p className="text-[11px] text-emerald-900 font-medium">
+                Your payment has been processed. Waiting for traveler validation at executive handover before trip begins.
               </p>
 
               <div className="flex flex-col gap-2 pt-1">
@@ -799,13 +839,21 @@ export default function VehicleDetail() {
 
               {/* ACTION BUTTON */}
               {!isAvailableForHire ? (
-                hireStatus.isHired ? (
+                hireStatus.isOnTrip ? (
                   <button
                     disabled
                     className="w-full text-sm !py-3 font-bold rounded-2xl bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300 flex items-center justify-center gap-2 shadow-none"
                   >
                     <Lock className="h-4 w-4 text-slate-400" />
-                    Vehicle Currently In Use (Returns {hireStatus.returnDate || 'Soon'})
+                    Vehicle Active On Trip (Returns {hireStatus.returnDate || 'Soon'})
+                  </button>
+                ) : hireStatus.isAwaitingHandover ? (
+                  <button
+                    disabled
+                    className="w-full text-sm !py-3 font-bold rounded-2xl bg-amber-100 text-amber-900 cursor-not-allowed border border-amber-300 flex items-center justify-center gap-2 shadow-none"
+                  >
+                    <ShieldCheck className="h-4 w-4 text-amber-600" />
+                    Booked &amp; Reserved (Awaiting Handover)
                   </button>
                 ) : (
                   <button
@@ -840,6 +888,30 @@ export default function VehicleDetail() {
                     className="btn-primary w-full text-sm !py-3.5 font-bold shadow-md flex items-center justify-center gap-2"
                   >
                     <Lock className="h-4 w-4" /> Sign In / Create Account to Book
+                  </button>
+                </div>
+              ) : isCreditRestricted ? (
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-rose-300 bg-rose-50/95 p-4 text-xs text-rose-950 space-y-2 shadow-sm">
+                    <div className="flex items-center gap-2 font-bold text-rose-900 text-sm">
+                      <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />
+                      <span>Account Booking Privileges Restricted</span>
+                    </div>
+                    <p className="text-xs text-rose-800 leading-relaxed font-medium">
+                      Your account cannot reserve vehicles at this time due to a credit score requirement (Score: <span className="font-bold text-rose-950">{creditProfile?.score || 0}/850</span>, minimum 550 required) or an active administrative restriction.
+                    </p>
+                    <p className="text-[11px] text-rose-700 italic">
+                      Reason: {creditProfile?.restrictionReason || 'Credit score below platform threshold.'}
+                    </p>
+                    <p className="text-[11px] text-rose-900 font-semibold pt-1 border-t border-rose-200">
+                      Please contact M-TRAVEL Administration or Concierge (0722 374 535) to request account review and unrestriction.
+                    </p>
+                  </div>
+                  <button
+                    disabled
+                    className="w-full text-xs !py-3.5 font-bold rounded-2xl bg-rose-100 text-rose-400 cursor-not-allowed border border-rose-200 flex items-center justify-center gap-2 shadow-none"
+                  >
+                    <Lock className="h-4 w-4 text-rose-400" /> Booking Locked — Account Restricted
                   </button>
                 </div>
               ) : (

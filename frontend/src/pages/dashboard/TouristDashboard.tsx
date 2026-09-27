@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Car, Calendar, Wallet, MapPin, Star, Clock,
   CheckCircle, XCircle, AlertCircle, ArrowRight, TrendingUp, Smartphone, X,
-  Compass, Mountain, Trees, Waves, Sparkles, Bell, Palmtree
+  Compass, Mountain, Trees, Waves, Sparkles, Bell, Palmtree, ShieldCheck
 } from 'lucide-react';
 import type { RootState } from '@/store';
 import { supabase, cancelBookingInSupabase } from '@/lib/supabaseClient';
@@ -139,7 +139,36 @@ export default function TouristDashboard() {
     };
   }, [user?.id, user?.email]);
 
-  const allStoreBookings = storeBookings;
+  // Deduplicate storeBookings by bookingRef so duplicate records are unified
+  const uniqueStoreBookings = useMemo(() => {
+    const map = new Map<string, StoredBooking>();
+    const STATUS_PRIORITY: Record<string, number> = {
+      'COMPLETED': 5,
+      'IN_PROGRESS': 4,
+      'CONFIRMED': 3,
+      'PAID': 3,
+      'ACCEPTED': 3,
+      'PENDING': 1,
+      'CANCELLED': 2,
+    };
+    for (const b of storeBookings) {
+      const key = (b.bookingRef || b.id || '').trim();
+      if (!key) continue;
+      if (!map.has(key)) {
+        map.set(key, b);
+      } else {
+        const existing = map.get(key)!;
+        const currentPrio = STATUS_PRIORITY[String(b.status || '').toUpperCase()] ?? 1;
+        const existingPrio = STATUS_PRIORITY[String(existing.status || '').toUpperCase()] ?? 1;
+        if (currentPrio >= existingPrio) {
+          map.set(key, { ...existing, ...b });
+        }
+      }
+    }
+    return Array.from(map.values());
+  }, [storeBookings]);
+
+  const allStoreBookings = uniqueStoreBookings;
   const active    = allStoreBookings.filter(b => ['PAID', 'ACCEPTED', 'CONFIRMED', 'IN_PROGRESS'].includes(b.status));
   const pending   = allStoreBookings.filter(b => b.status === 'PENDING');
   const completed = allStoreBookings.filter(b => b.status === 'COMPLETED');
@@ -324,6 +353,13 @@ export default function TouristDashboard() {
                         {formatPrice(b.totalAmount)}
                       </span>
                     </div>
+
+                    {!isDest && ['CONFIRMED', 'PAID', 'ACCEPTED'].includes(b.status) && (
+                      <div className="mt-2 rounded-xl bg-amber-50 border border-amber-200/90 p-2.5 text-xs text-amber-900 font-medium flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
+                        <span>Executive Handover Verification Required: Present your original National ID / Driving License at pickup to receive keys and start trip.</span>
+                      </div>
+                    )}
 
                     {/* ACTION BUTTONS */}
                     <div className="flex flex-wrap gap-2 mt-2">

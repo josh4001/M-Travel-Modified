@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   X, CheckSquare, ShieldCheck, Gauge, Fuel,
-  FileCheck, Camera, Crown
+  FileCheck, Camera, Sparkles
 } from 'lucide-react';
 import { StoredBooking, StoredVehicle, isTripBooking } from '@/lib/bookingStore';
 import { executeHandover, VehicleHandover } from '@/lib/rentalLifecycleStore';
@@ -185,9 +185,9 @@ export const VehicleHandoverModal: React.FC<VehicleHandoverModalProps> = ({
               </span>
             </div>
             <div>
-              <span className="text-xs text-gray-500 block uppercase font-medium">Security Deposit</span>
-              <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-block mt-0.5">
-                KES 10,000 (Held)
+              <span className="text-xs text-gray-500 block uppercase font-medium">Damage Liability</span>
+              <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 inline-block mt-0.5">
+                Direct Client Liability (KES 0 Held)
               </span>
             </div>
           </div>
@@ -446,8 +446,8 @@ export const VehicleHandoverModal: React.FC<VehicleHandoverModalProps> = ({
               disabled={isSubmitting}
               className="px-6 py-2.5 bg-gradient-to-r from-amber-500 via-emerald-600 to-teal-700 hover:from-amber-600 hover:to-teal-800 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-2 disabled:opacity-50 transition-all cursor-pointer text-xs"
             >
-              <Crown className="w-4 h-4 text-amber-300 animate-pulse fill-amber-300/30" />
-              {isSubmitting ? 'Activating Executive Rental...' : '👑 Complete Handover & Activate Rental'}
+              <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+              {isSubmitting ? 'Activating Executive Rental...' : 'Complete Handover & Activate Rental'}
             </button>
           </div>
         </form>

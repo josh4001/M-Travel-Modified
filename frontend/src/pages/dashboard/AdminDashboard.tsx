@@ -3,7 +3,7 @@ import {
   Users, Car, Bus, Shield, DollarSign, Activity, CheckCircle,
   RefreshCw, BarChart3, TrendingUp, AlertTriangle, ArrowDownLeft, ArrowUpRight, FileCheck, Landmark,
   XCircle, Trash2, Server, Wifi, HardDrive, Clock, MapPin, Lock,
-  Palmtree, Plus, Edit2, Check, ExternalLink, Sparkles, Award, Upload
+  Palmtree, Plus, Edit2, Check, ExternalLink, Sparkles, ShieldCheck, Upload
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useCurrency } from '@/context/CurrencyContext';
@@ -1911,7 +1911,7 @@ export default function AdminDashboard() {
                                   onClick={() => setSelectedBookingForHandover(b)}
                                   className="flex items-center gap-1.5 rounded-lg border border-amber-400/70 bg-gradient-to-r from-amber-50 via-amber-100/90 to-amber-200/50 px-2.5 py-1 text-[10px] font-extrabold text-amber-950 hover:from-amber-100 hover:to-amber-300 transition shadow-xs cursor-pointer"
                                 >
-                                  <Award className="h-3.5 w-3.5 text-amber-600 animate-pulse" /> 👑 Executive Handover
+                                  <ShieldCheck className="h-3.5 w-3.5 text-amber-600 animate-pulse" /> Executive Handover
                                 </button>
                               )}
 
@@ -3097,6 +3097,7 @@ export default function AdminDashboard() {
           onHandoverComplete={() => {
             setSelectedBookingForHandover(null);
             fetchAll();
+            window.dispatchEvent(new CustomEvent('mt_wallet_updated'));
           }}
         />
       )}

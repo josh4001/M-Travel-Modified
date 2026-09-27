@@ -496,42 +496,74 @@ export const getStoredBookings = (): StoredBooking[] => {
   }
 };
 
-export const saveBooking = (booking: Omit<StoredBooking, 'id' | 'createdAt'>): StoredBooking => {
+export const saveBooking = (booking: Omit<StoredBooking, 'id' | 'createdAt'> & { id?: string }): StoredBooking => {
   const existing = getStoredBookings();
-  const bookingId = ensureUUID();
+  const cleanRef = (booking.bookingRef || '').trim();
+  const existingIdx = existing.findIndex(
+    b => (booking.id && b.id === booking.id) || (cleanRef && b.bookingRef && b.bookingRef.trim().toLowerCase() === cleanRef.toLowerCase())
+  );
+
+  const targetId = booking.id || (existingIdx >= 0 ? existing[existingIdx].id : ensureUUID());
   const newBooking: StoredBooking = {
+    ...(existingIdx >= 0 ? existing[existingIdx] : {}),
     ...booking,
     pickupMethod: booking.pickupMethod || 'SELF_COLLECT',
     vehicleName: booking.vehicleName || `${booking.vehicleMake} ${booking.vehicleModel}`,
-    id: bookingId,
-    createdAt: new Date().toISOString(),
+    id: targetId,
+    createdAt: existingIdx >= 0 ? existing[existingIdx].createdAt : new Date().toISOString(),
   };
-  const updated = [newBooking, ...existing];
-  localStorage.setItem(BOOKINGS_KEY, JSON.stringify(updated));
+
+  let updated: StoredBooking[];
+  if (existingIdx >= 0) {
+    updated = [...existing];
+    updated[existingIdx] = newBooking;
+  } else {
+    updated = [newBooking, ...existing];
+  }
+
+  try {
+    localStorage.setItem(BOOKINGS_KEY, JSON.stringify(updated));
+  } catch (err) {
+    console.warn('LocalStorage quota warning in saveBooking:', err);
+  }
   window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: newBooking }));
 
-  // Real-time Supabase push
+  // Real-time Supabase push (upsert by id and update matching ref)
   (async () => {
     try {
       const validUserId = isValidUUID(booking.touristId) ? booking.touristId : null;
       const validVehicleId = isValidUUID(booking.vehicleId) ? booking.vehicleId : null;
-      await supabase.from('bookings').insert({
-        id: bookingId,
-        booking_ref: booking.bookingRef || `MT-${bookingId.slice(0, 8).toUpperCase()}`,
-        user_id: validUserId,
-        vehicle_id: validVehicleId,
-        start_date: booking.startDate ? new Date(booking.startDate).toISOString() : new Date().toISOString(),
-        end_date: booking.endDate ? new Date(booking.endDate).toISOString() : new Date().toISOString(),
-        total_amount: Number(booking.totalAmount || 0),
-        currency: 'KES',
-        status: (booking.status || 'PENDING').toUpperCase(),
-        pickup_method: booking.pickupMethod || 'SELF_COLLECT',
-        created_at: newBooking.createdAt,
-      });
+      const finalBookingRef = booking.bookingRef || `MT-${targetId.slice(0, 8).toUpperCase()}`;
+
+      if (isValidUUID(targetId)) {
+        await supabase.from('bookings').upsert({
+          id: targetId,
+          booking_ref: finalBookingRef,
+          user_id: validUserId,
+          vehicle_id: validVehicleId,
+          start_date: booking.startDate ? new Date(booking.startDate).toISOString() : new Date().toISOString(),
+          end_date: booking.endDate ? new Date(booking.endDate).toISOString() : new Date().toISOString(),
+          total_amount: Number(booking.totalAmount || 0),
+          currency: 'KES',
+          status: (booking.status || 'PENDING').toUpperCase(),
+          pickup_method: booking.pickupMethod || 'SELF_COLLECT',
+          created_at: newBooking.createdAt,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
+      }
+
+      // Also ensure any preexisting booking row in Supabase with this reference is updated to confirmed/paid
+      if (finalBookingRef) {
+        await supabase.from('bookings').update({
+          status: (booking.status || 'PENDING').toUpperCase(),
+          total_amount: Number(booking.totalAmount || 0),
+          updated_at: new Date().toISOString(),
+        }).eq('booking_ref', finalBookingRef);
+      }
 
       if (['PAID', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'].includes((booking.status || '').toUpperCase())) {
         await supabase.from('payments').insert({
-          booking_id: bookingId,
+          booking_id: targetId,
           provider: 'MPESA',
           amount: Number(booking.totalAmount || 0),
           currency: 'KES',
@@ -700,13 +732,40 @@ export const syncBookingsFromSupabase = async (): Promise<StoredBooking[]> => {
         };
       });
 
-      const sbIds = new Set(mappedSupabase.map(b => b.id));
-      const merged: StoredBooking[] = [...mappedSupabase];
-      for (const lb of currentLocal) {
-        if (!sbIds.has(lb.id)) {
-          merged.push(lb);
+      // Deduplicate merged list by bookingRef so identical refs with different IDs are unified
+      const byRef = new Map<string, StoredBooking>();
+      const STATUS_WEIGHT: Record<string, number> = {
+        'COMPLETED': 5,
+        'IN_PROGRESS': 4,
+        'CONFIRMED': 3,
+        'PAID': 3,
+        'ACCEPTED': 3,
+        'PENDING': 1,
+        'CANCELLED': 2,
+        'REJECTED': 0
+      };
+
+      // Combine mappedSupabase and currentLocal
+      const rawList = [...mappedSupabase, ...currentLocal];
+      for (const item of rawList) {
+        const refKey = (item.bookingRef || item.id || '').trim();
+        if (!refKey) continue;
+        if (!byRef.has(refKey)) {
+          byRef.set(refKey, item);
+        } else {
+          const prev = byRef.get(refKey)!;
+          const currentWeight = STATUS_WEIGHT[String(item.status || '').toUpperCase()] ?? 1;
+          const prevWeight = STATUS_WEIGHT[String(prev.status || '').toUpperCase()] ?? 1;
+          if (currentWeight >= prevWeight) {
+            byRef.set(refKey, {
+              ...prev,
+              ...item,
+              paymentStatus: (item.paymentStatus === 'PAID' || prev.paymentStatus === 'PAID') ? 'PAID' : item.paymentStatus,
+            });
+          }
         }
       }
+      const merged: StoredBooking[] = Array.from(byRef.values());
 
       const prevRaw = localStorage.getItem(BOOKINGS_KEY);
       const nextRaw = JSON.stringify(merged);
@@ -1168,25 +1227,32 @@ export const toggleVehicleLiveStatus = (vehicleId: string, forcedState?: boolean
 
 export interface VehicleHireStatus {
   isHired: boolean;
+  isOnTrip: boolean;
+  isAwaitingHandover: boolean;
   activeBooking?: StoredBooking;
   returnDate?: string;
   touristName?: string;
 }
 
 /**
- * Checks if a vehicle is currently actively hired by a tourist.
- * A vehicle is hired when it has a booking in CONFIRMED, ACCEPTED, or IN_PROGRESS state.
- * When returned (COMPLETED) or cancelled, it is automatically released and no longer hired.
+ * Checks if a vehicle is currently actively hired or reserved by a tourist.
+ * - isOnTrip: true ONLY when verified handover has occurred and trip is IN_PROGRESS.
+ * - isAwaitingHandover: true when booking is confirmed/paid but awaiting executive handover.
+ * - isHired: true when booked or on trip (so overlapping reservations are blocked).
  */
 export const getVehicleHireStatus = (vehicleId: string): VehicleHireStatus => {
   const bookings = getStoredBookings();
   const activeBooking = bookings.find(
-    (b) => b.vehicleId === vehicleId && ['CONFIRMED', 'ACCEPTED', 'IN_PROGRESS'].includes(b.status)
+    (b) => b.vehicleId === vehicleId && ['CONFIRMED', 'ACCEPTED', 'PAID', 'RESERVED', 'IN_PROGRESS', 'ACTIVE'].includes((b.status || '').toUpperCase())
   );
 
   if (activeBooking) {
+    const s = (activeBooking.status || '').toUpperCase();
+    const isOnTrip = ['IN_PROGRESS', 'ACTIVE'].includes(s);
     return {
       isHired: true,
+      isOnTrip,
+      isAwaitingHandover: !isOnTrip,
       activeBooking,
       returnDate: activeBooking.endDate,
       touristName: activeBooking.touristName,
@@ -1195,6 +1261,8 @@ export const getVehicleHireStatus = (vehicleId: string): VehicleHireStatus => {
 
   return {
     isHired: false,
+    isOnTrip: false,
+    isAwaitingHandover: false,
   };
 };
 

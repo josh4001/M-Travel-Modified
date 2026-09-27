@@ -178,7 +178,7 @@ const DEFAULT_AUDIT_LOGS: AuditLogEntry[] = [
     action: 'BOOKING_RESERVED',
     actorName: 'System Gateway',
     actorRole: 'SYSTEM',
-    details: 'Payment & KES 10,000 security deposit confirmed via M-Pesa.',
+    details: 'Payment confirmed via M-Pesa. Awaiting Admin Executive Handover verification.',
     timestamp: new Date(Date.now() - 3600 * 24 * 1000).toISOString()
   }
 ];
@@ -583,14 +583,14 @@ export const executeReturnInspection = async (
 
   // 4. Log Audit Event
   const damageNote = fullInspection.damageFound 
-    ? `Damage detected: ${fullInspection.damageDescription || 'Detailed on report'}. Deducted: KES ${fullInspection.depositDeducted.toLocaleString()}.` 
+    ? `Damage detected: ${fullInspection.damageDescription || 'Detailed on report'}. Assessed damage/settlement: KES ${fullInspection.depositDeducted.toLocaleString()}.` 
     : 'No damage detected. Clean condition.';
 
   logAuditEvent(
     'RETURN_INSPECTION_AND_SETTLEMENT',
     'Booking',
     fullInspection.bookingRef,
-    `Vehicle returned at ${fullInspection.odometerReading} km, Fuel: ${fullInspection.fuelLevelPercent}%. ${damageNote} Refunded: KES ${fullInspection.depositRefunded.toLocaleString()}.`,
+    `Vehicle returned at ${fullInspection.odometerReading} km, Fuel: ${fullInspection.fuelLevelPercent}%. ${damageNote}`,
     fullInspection.inspectorName || 'Amos (Admin)',
     'ADMIN'
   );

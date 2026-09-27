@@ -1,8 +1,10 @@
 import React from 'react';
-import { Navigation, Radio, UserCheck, KeyRound, Clock, Pause, XCircle } from 'lucide-react';
+import { Navigation, Radio, UserCheck, KeyRound, Clock, Pause, XCircle, ShieldCheck, CalendarCheck } from 'lucide-react';
 
 interface VehicleStatusBadgeProps {
   isHired?: boolean;
+  isOnTrip?: boolean;
+  isAwaitingHandover?: boolean;
   isLive?: boolean;
   isPendingApproval?: boolean;
   isRejected?: boolean;
@@ -18,6 +20,8 @@ interface VehicleStatusBadgeProps {
  */
 export const VehicleStatusBadge: React.FC<VehicleStatusBadgeProps> = ({
   isHired = false,
+  isOnTrip = false,
+  isAwaitingHandover = false,
   isLive = true,
   isPendingApproval = false,
   isRejected = false,
@@ -61,8 +65,36 @@ export const VehicleStatusBadge: React.FC<VehicleStatusBadgeProps> = ({
     );
   }
 
+  // 1.5 Booked & Reserved (Awaiting Executive Handover) State
+  if (isAwaitingHandover) {
+    if (variant === 'overlay') {
+      return (
+        <span className={`inline-flex items-center gap-1.5 rounded-full bg-slate-950/90 backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-300 border border-amber-400/40 shadow-lg ${className}`}>
+          <CalendarCheck className="h-3 w-3 text-amber-300 shrink-0" />
+          <span>{labelOverride || 'Booked & Reserved'}</span>
+        </span>
+      );
+    }
+
+    if (variant === 'light') {
+      return (
+        <span className={`inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800 shadow-xs ${className}`}>
+          <ShieldCheck className="h-3 w-3 text-amber-700 shrink-0" />
+          <span>{labelOverride || 'Booked • Awaiting Handover'}</span>
+        </span>
+      );
+    }
+
+    return (
+      <span className={`inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-300 border border-amber-400/30 shadow-xs ${className}`}>
+        <ShieldCheck className="h-3 w-3 text-amber-300 shrink-0" />
+        <span>{labelOverride || 'Booked & Reserved'}</span>
+      </span>
+    );
+  }
+
   // 2. On Trip / In Use (Hired) State
-  if (isHired) {
+  if (isHired || isOnTrip) {
     if (variant === 'overlay') {
       return (
         <span className={`inline-flex items-center gap-1.5 rounded-full bg-slate-950/90 backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-300 border border-amber-400/40 shadow-lg ${className}`}>
