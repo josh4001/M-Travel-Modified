@@ -792,10 +792,18 @@ export default function Catalogue() {
                 role: 'VEHICLE_OWNER',
                 type: 'NEW_BOOKING_HOST',
                 title: `New Booking: ${selectedItem.title}`,
-                message: `A tourist has booked your vehicle for KES ${selectedItem.priceKES.toLocaleString()}. Booking Ref: ${bookingRef}`,
+                message: `A tourist has booked your vehicle for KES ${selectedItem.priceKES.toLocaleString()}. Your 75% host share (KES ${(selectedItem.priceKES * 0.75).toLocaleString()}) is placed in escrow awaiting Admin handover verification. Ref: ${bookingRef}`,
                 link: '/dashboard/owner?tab=bookings',
               });
             }
+
+            sendNotification({
+              role: 'ADMIN',
+              type: 'NEW_BOOKING_ADMIN',
+              title: `New Vehicle Booking: ${selectedItem.title}`,
+              message: `Payment of KES ${selectedItem.priceKES.toLocaleString()} confirmed via M-Pesa. 25% platform fee (KES ${(selectedItem.priceKES * 0.25).toLocaleString()}) placed in escrow awaiting handover. Ref: ${bookingRef}`,
+              link: '/dashboard/admin',
+            });
 
             if (user?.id) {
               sendNotification({
@@ -807,6 +815,10 @@ export default function Catalogue() {
                 link: '/dashboard/bookings',
               });
             }
+
+            try {
+              window.dispatchEvent(new CustomEvent('mt_wallet_updated'));
+            } catch {}
 
             sendNotification({
               role: 'ADMIN',

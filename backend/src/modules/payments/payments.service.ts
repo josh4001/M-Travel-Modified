@@ -100,8 +100,8 @@ export class PaymentsService {
         // Credit owner's wallet if applicable (for vehicle bookings)
         if (payment.booking?.vehicle) {
           const ownerId = payment.booking.vehicle.ownerId;
-          const commissionAmount = Number(payment.amount) * 0.1; // 10% platform fee
-          const netAmount = Number(payment.amount) - commissionAmount;
+          const commissionAmount = Number(payment.amount) * 0.25; // 25% platform commission
+          const netAmount = Number(payment.amount) * 0.75; // 75% host share
 
           if (ownerId) {
             const wallet = await prisma.wallet.findUnique({ where: { userId: ownerId } });
@@ -116,7 +116,28 @@ export class PaymentsService {
                   type: TransactionType.BOOKING_PAYOUT,
                   amount: netAmount,
                   status: TransactionStatus.COMPLETED,
-                  description: `Payout for booking ${payment.booking?.bookingRef || payment.bookingId}`,
+                  description: `Host payout (75%) for booking ${payment.booking?.bookingRef || payment.bookingId}`,
+                },
+              });
+            }
+          }
+
+          // Credit admin wallet with 25% platform commission if admin exists
+          const adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN' as any } });
+          if (adminUser) {
+            const adminWallet = await prisma.wallet.findUnique({ where: { userId: adminUser.id } });
+            if (adminWallet) {
+              await prisma.wallet.update({
+                where: { id: adminWallet.id },
+                data: { balance: { increment: commissionAmount } },
+              });
+              await prisma.transaction.create({
+                data: {
+                  walletId: adminWallet.id,
+                  type: TransactionType.COMMISSION,
+                  amount: commissionAmount,
+                  status: TransactionStatus.COMPLETED,
+                  description: `Platform commission (25%) for booking ${payment.booking?.bookingRef || payment.bookingId}`,
                 },
               });
             }

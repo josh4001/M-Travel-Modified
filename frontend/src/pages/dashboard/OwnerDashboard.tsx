@@ -27,7 +27,8 @@ import {
 import {
   getHandoverByBookingId,
   getInspectionByBookingId,
-  evaluateTripOverdueStatus
+  evaluateTripOverdueStatus,
+  isBookingHandoverVerified
 } from '@/lib/rentalLifecycleStore';
 
 const STATUS_CFG: Record<string, { color: string; icon: any; label: string }> = {
@@ -317,23 +318,29 @@ export default function OwnerDashboard() {
     };
   }, [user?.id, user?.email]);
 
+  const verifiedBookings = bookings.filter(b => 
+    isBookingHandoverVerified(b) && (b.paymentStatus === 'PAID' || ['IN_PROGRESS', 'COMPLETED'].includes(b.status))
+  );
+
+  const pendingBookings = bookings.filter(b => 
+    !isBookingHandoverVerified(b) && (b.paymentStatus === 'PAID' || ['CONFIRMED', 'PAID', 'ACCEPTED'].includes(b.status))
+  );
+
   const totalEarnings = bookings
-    .filter(b => b.paymentStatus === 'PAID' || b.status === 'COMPLETED' || b.status === 'CONFIRMED')
-    .reduce((s, b) => s + Number(b.totalAmount), 0);
+    .filter(b => b.paymentStatus === 'PAID' || ['COMPLETED', 'CONFIRMED', 'IN_PROGRESS', 'ACCEPTED'].includes(b.status))
+    .reduce((s, b) => s + Number(b.totalAmount || 0), 0);
 
-  const pendingEarnings = bookings
-    .filter(b => b.status === 'ACCEPTED' || b.status === 'IN_PROGRESS')
-    .reduce((s, b) => s + Number(b.totalAmount), 0);
+  const platformFee = totalEarnings * 0.25; // 25% Platform Commission
 
-  const platformFee = totalEarnings * 0.15;
-  const grossNet = Math.max(0, totalEarnings - platformFee);
+  const unlockedGrossHostCut = verifiedBookings.reduce((s, b) => s + Number(b.totalAmount || 0), 0) * 0.75;
+  const pendingEarnings = pendingBookings.reduce((s, b) => s + Number(b.totalAmount || 0), 0) * 0.75;
 
   const localW = user?.id ? getLocalWallet(user.id, true, user?.email) : null;
   const totalWithdrawn = (localW?.transactions || [])
     .filter(t => t.type === 'WITHDRAWAL' && t.status === 'COMPLETED')
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  const netEarnings = Math.max(0, grossNet - totalWithdrawn);
+  const netEarnings = Math.max(0, localW?.balance !== undefined ? localW.balance : unlockedGrossHostCut - totalWithdrawn);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -419,7 +426,7 @@ export default function OwnerDashboard() {
     updateBookingStatus(bId, 'COMPLETED');
     const b = bookings.find(x => x.id === bId);
     if (b) {
-      const earned = b.totalAmount * 0.85;
+      const earned = b.totalAmount * 0.75;
       creditHostPayout(user?.id || b.ownerId || 'a0000000-0000-0000-0000-000000000002', earned, b.bookingRef);
       sendNotification({
         recipientId: user?.id,
@@ -983,7 +990,7 @@ export default function OwnerDashboard() {
 
             <div className="rounded-2xl bg-white border border-slate-200/90 p-6 shadow-sm">
               <div className="flex items-center gap-2 text-xs font-bold text-rose-700 uppercase tracking-wider mb-2">
-                <BarChart3 className="h-4 w-4" /> Platform Fee (15%)
+                <BarChart3 className="h-4 w-4" /> Platform Fee (25%)
               </div>
               <p className="font-mono text-3xl font-bold text-slate-900">{formatPrice(platformFee)}</p>
               <p className="text-xs text-slate-500 mt-1 font-medium">M-TRAVEL service commission</p>
@@ -991,26 +998,24 @@ export default function OwnerDashboard() {
 
             <div className="rounded-2xl bg-white border border-slate-200/90 p-6 shadow-sm">
               <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 uppercase tracking-wider mb-2">
-                <Banknote className="h-4 w-4" /> Net Earnings
+                <Banknote className="h-4 w-4" /> Net Earnings (75%)
               </div>
               <p className="font-mono text-3xl font-bold text-emerald-700">{formatPrice(netEarnings)}</p>
               <p className="text-xs text-slate-500 mt-1 font-medium">Available for M-Pesa withdrawal</p>
             </div>
           </div>
 
-          {/* Pending earnings */}
+          {/* Pending earnings in escrow */}
           {pendingEarnings > 0 && (
             <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">Pending (Active Trips)</p>
+                <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">Pending Handover Escrow (75% Cut)</p>
                 <p className="font-mono text-2xl font-bold text-amber-900 mt-1">{formatPrice(pendingEarnings)}</p>
-                <p className="text-xs text-amber-700 mt-0.5 font-medium">Will be released to Net Earnings on trip completion</p>
+                <p className="text-xs text-amber-700 mt-0.5 font-medium">Funds held in escrow pending Admin vehicle handover verification. Unlocks to Net Earnings once handover passes.</p>
               </div>
               <Clock className="h-10 w-10 text-amber-600/30" />
             </div>
           )}
-
-
 
           {/* Per-vehicle earnings breakdown */}
           <div className="space-y-3">
@@ -1023,7 +1028,7 @@ export default function OwnerDashboard() {
             {vehicles.map(v => {
               const vCompleted = bookings.filter(b => b.vehicleId === v.id && b.status === 'COMPLETED');
               const vRevenue = vCompleted.reduce((s, b) => s + b.totalAmount, 0);
-              const vNet = vRevenue * 0.85;
+              const vNet = vRevenue * 0.75;
               const vRating = 4.8;
               return (
                 <div key={v.id} className="rounded-2xl bg-white border border-slate-200/90 p-4 flex items-center justify-between gap-4 shadow-sm">
@@ -1044,7 +1049,7 @@ export default function OwnerDashboard() {
                     <p className="font-mono font-bold text-slate-900">{formatPrice(vRevenue)}</p>
                     <p className="text-[10px] text-slate-500 font-medium">Gross</p>
                     <p className="font-mono font-bold text-emerald-700 text-sm">{formatPrice(vNet)}</p>
-                    <p className="text-[10px] text-slate-500 font-medium">Net</p>
+                    <p className="text-[10px] text-slate-500 font-medium">Net (75%)</p>
                   </div>
                 </div>
               );

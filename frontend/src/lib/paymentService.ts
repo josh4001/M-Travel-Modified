@@ -66,9 +66,13 @@ export async function withdrawFromWallet(
 
 // ─── Supabase Direct Wallet Operations (Fallback) ────────────────────────────
 
+export const ADMIN_COMMISSION_RATE = 0.25; // 25% Platform Commission for Admin (Business)
+export const HOST_SHARE_RATE = 0.75;       // 75% Host Share for Fleet Host
+
 export interface LocalWalletData {
   id: string;
   balance: number;
+  pendingBalance: number;
   currency: string;
   transactions: {
     id: string;
@@ -81,15 +85,22 @@ export interface LocalWalletData {
   }[];
 }
 
-export function getLocalWallet(userId: string, isHost = false, userEmail?: string): LocalWalletData {
+export function getLocalWallet(
+  userId: string,
+  isHost = false,
+  userEmail?: string,
+  isAdmin = false
+): LocalWalletData {
   try {
     const raw = localStorage.getItem(`mt_local_wallet_${userId}`);
     let w: LocalWalletData = raw
       ? JSON.parse(raw)
-      : { id: `w-${userId}`, balance: 0, currency: 'KES', transactions: [] };
+      : { id: `w-${userId}`, balance: 0, pendingBalance: 0, currency: 'KES', transactions: [] };
+
+    if (w.pendingBalance === undefined) w.pendingBalance = 0;
 
     let checkIsHost = isHost;
-    let checkIsAdmin = false;
+    let checkIsAdmin = isAdmin;
     if (typeof window !== 'undefined') {
       try {
         const storedUserRaw = localStorage.getItem('mt_user');
@@ -106,47 +117,123 @@ export function getLocalWallet(userId: string, isHost = false, userEmail?: strin
       } catch {}
     }
 
-    if (checkIsAdmin) {
-      const allBookings = getStoredBookings();
-      const totalRevenue = allBookings
-        .filter(b => ['COMPLETED', 'CONFIRMED', 'PAID', 'IN_PROGRESS'].includes((b.status || '').toUpperCase()))
-        .reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
+    if (userId.startsWith('admin-') || userId === 'admin') checkIsAdmin = true;
 
-      const companyPlatformRevenue = Math.max(0, totalRevenue * 0.15);
+    const allBookings = getStoredBookings();
+    
+    // Retrieve recorded handovers to verify whether trip has passed handover
+    let handoverBookingIds = new Set<string>();
+    try {
+      const rawHandovers = localStorage.getItem('mt_handovers_v1');
+      if (rawHandovers) {
+        const parsedHandovers = JSON.parse(rawHandovers);
+        if (Array.isArray(parsedHandovers)) {
+          parsedHandovers.forEach((h: any) => {
+            if (h.bookingId) handoverBookingIds.add(h.bookingId);
+            if (h.bookingRef) handoverBookingIds.add(h.bookingRef);
+          });
+        }
+      }
+    } catch {}
+
+    const isHandoverVerified = (b: any): boolean => {
+      const s = (b.status || '').toUpperCase();
+      if (['IN_PROGRESS', 'COMPLETED'].includes(s)) return true;
+      return handoverBookingIds.has(b.id) || (b.bookingRef && handoverBookingIds.has(b.bookingRef));
+    };
+
+    if (checkIsAdmin) {
+      const paidBookings = allBookings.filter(b =>
+        ['COMPLETED', 'CONFIRMED', 'PAID', 'IN_PROGRESS', 'ACCEPTED'].includes((b.status || '').toUpperCase()) ||
+        b.paymentStatus === 'PAID'
+      );
+
+      const verifiedBookings = paidBookings.filter(b => isHandoverVerified(b));
+      const pendingBookings = paidBookings.filter(b => !isHandoverVerified(b));
+
+      const unlockedAdminRevenue = verifiedBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0) * ADMIN_COMMISSION_RATE;
+      const pendingAdminRevenue = pendingBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0) * ADMIN_COMMISSION_RATE;
+
       const totalWithdrawn = (w.transactions || [])
         .filter(t => t.type === 'WITHDRAWAL' && t.status === 'COMPLETED')
         .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
-      w.balance = Math.max(0, companyPlatformRevenue - totalWithdrawn);
+      w.balance = Math.max(0, unlockedAdminRevenue - totalWithdrawn);
+      w.pendingBalance = Math.max(0, pendingAdminRevenue);
+
+      // Ensure transaction history has entries for verified bookings
+      for (const b of verifiedBookings) {
+        const ref = b.bookingRef || b.id;
+        const exists = (w.transactions || []).some(
+          t => (t.reference && t.reference.includes(ref)) || (t.description && t.description.includes(ref))
+        );
+        if (!exists) {
+          w.transactions.unshift({
+            id: `tx-comm-${ref}`,
+            type: 'COMMISSION',
+            amount: Number(b.totalAmount || 0) * ADMIN_COMMISSION_RATE,
+            status: 'COMPLETED',
+            reference: `COMM-${ref}`,
+            description: `Platform commission (25%) unlocked for trip ${ref} (Handover Verified)`,
+            created_at: b.createdAt || new Date().toISOString(),
+          });
+        }
+      }
     } else if (checkIsHost) {
       const allVehicles = getStoredVehicles();
-      const allBookings = getStoredBookings();
       const ownerVehicleIds = new Set(
         allVehicles
-          .filter(v => v.ownerId === userId || (userEmail && v.ownerEmail === userEmail))
+          .filter(v => v.ownerId === userId || (userEmail && v.ownerEmail && v.ownerEmail.toLowerCase() === userEmail.toLowerCase()))
           .map(v => v.id)
       );
+
       const ownerBookings = allBookings.filter(b =>
-        (b.ownerId && (b.ownerId === userId || (userEmail && b.ownerId === userEmail))) ||
+        (b.ownerId && (b.ownerId === userId || (userEmail && b.ownerId.toLowerCase() === userEmail.toLowerCase()))) ||
         ownerVehicleIds.has(b.vehicleId)
       );
-      const totalGross = ownerBookings
-        .filter(b => ['COMPLETED', 'CONFIRMED', 'PAID', 'IN_PROGRESS'].includes((b.status || '').toUpperCase()))
-        .reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
 
-      const netEarningsFromBookings = Math.max(0, totalGross * 0.85);
+      const paidBookings = ownerBookings.filter(b =>
+        ['COMPLETED', 'CONFIRMED', 'PAID', 'IN_PROGRESS', 'ACCEPTED'].includes((b.status || '').toUpperCase()) ||
+        b.paymentStatus === 'PAID'
+      );
+
+      const verifiedBookings = paidBookings.filter(b => isHandoverVerified(b));
+      const pendingBookings = paidBookings.filter(b => !isHandoverVerified(b));
+
+      const unlockedHostEarnings = verifiedBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0) * HOST_SHARE_RATE;
+      const pendingHostEarnings = pendingBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0) * HOST_SHARE_RATE;
 
       const totalWithdrawn = (w.transactions || [])
         .filter(t => t.type === 'WITHDRAWAL' && t.status === 'COMPLETED')
         .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
-      w.balance = Math.max(0, netEarningsFromBookings - totalWithdrawn);
+      w.balance = Math.max(0, unlockedHostEarnings - totalWithdrawn);
+      w.pendingBalance = Math.max(0, pendingHostEarnings);
+
+      // Ensure transaction history has entries for verified bookings
+      for (const b of verifiedBookings) {
+        const ref = b.bookingRef || b.id;
+        const exists = (w.transactions || []).some(
+          t => (t.reference && t.reference.includes(ref)) || (t.description && t.description.includes(ref))
+        );
+        if (!exists) {
+          w.transactions.unshift({
+            id: `tx-payout-${ref}`,
+            type: 'BOOKING_PAYOUT',
+            amount: Number(b.totalAmount || 0) * HOST_SHARE_RATE,
+            status: 'COMPLETED',
+            reference: `PAYOUT-${ref}`,
+            description: `Host earnings (75%) unlocked for trip ${ref} (Handover Verified)`,
+            created_at: b.createdAt || new Date().toISOString(),
+          });
+        }
+      }
     }
 
     localStorage.setItem(`mt_local_wallet_${userId}`, JSON.stringify(w));
     return w;
   } catch {
-    return { id: `w-${userId}`, balance: 0, currency: 'KES', transactions: [] };
+    return { id: `w-${userId}`, balance: 0, pendingBalance: 0, currency: 'KES', transactions: [] };
   }
 }
 
@@ -255,7 +342,7 @@ export async function creditHostPayout(
   description?: string
 ): Promise<PaymentResult> {
   const ref = `PAYOUT-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-  const desc = description || `Net rental earnings released for trip ${bookingRef}`;
+  const desc = description || `Host net earnings (75%) released for trip ${bookingRef}`;
 
   if (isValidUUID(userId)) {
     try {
@@ -300,22 +387,107 @@ export async function creditHostPayout(
     }
   }
 
-  const localW = getLocalWallet(userId);
-  localW.balance += amount;
-  localW.transactions.unshift({
-    id: `tx-${Date.now()}`,
-    type: 'BOOKING_PAYOUT',
-    amount,
-    status: 'COMPLETED',
-    reference: ref,
-    description: desc,
-    created_at: new Date().toISOString(),
-  });
-  saveLocalWallet(userId, localW);
+  const localW = getLocalWallet(userId, true);
+  const alreadyCredited = (localW.transactions || []).some(
+    t => (t.reference && t.reference.includes(bookingRef)) || (t.description && t.description.includes(bookingRef))
+  );
+
+  if (!alreadyCredited) {
+    localW.balance += amount;
+    localW.transactions.unshift({
+      id: `tx-${Date.now()}`,
+      type: 'BOOKING_PAYOUT',
+      amount,
+      status: 'COMPLETED',
+      reference: ref,
+      description: desc,
+      created_at: new Date().toISOString(),
+    });
+    saveLocalWallet(userId, localW);
+  }
 
   return {
     success: true,
-    message: `KES ${amount.toLocaleString()} net earnings credited to host wallet.`,
+    message: `KES ${amount.toLocaleString()} host net earnings credited to wallet.`,
+    reference: ref,
+  };
+}
+
+export async function creditAdminCommission(
+  amount: number,
+  bookingRef: string,
+  description?: string
+): Promise<PaymentResult> {
+  const ref = `COMM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  const desc = description || `Platform commission (25%) released for trip ${bookingRef}`;
+
+  const adminIds = new Set<string>(['admin-safari-1', 'admin-mtravel-1']);
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('mt_user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u.role === 'ADMIN' && u.id) adminIds.add(u.id);
+      }
+      const rawAccounts = localStorage.getItem('mt_local_accounts');
+      if (rawAccounts) {
+        const accs = JSON.parse(rawAccounts);
+        if (Array.isArray(accs)) {
+          accs.filter((a: any) => a.role === 'ADMIN').forEach((a: any) => adminIds.add(a.id));
+        }
+      }
+    } catch {}
+  }
+
+  for (const adminId of adminIds) {
+    if (isValidUUID(adminId)) {
+      try {
+        let { data: wallet } = await supabase
+          .from('wallets')
+          .select('id, balance')
+          .eq('user_id', adminId)
+          .maybeSingle();
+
+        if (wallet) {
+          const newBalance = Number(wallet.balance || 0) + amount;
+          await supabase.from('wallets').update({ balance: newBalance }).eq('id', wallet.id);
+          await supabase.from('transactions').insert({
+            wallet_id: wallet.id,
+            type: 'COMMISSION',
+            amount,
+            status: 'COMPLETED',
+            reference: ref,
+            description: desc,
+          });
+        }
+      } catch (err) {
+        console.warn('Supabase commission notice:', err);
+      }
+    }
+
+    const localW = getLocalWallet(adminId, false, undefined, true);
+    const alreadyCredited = (localW.transactions || []).some(
+      t => (t.reference && t.reference.includes(bookingRef)) || (t.description && t.description.includes(bookingRef))
+    );
+
+    if (!alreadyCredited) {
+      localW.balance += amount;
+      localW.transactions.unshift({
+        id: `tx-comm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        type: 'COMMISSION',
+        amount,
+        status: 'COMPLETED',
+        reference: ref,
+        description: desc,
+        created_at: new Date().toISOString(),
+      });
+      saveLocalWallet(adminId, localW);
+    }
+  }
+
+  return {
+    success: true,
+    message: `KES ${amount.toLocaleString()} platform commission credited to Admin wallet.`,
     reference: ref,
   };
 }

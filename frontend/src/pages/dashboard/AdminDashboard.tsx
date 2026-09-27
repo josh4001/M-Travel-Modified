@@ -39,6 +39,7 @@ import {
   updateIncidentStatus,
   getAllAuditLogs,
   getHandoverByBookingId,
+  isBookingHandoverVerified,
   type IncidentReport,
   type AuditLogEntry,
   type ExceptionMetrics,
@@ -585,10 +586,13 @@ export default function AdminDashboard() {
   const pendingVehicles = vehicles.filter(v => v.status === 'PENDING_APPROVAL');
 
   const totalRevenue = bookings
-    .filter(b => ['COMPLETED', 'CONFIRMED', 'PAID', 'IN_PROGRESS'].includes(b.status))
-    .reduce((s, b) => s + b.totalAmount, 0);
+    .filter(b => ['COMPLETED', 'CONFIRMED', 'PAID', 'IN_PROGRESS', 'ACCEPTED'].includes(b.status) || b.paymentStatus === 'PAID')
+    .reduce((s, b) => s + Number(b.totalAmount || 0), 0);
 
-  const totalPlatformFees = totalRevenue * 0.15;
+  const totalPlatformFees = totalRevenue * 0.25; // 25% Platform Commission
+
+  const pendingBookings = bookings.filter(b => !isBookingHandoverVerified(b) && (b.paymentStatus === 'PAID' || ['CONFIRMED', 'PAID', 'ACCEPTED'].includes(b.status)));
+  const pendingAdminEscrow = pendingBookings.reduce((s, b) => s + Number(b.totalAmount || 0), 0) * 0.25;
 
   const totalOwnerWithdrawals = transactions
     .filter(t => t.type === 'WITHDRAWAL' && t.status === 'COMPLETED')
@@ -1475,12 +1479,24 @@ export default function AdminDashboard() {
 
             <div className="rounded-2xl bg-white border border-slate-200/90 p-6 shadow-sm">
               <div className="flex items-center gap-2 text-xs font-bold text-amber-700 uppercase tracking-wider">
-                <DollarSign className="h-4 w-4" /> Platform Revenue (15% Fee)
+                <DollarSign className="h-4 w-4" /> Platform Revenue (25% Commission)
               </div>
               <p className="mt-3 font-mono text-3xl font-bold text-amber-700">{formatPrice(totalPlatformFees)}</p>
-              <p className="mt-1 text-xs text-slate-500 font-medium">Net platform commission retained</p>
+              <p className="mt-1 text-xs text-slate-500 font-medium">Net platform commission retained (25%)</p>
             </div>
           </div>
+
+          {/* Pending Escrow Banner */}
+          {pendingAdminEscrow > 0 && (
+            <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">Pending Handover Escrow (25% Commission Cut)</p>
+                <p className="font-mono text-2xl font-bold text-amber-900 mt-1">{formatPrice(pendingAdminEscrow)}</p>
+                <p className="text-xs text-amber-700 mt-0.5 font-medium">Customer funds in escrow awaiting Admin vehicle handover verification. Unlocks to Admin Wallet upon handover pass.</p>
+              </div>
+              <Clock className="h-10 w-10 text-amber-600/30" />
+            </div>
+          )}
 
           <div className="space-y-3">
             <h3 className="font-display font-bold text-slate-900 text-lg">Platform Transaction Audit Log</h3>

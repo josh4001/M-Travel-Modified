@@ -1328,7 +1328,7 @@ export const updateBookingStatus = (
         const vehiclesList = getStoredVehicles();
         const v = vehiclesList.find(x => x.id === ub.vehicleId);
         const hostId = ub.ownerId || v?.ownerId || 'a0000000-0000-0000-0000-000000000002';
-        const earned = (ub.totalAmount || 0) * 0.85;
+        const earned = (ub.totalAmount || 0) * 0.75;
         if (earned > 0 && hostId) {
           creditHostPayout(hostId, earned, ub.bookingRef || ub.id);
         }

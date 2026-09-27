@@ -22,6 +22,8 @@ import {
   isTripBooking,
   isValidUUID
 } from './bookingStore';
+import { creditHostPayout, creditAdminCommission } from './paymentService';
+import { sendNotification } from './notificationService';
 
 // ==========================================
 // 1. DATA MODELS & TYPES
@@ -195,7 +197,18 @@ export const getAllHandovers = (): VehicleHandover[] => {
 };
 
 export const getHandoverByBookingId = (bookingId: string): VehicleHandover | undefined => {
-  return getAllHandovers().find(h => h.bookingId === bookingId);
+  return getAllHandovers().find(h => h.bookingId === bookingId || (h.bookingRef && h.bookingRef === bookingId));
+};
+
+export const isBookingHandoverVerified = (booking: { id: string; bookingRef?: string; status?: string }): boolean => {
+  if (!booking) return false;
+  const s = (booking.status || '').toUpperCase();
+  if (['IN_PROGRESS', 'COMPLETED'].includes(s)) return true;
+  const handovers = getAllHandovers();
+  return handovers.some(h => 
+    h.bookingId === booking.id || 
+    (booking.bookingRef && (h.bookingRef === booking.bookingRef || h.bookingId === booking.bookingRef))
+  );
 };
 
 export const getAllInspections = (): VehicleInspection[] => {
@@ -417,10 +430,76 @@ export const executeHandover = async (
     console.warn('[executeHandover] logAuditEvent notice:', err);
   }
 
+  // 6. Release & Unlock Funds from Pending Escrow to Wallets (75% Host / 25% Admin)
+  try {
+    const allBookings = getStoredBookings();
+    const currentBooking = allBookings.find(
+      b => b.id === fullHandover.bookingId || b.bookingRef === fullHandover.bookingRef
+    );
+
+    if (currentBooking) {
+      const grossAmount = Number(currentBooking.totalAmount || 0);
+      if (grossAmount > 0) {
+        const hostCut = grossAmount * 0.75;
+        const adminCut = grossAmount * 0.25;
+
+        const allVehicles = getStoredVehicles();
+        const vehicle = allVehicles.find(v => v.id === currentBooking.vehicleId || v.id === fullHandover.vehicleId);
+        const hostId = currentBooking.ownerId || vehicle?.ownerId || 'a0000000-0000-0000-0000-000000000002';
+
+        // Unlock 75% to Host Wallet
+        await creditHostPayout(
+          hostId,
+          hostCut,
+          fullHandover.bookingRef,
+          `Trip net earnings (75%) unlocked for ${fullHandover.bookingRef} (Handover Verified)`
+        );
+
+        // Unlock 25% to Admin Wallet
+        await creditAdminCommission(
+          adminCut,
+          fullHandover.bookingRef,
+          `Platform commission (25%) unlocked for ${fullHandover.bookingRef} (Handover Verified)`
+        );
+
+        // Log audit event
+        logAuditEvent(
+          'FUNDS_UNLOCKED_HANDOVER',
+          'Wallet',
+          fullHandover.bookingRef,
+          `Vehicle handover verified. KES ${hostCut.toLocaleString()} (75%) unlocked to Fleet Host wallet and KES ${adminCut.toLocaleString()} (25%) unlocked to Admin wallet.`,
+          fullHandover.agencyAgentName || 'Admin',
+          'ADMIN'
+        );
+
+        // Dispatched notifications
+        sendNotification({
+          recipientId: hostId,
+          role: 'VEHICLE_OWNER',
+          type: 'TRIP_FUNDS_RELEASED',
+          title: `Trip Started: KES ${hostCut.toLocaleString()} Unlocked!`,
+          message: `Vehicle handover completed for ${fullHandover.bookingRef}! Your 75% host share (KES ${hostCut.toLocaleString()}) has been released from escrow into your Host Wallet.`,
+          link: '/dashboard/wallet'
+        });
+
+        sendNotification({
+          role: 'ADMIN',
+          type: 'COMMISSION_UNLOCKED',
+          title: `Platform Commission Released: KES ${adminCut.toLocaleString()}`,
+          message: `Handover verified for ${fullHandover.bookingRef}. 25% platform fee (KES ${adminCut.toLocaleString()}) credited to Admin Wallet.`,
+          link: '/dashboard/wallet'
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('[executeHandover] unlock funds notice:', err);
+  }
+
   try {
     window.dispatchEvent(new CustomEvent('mt_rental_handover', { detail: fullHandover }));
     window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: fullHandover }));
     window.dispatchEvent(new CustomEvent('mt_booking_status_changed', { detail: fullHandover }));
+    window.dispatchEvent(new CustomEvent('mt_wallet_updated', { detail: fullHandover }));
   } catch {}
 
   // Supabase background sync

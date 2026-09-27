@@ -273,8 +273,8 @@ export default function VehicleDetail() {
             role: 'VEHICLE_OWNER',
             type: 'BOOKING_CREATED_OWNER',
             title: `New Booking Request: ${targetVehicle.make} ${targetVehicle.model}`,
-            message: `Tourist ${user.firstName ?? 'Traveler'} booked your ${targetVehicle.make} ${targetVehicle.model} for ${days} day(s) (Ref: ${finalRef}).`,
-            link: '/dashboard/owner',
+            message: `Tourist ${user.firstName ?? 'Traveler'} booked your ${targetVehicle.make} ${targetVehicle.model} for ${days} day(s). Your 75% host share (KES ${(grandTotal * 0.75).toLocaleString()}) is placed in escrow awaiting Admin handover verification. (Ref: ${finalRef}).`,
+            link: '/dashboard/owner?tab=bookings',
           });
         }
 
@@ -291,9 +291,13 @@ export default function VehicleDetail() {
           role: 'ADMIN',
           type: 'BOOKING_CREATED_ADMIN',
           title: `System Alert: Booking ${finalRef} Created`,
-          message: `New booking for ${targetVehicle.make} ${targetVehicle.model} by ${user.email} (Amount: KES ${grandTotal.toLocaleString()}).`,
+          message: `New booking for ${targetVehicle.make} ${targetVehicle.model} by ${user.email} (KES ${grandTotal.toLocaleString()}). 25% platform commission (KES ${(grandTotal * 0.25).toLocaleString()}) placed in escrow awaiting handover.`,
           link: '/dashboard/admin',
         });
+
+        try {
+          window.dispatchEvent(new CustomEvent('mt_wallet_updated'));
+        } catch {}
       } catch {}
     } catch (err: any) {
       console.error('Error in handleBooking:', err);

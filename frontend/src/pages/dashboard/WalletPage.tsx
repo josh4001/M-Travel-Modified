@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import type { RootState } from '@/store';
 import { supabase } from '@/lib/supabaseClient';
 import { topUpWallet, withdrawFromWallet, getLocalWallet } from '@/lib/paymentService';
-import { ArrowDownLeft, ArrowUpRight, Wallet, TrendingUp, RefreshCw, Plus, Phone, Smartphone, Banknote, CheckCircle2, AlertCircle, ShieldAlert, Navigation } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Wallet, TrendingUp, RefreshCw, Plus, Phone, Smartphone, Banknote, CheckCircle2, AlertCircle, ShieldAlert, Navigation, Clock } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
 
@@ -20,17 +20,18 @@ interface Transaction {
 interface WalletData {
   id: string;
   balance: number;
+  pendingBalance?: number;
   currency: string;
   transactions: Transaction[];
 }
 
 const TYPE_ICONS: Record<string, { icon: any; label: string; color: string }> = {
-  TOPUP:          { icon: ArrowDownLeft, label: 'Top Up',         color: 'text-emerald-400' },
-  MPESA_TOPUP:    { icon: ArrowDownLeft, label: 'M-Pesa Top Up',  color: 'text-emerald-400' },
-  BOOKING_PAYOUT: { icon: ArrowDownLeft, label: 'Booking Payout', color: 'text-teal' },
-  REFUND:         { icon: ArrowDownLeft, label: 'Refund',          color: 'text-blue-400' },
-  WITHDRAWAL:     { icon: ArrowUpRight,  label: 'Withdrawal',      color: 'text-coral' },
-  COMMISSION:     { icon: ArrowUpRight,  label: 'Commission',      color: 'text-marigold' },
+  TOPUP:          { icon: ArrowDownLeft, label: 'Top Up',                    color: 'text-emerald-400' },
+  MPESA_TOPUP:    { icon: ArrowDownLeft, label: 'M-Pesa Top Up',             color: 'text-emerald-400' },
+  BOOKING_PAYOUT: { icon: ArrowDownLeft, label: 'Host Net Payout (75%)',     color: 'text-teal' },
+  COMMISSION:     { icon: ArrowDownLeft, label: 'Platform Commission (25%)', color: 'text-amber-400' },
+  REFUND:         { icon: ArrowDownLeft, label: 'Refund',                     color: 'text-blue-400' },
+  WITHDRAWAL:     { icon: ArrowUpRight,  label: 'Withdrawal',                 color: 'text-coral' },
 };
 
 export default function WalletPage() {
@@ -77,7 +78,7 @@ export default function WalletPage() {
   // Pre-seed wallet immediately for instant 0ms load time
   const [wallet, setWallet]   = useState<WalletData | null>(() => {
     if (user?.id) {
-      return getLocalWallet(user.id, isCarOwner, user?.email);
+      return getLocalWallet(user.id, isCarOwner, user?.email, isAdmin);
     }
     return null;
   });
@@ -92,7 +93,7 @@ export default function WalletPage() {
   const fetchWallet = async () => {
     if (!user?.id) return;
     // 1. Immediately ensure local wallet is active
-    const localW = getLocalWallet(user.id, isCarOwner, user?.email);
+    const localW = getLocalWallet(user.id, isCarOwner, user?.email, isAdmin);
     setWallet(localW);
 
     // 2. Fetch Supabase remote wallet & transactions in background with 1.5s timeout
@@ -124,7 +125,8 @@ export default function WalletPage() {
 
         setWallet({
           id: w.id,
-          balance: isCarOwner ? localW.balance : Number(w.balance ?? localW.balance),
+          balance: isCarOwner || isAdmin ? localW.balance : Number(w.balance ?? localW.balance),
+          pendingBalance: localW.pendingBalance,
           currency: w.currency ?? 'KES',
           transactions: (txs && txs.length > 0) ? txs : localW.transactions,
         });
@@ -225,10 +227,31 @@ export default function WalletPage() {
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-mtravel-burgundy via-mtravel-darkBurgundy to-mtravel-obsidian border border-mtravel-gold/30 p-8 shadow-xl">
             <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-mtravel-gold/10 blur-3xl" />
             <div className="relative">
-              <p className="text-sm text-amber-200 font-semibold">Available Balance</p>
-              <p className="mt-2 font-mono text-5xl font-bold text-amber-400">
-                {formatPrice(wallet.balance)}
-              </p>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm text-amber-200 font-semibold">Available Withdrawable Balance</p>
+                  <p className="mt-2 font-mono text-5xl font-bold text-amber-400">
+                    {formatPrice(wallet.balance)}
+                  </p>
+                  <p className="text-xs text-amber-200/80 mt-1 font-medium">
+                    {isCarOwner ? '75% Host Net Share (Unlocked from verified handovers)' : isAdmin ? '25% Platform Commission (Unlocked from verified handovers)' : 'Ready for direct M-Pesa withdrawal'}
+                  </p>
+                </div>
+
+                {(wallet.pendingBalance || 0) > 0 && (
+                  <div className="rounded-2xl border border-amber-400/40 bg-amber-500/15 backdrop-blur-md px-4 py-3 text-right max-w-sm">
+                    <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5 justify-end">
+                      <Clock className="h-3.5 w-3.5 text-amber-300 animate-pulse" /> Pending Handover Escrow ({isCarOwner ? '75% Cut' : isAdmin ? '25% Cut' : 'Escrow'})
+                    </span>
+                    <p className="font-mono text-2xl font-bold text-amber-200 mt-1">
+                      {formatPrice(wallet.pendingBalance || 0)}
+                    </p>
+                    <p className="text-[10px] text-amber-100/80 font-medium mt-1 leading-relaxed">
+                      Paid via M-Pesa & held in escrow. Released to Available Balance once the traveler passes Admin vehicle handover verification.
+                    </p>
+                  </div>
+                )}
+              </div>
               <div className="mt-6 space-y-4">
                 {/* M-PESA TOP UP — REMOVED FOR CAR OWNERS & ADMIN ACCOUNTS PER REQUIREMENT */}
                 {!isCarOwnerOrAdmin && (
@@ -316,14 +339,14 @@ export default function WalletPage() {
             {[
               {
                 label: 'Total In',
-                value: wallet.transactions.filter(t => ['TOPUP','BOOKING_PAYOUT','REFUND'].includes(t.type) && t.status === 'COMPLETED').reduce((s, t) => s + Number(t.amount), 0),
+                value: wallet.transactions.filter(t => ['TOPUP','MPESA_TOPUP','BOOKING_PAYOUT','COMMISSION','REFUND'].includes(t.type) && t.status === 'COMPLETED').reduce((s, t) => s + Number(t.amount), 0),
                 color: 'text-emerald-700',
                 icon: ArrowDownLeft,
                 bg: 'bg-emerald-50',
               },
               {
                 label: 'Total Out',
-                value: wallet.transactions.filter(t => ['WITHDRAWAL','COMMISSION'].includes(t.type) && t.status === 'COMPLETED').reduce((s, t) => s + Number(t.amount), 0),
+                value: wallet.transactions.filter(t => ['WITHDRAWAL'].includes(t.type) && t.status === 'COMPLETED').reduce((s, t) => s + Number(t.amount), 0),
                 color: 'text-rose-700',
                 icon: ArrowUpRight,
                 bg: 'bg-rose-50',
