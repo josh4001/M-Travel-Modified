@@ -487,10 +487,48 @@ export const getStoredBookings = (): StoredBooking[] => {
       if (isDemoVehicle(b)) return false;
       return true;
     });
-    if (sanitized.length !== parsed.length) {
-      localStorage.setItem(BOOKINGS_KEY, JSON.stringify(sanitized));
+
+    // Deduplicate by normalized bookingRef (or id) to eliminate duplicate records that inflate escrow/revenue
+    const STATUS_PRIORITY: Record<string, number> = {
+      'COMPLETED': 5,
+      'IN_PROGRESS': 4,
+      'PAID': 3,
+      'CONFIRMED': 3,
+      'ACCEPTED': 2,
+      'PENDING': 1,
+      'CANCELLED': 0,
+      'REJECTED': 0
+    };
+    const deduplicatedMap = new Map<string, StoredBooking>();
+    for (const b of sanitized) {
+      const cleanRef = (b.bookingRef || '').trim().toLowerCase();
+      const cleanId = (b.id || '').trim().toLowerCase();
+      const key = cleanRef || cleanId;
+      if (!key) continue;
+
+      if (!deduplicatedMap.has(key)) {
+        deduplicatedMap.set(key, b);
+      } else {
+        const existing = deduplicatedMap.get(key)!;
+        const existingPriority = STATUS_PRIORITY[(existing.status || '').toUpperCase()] ?? 1;
+        const newPriority = STATUS_PRIORITY[(b.status || '').toUpperCase()] ?? 1;
+        if (newPriority >= existingPriority) {
+          deduplicatedMap.set(key, {
+            ...existing,
+            ...b,
+            paymentStatus: (b.paymentStatus === 'PAID' || existing.paymentStatus === 'PAID') ? 'PAID' : (b.paymentStatus || existing.paymentStatus),
+          });
+        }
+      }
     }
-    return sanitized;
+    const result = Array.from(deduplicatedMap.values());
+
+    if (result.length !== parsed.length) {
+      try {
+        localStorage.setItem(BOOKINGS_KEY, JSON.stringify(result));
+      } catch {}
+    }
+    return result;
   } catch {
     return [];
   }
@@ -1338,9 +1376,14 @@ export const updateBookingStatus = (
   const cleanKey = bookingIdOrRef.trim().toLowerCase();
 
   const updated = bookings.map((b) => {
-    const matchId = b.id && b.id.trim().toLowerCase() === cleanKey;
-    const matchRef = b.bookingRef && b.bookingRef.trim().toLowerCase() === cleanKey;
-    if (matchId || matchRef) {
+    const bId = (b.id || '').trim().toLowerCase();
+    const bRef = (b.bookingRef || '').trim().toLowerCase();
+    const matchId = bId === cleanKey;
+    const matchRef = bRef === cleanKey;
+    const matchPartial = (bRef && cleanKey.length >= 6 && (bRef.includes(cleanKey) || cleanKey.includes(bRef))) ||
+                         (bId && cleanKey.length >= 8 && (bId.includes(cleanKey) || cleanKey.includes(bId)));
+
+    if (matchId || matchRef || matchPartial) {
       updatedBooking = {
         ...b,
         status,

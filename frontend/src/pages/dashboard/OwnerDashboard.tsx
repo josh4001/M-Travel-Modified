@@ -16,6 +16,7 @@ import {
   deleteVehicle,
   generateSampleBookingForVehicle,
   getVehicleHireStatus,
+  isTripBooking,
   type StoredBooking, type StoredVehicle, type VehicleDocument
 } from '@/lib/bookingStore';
 import { getLocalWallet } from '@/lib/paymentService';
@@ -319,15 +320,21 @@ export default function OwnerDashboard() {
   }, [user?.id, user?.email]);
 
   const verifiedBookings = bookings.filter(b => 
-    isBookingHandoverVerified(b) && (b.paymentStatus === 'PAID' || ['IN_PROGRESS', 'COMPLETED'].includes(b.status))
+    !isTripBooking(b) &&
+    !['CANCELLED', 'REJECTED'].includes((b.status || '').toUpperCase()) &&
+    isBookingHandoverVerified(b) && 
+    (b.paymentStatus === 'PAID' || ['IN_PROGRESS', 'COMPLETED', 'CONFIRMED', 'PAID'].includes(b.status))
   );
 
   const pendingBookings = bookings.filter(b => 
-    !isBookingHandoverVerified(b) && (b.paymentStatus === 'PAID' || ['CONFIRMED', 'PAID', 'ACCEPTED'].includes(b.status))
+    !isTripBooking(b) &&
+    !['CANCELLED', 'REJECTED'].includes((b.status || '').toUpperCase()) &&
+    !isBookingHandoverVerified(b) && 
+    (b.paymentStatus === 'PAID' || ['CONFIRMED', 'PAID', 'ACCEPTED'].includes(b.status))
   );
 
   const totalEarnings = bookings
-    .filter(b => b.paymentStatus === 'PAID' || ['COMPLETED', 'CONFIRMED', 'IN_PROGRESS', 'ACCEPTED'].includes(b.status))
+    .filter(b => !isTripBooking(b) && !['CANCELLED', 'REJECTED'].includes((b.status || '').toUpperCase()) && (b.paymentStatus === 'PAID' || ['COMPLETED', 'CONFIRMED', 'IN_PROGRESS', 'ACCEPTED'].includes(b.status)))
     .reduce((s, b) => s + Number(b.totalAmount || 0), 0);
 
   const platformFee = totalEarnings * 0.25; // 25% Platform Commission

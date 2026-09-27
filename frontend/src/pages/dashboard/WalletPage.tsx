@@ -29,7 +29,7 @@ const TYPE_ICONS: Record<string, { icon: any; label: string; color: string }> = 
   TOPUP:          { icon: ArrowDownLeft, label: 'Top Up',                    color: 'text-emerald-400' },
   MPESA_TOPUP:    { icon: ArrowDownLeft, label: 'M-Pesa Top Up',             color: 'text-emerald-400' },
   BOOKING_PAYOUT: { icon: ArrowDownLeft, label: 'Host Net Payout (75%)',     color: 'text-teal' },
-  COMMISSION:     { icon: ArrowDownLeft, label: 'Platform Commission (25%)', color: 'text-amber-400' },
+  COMMISSION:     { icon: ArrowDownLeft, label: 'Platform Commission (25%)', color: 'text-emerald-600' },
   REFUND:         { icon: ArrowDownLeft, label: 'Refund',                     color: 'text-blue-400' },
   WITHDRAWAL:     { icon: ArrowUpRight,  label: 'Withdrawal',                 color: 'text-coral' },
 };
@@ -123,12 +123,21 @@ export default function WalletPage() {
 
         const { data: txs } = await Promise.race([txQuery, txTimeoutPromise]) as any;
 
+        const remoteTxs = Array.isArray(txs) ? txs : [];
+        const localTxs = Array.isArray(localW.transactions) ? localW.transactions : [];
+        const txMap = new Map();
+        for (const t of [...localTxs, ...remoteTxs]) {
+          const key = t.reference || t.id;
+          if (!txMap.has(key)) txMap.set(key, t);
+        }
+        const mergedTransactions = Array.from(txMap.values());
+
         setWallet({
           id: w.id,
           balance: isCarOwner || isAdmin ? localW.balance : Number(w.balance ?? localW.balance),
           pendingBalance: localW.pendingBalance,
           currency: w.currency ?? 'KES',
-          transactions: (txs && txs.length > 0) ? txs : localW.transactions,
+          transactions: mergedTransactions.length > 0 ? mergedTransactions : localW.transactions,
         });
       }
     } catch (err) {
@@ -385,7 +394,7 @@ export default function WalletPage() {
               <div className="space-y-2">
                 {wallet.transactions.map(t => {
                   const cfg = TYPE_ICONS[t.type] ?? { icon: ArrowDownLeft, label: t.type, color: 'text-slate-800' };
-                  const isIn = ['TOPUP', 'BOOKING_PAYOUT', 'REFUND'].includes(t.type);
+                  const isIn = ['TOPUP', 'MPESA_TOPUP', 'BOOKING_PAYOUT', 'COMMISSION', 'REFUND'].includes(t.type);
                   return (
                     <div key={t.id} className="rounded-2xl bg-white border border-slate-200/90 flex items-center justify-between gap-4 p-4 shadow-sm hover:shadow-md transition">
                       <div className="flex items-center gap-3">

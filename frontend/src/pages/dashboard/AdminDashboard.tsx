@@ -586,12 +586,17 @@ export default function AdminDashboard() {
   const pendingVehicles = vehicles.filter(v => v.status === 'PENDING_APPROVAL');
 
   const totalRevenue = bookings
-    .filter(b => ['COMPLETED', 'CONFIRMED', 'PAID', 'IN_PROGRESS', 'ACCEPTED'].includes(b.status) || b.paymentStatus === 'PAID')
+    .filter(b => !['CANCELLED', 'REJECTED'].includes((b.status || '').toUpperCase()) && (['COMPLETED', 'CONFIRMED', 'PAID', 'IN_PROGRESS', 'ACCEPTED'].includes(b.status) || b.paymentStatus === 'PAID'))
     .reduce((s, b) => s + Number(b.totalAmount || 0), 0);
 
   const totalPlatformFees = totalRevenue * 0.25; // 25% Platform Commission
 
-  const pendingBookings = bookings.filter(b => !isBookingHandoverVerified(b) && (b.paymentStatus === 'PAID' || ['CONFIRMED', 'PAID', 'ACCEPTED'].includes(b.status)));
+  const pendingBookings = bookings.filter(b => 
+    !isTripBooking(b) && 
+    !['CANCELLED', 'REJECTED'].includes((b.status || '').toUpperCase()) && 
+    !isBookingHandoverVerified(b) && 
+    (b.paymentStatus === 'PAID' || ['CONFIRMED', 'PAID', 'ACCEPTED'].includes(b.status))
+  );
   const pendingAdminEscrow = pendingBookings.reduce((s, b) => s + Number(b.totalAmount || 0), 0) * 0.25;
 
   const totalOwnerWithdrawals = transactions
@@ -1511,7 +1516,7 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {transactions.map(t => {
-                    const isIn = ['TOPUP', 'MPESA_TOPUP', 'BOOKING_PAYOUT', 'REFUND'].includes(t.type);
+                    const isIn = ['TOPUP', 'MPESA_TOPUP', 'BOOKING_PAYOUT', 'COMMISSION', 'REFUND'].includes(t.type);
                     const userName = (t.wallets as any)?.users?.first_name
                       ? `${(t.wallets as any).users.first_name} ${(t.wallets as any).users.last_name ?? ''}`
                       : 'System Account';
