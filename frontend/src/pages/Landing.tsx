@@ -63,9 +63,6 @@ export default function Landing() {
                 <span className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-800 shadow-sm">
                   <Crown className="h-3.5 w-3.5 text-amber-600" /> East Africa's Premier Travel Marketplace
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs">
-                  <span>✨</span> Official Launch Preview
-                </span>
               </div>
 
               <h1 className="font-serif text-5xl font-bold leading-[1.06] tracking-tight md:text-7xl text-slate-900">
