@@ -773,7 +773,7 @@ export default function Catalogue() {
               vehicleModel: selectedItem.badge,
               vehicleName: selectedItem.title,
               vehicleImage: selectedItem.imageUrl,
-              ownerId: selectedItem.ownerId || 'owner-safari-1',
+              ownerId: selectedItem.ownerId || 'a0000000-0000-0000-0000-000000000002',
               driverName: 'Verified Guide / Driver',
               touristId: user?.id || 'guest-tourist',
               touristEmail: user?.email,

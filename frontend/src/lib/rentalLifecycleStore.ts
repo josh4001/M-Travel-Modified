@@ -444,8 +444,11 @@ export const executeHandover = async (
         const adminCut = grossAmount * 0.25;
 
         const allVehicles = getStoredVehicles();
-        const vehicle = allVehicles.find(v => v.id === currentBooking.vehicleId || v.id === fullHandover.vehicleId);
-        const hostId = currentBooking.ownerId || vehicle?.ownerId || 'a0000000-0000-0000-0000-000000000002';
+        const v = allVehicles.find(item => item.id === currentBooking.vehicleId);
+        let hostId = currentBooking.ownerId || v?.ownerId || 'a0000000-0000-0000-0000-000000000002';
+        if (hostId === 'owner-safari-1' || hostId === 'user-host-1' || !isValidUUID(hostId)) {
+          hostId = 'a0000000-0000-0000-0000-000000000002';
+        }
 
         // Unlock 75% to Host Wallet
         await creditHostPayout(

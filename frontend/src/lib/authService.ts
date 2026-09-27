@@ -272,11 +272,14 @@ function saveLocalAccount(acc: LocalAccount) {
         await supabase.from('users').upsert(payload, { onConflict: 'email' });
       }
 
-      await supabase.from('wallets').upsert({
-        user_id: accountId,
-        balance: 0,
-        currency: 'KES',
-      }, { onConflict: 'user_id' });
+      const { data: existingRegW } = await supabase.from('wallets').select('id').eq('user_id', accountId).maybeSingle();
+      if (!existingRegW) {
+        await supabase.from('wallets').insert({
+          user_id: accountId,
+          balance: 0,
+          currency: 'KES',
+        });
+      }
 
       logAuditEvent(
         'USER_REGISTERED',
@@ -322,11 +325,14 @@ export async function syncDefaultUsersToSupabase() {
         await supabase.from('users').upsert(payload, { onConflict: 'email' });
       }
 
-      await supabase.from('wallets').upsert({
-        user_id: validId,
-        balance: 0,
-        currency: 'KES',
-      }, { onConflict: 'user_id' });
+      const { data: existingW } = await supabase.from('wallets').select('id').eq('user_id', validId).maybeSingle();
+      if (!existingW) {
+        await supabase.from('wallets').insert({
+          user_id: validId,
+          balance: 0,
+          currency: 'KES',
+        });
+      }
     }
   } catch (err) {
     console.warn('syncDefaultUsersToSupabase notice:', err);

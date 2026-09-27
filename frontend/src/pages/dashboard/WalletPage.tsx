@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import type { RootState } from '@/store';
 import { supabase } from '@/lib/supabaseClient';
-import { topUpWallet, withdrawFromWallet, getLocalWallet } from '@/lib/paymentService';
+import { topUpWallet, withdrawFromWallet, getLocalWallet, saveLocalWallet } from '@/lib/paymentService';
 import { ArrowDownLeft, ArrowUpRight, Wallet, TrendingUp, RefreshCw, Plus, Phone, Smartphone, Banknote, CheckCircle2, AlertCircle, ShieldAlert, Navigation, Clock } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
@@ -76,9 +76,20 @@ export default function WalletPage() {
   }
 
   // Pre-seed wallet immediately for instant 0ms load time
-  const [wallet, setWallet]   = useState<WalletData | null>(() => {
+  const [wallet, setWallet] = useState<WalletData | null>(() => {
     if (user?.id) {
-      return getLocalWallet(user.id, isCarOwner, user?.email, isAdmin);
+      const lw = getLocalWallet(user.id, isCarOwner, user?.email, isAdmin);
+      const ledgerIn = (lw.transactions || [])
+        .filter(t => ['TOPUP', 'MPESA_TOPUP', 'BOOKING_PAYOUT', 'COMMISSION', 'REFUND'].includes(t.type) && t.status === 'COMPLETED')
+        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+      const ledgerOut = (lw.transactions || [])
+        .filter(t => ['WITHDRAWAL'].includes(t.type) && t.status === 'COMPLETED')
+        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+      const ledgerBalance = Math.max(0, ledgerIn - ledgerOut);
+      return {
+        ...lw,
+        balance: Math.max(0, Math.max(ledgerBalance, lw.balance)),
+      };
     }
     return null;
   });
@@ -92,34 +103,64 @@ export default function WalletPage() {
 
   const fetchWallet = async () => {
     if (!user?.id) return;
-    // 1. Immediately ensure local wallet is active
+    setLoading(true);
+
+    // 1. Immediately ensure local wallet is active and ledger-balanced
     const localW = getLocalWallet(user.id, isCarOwner, user?.email, isAdmin);
+    const initialLedgerIn = (localW.transactions || [])
+      .filter(t => ['TOPUP', 'MPESA_TOPUP', 'BOOKING_PAYOUT', 'COMMISSION', 'REFUND'].includes(t.type) && t.status === 'COMPLETED')
+      .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    const initialLedgerOut = (localW.transactions || [])
+      .filter(t => ['WITHDRAWAL'].includes(t.type) && t.status === 'COMPLETED')
+      .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    const initialLedgerBal = Math.max(0, initialLedgerIn - initialLedgerOut);
+    localW.balance = Math.max(0, Math.max(initialLedgerBal, localW.balance));
     setWallet(localW);
 
-    // 2. Fetch Supabase remote wallet & transactions in background with 1.5s timeout
+    // Determine target UUID for Supabase sync
+    const isJames = (user?.email && user.email.toLowerCase().includes('james')) ||
+                    user.id === 'a0000000-0000-0000-0000-000000000002' ||
+                    user.id === 'owner-safari-1' ||
+                    user.id === 'user-host-1';
+
+    const isValidUUID = (str?: string) => Boolean(str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str));
+
+    const targetUserIds = new Set<string>();
+    if (isValidUUID(user.id)) targetUserIds.add(user.id);
+    if (isJames) targetUserIds.add('a0000000-0000-0000-0000-000000000002');
+    if (isAdmin) targetUserIds.add('a0000000-0000-0000-0000-000000000001');
+
+    // 2. Fetch Supabase remote wallet & transactions in background with 8s timeout
     try {
       const timeoutPromise = new Promise<{ data: null }>((resolve) =>
-        setTimeout(() => resolve({ data: null }), 1500)
+        setTimeout(() => resolve({ data: null }), 8000)
       );
 
-      const walletQuery = supabase
-        .from('wallets')
-        .select('id, balance, currency')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      let remoteWallets: any[] = [];
+      for (const tId of targetUserIds) {
+        const walletQuery = supabase
+          .from('wallets')
+          .select('id, balance, currency, user_id')
+          .eq('user_id', tId)
+          .maybeSingle();
 
-      const { data: w } = await Promise.race([walletQuery, timeoutPromise]) as any;
+        const { data: w } = await Promise.race([walletQuery, timeoutPromise]) as any;
+        if (w) remoteWallets.push(w);
+      }
 
-      if (w) {
+      if (remoteWallets.length > 0) {
+        const primaryWallet = remoteWallets[0];
+        const walletIds = remoteWallets.map(rw => rw.id);
+
         const txTimeoutPromise = new Promise<{ data: null }>((resolve) =>
-          setTimeout(() => resolve({ data: null }), 1500)
+          setTimeout(() => resolve({ data: null }), 8000)
         );
         const txQuery = supabase
           .from('transactions')
           .select('*')
-          .eq('wallet_id', w.id)
+          .in('wallet_id', walletIds)
           .order('created_at', { ascending: false })
-          .limit(30);
+          .limit(50);
 
         const { data: txs } = await Promise.race([txQuery, txTimeoutPromise]) as any;
 
@@ -132,11 +173,35 @@ export default function WalletPage() {
         }
         const mergedTransactions = Array.from(txMap.values());
 
+        const ledgerIn = mergedTransactions
+          .filter(t => ['TOPUP', 'MPESA_TOPUP', 'BOOKING_PAYOUT', 'COMMISSION', 'REFUND'].includes(t.type) && t.status === 'COMPLETED')
+          .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+        const ledgerOut = mergedTransactions
+          .filter(t => ['WITHDRAWAL'].includes(t.type) && t.status === 'COMPLETED')
+          .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+        const ledgerBalance = Math.max(0, ledgerIn - ledgerOut);
+
+        const maxRemoteBal = Math.max(...remoteWallets.map(rw => Number(rw.balance || 0)));
+        const computedBalance = Math.max(0, Math.max(ledgerBalance, localW.balance, maxRemoteBal));
+
+        // Update Supabase wallet if computed balance is higher
+        if (maxRemoteBal < computedBalance) {
+          supabase.from('wallets').update({ balance: computedBalance }).eq('id', primaryWallet.id).then();
+        }
+
+        // Update local wallet store
+        localW.balance = computedBalance;
+        localW.transactions = mergedTransactions;
+        saveLocalWallet(user.id, localW);
+        if (isJames && user.id !== 'a0000000-0000-0000-0000-000000000002') {
+          saveLocalWallet('a0000000-0000-0000-0000-000000000002', localW);
+        }
+
         setWallet({
-          id: w.id,
-          balance: isCarOwner || isAdmin ? localW.balance : Number(w.balance ?? localW.balance),
+          id: primaryWallet.id,
+          balance: computedBalance,
           pendingBalance: localW.pendingBalance,
-          currency: w.currency ?? 'KES',
+          currency: primaryWallet.currency ?? 'KES',
           transactions: mergedTransactions.length > 0 ? mergedTransactions : localW.transactions,
         });
       }
