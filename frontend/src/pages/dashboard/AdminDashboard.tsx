@@ -583,7 +583,9 @@ export default function AdminDashboard() {
     setDestinationsList(getStoredDestinations());
   };
 
-  const pendingVehicles = vehicles.filter(v => v.status === 'PENDING_APPROVAL');
+  const pendingVehicles = vehicles
+    .filter(v => v.status === 'PENDING_APPROVAL')
+    .filter((v, idx, arr) => arr.findIndex(other => other.id === v.id || (v.plateNumber && other.plateNumber && v.plateNumber.trim().toUpperCase() === other.plateNumber.trim().toUpperCase())) === idx);
 
   const totalRevenue = bookings
     .filter(b => !['CANCELLED', 'REJECTED'].includes((b.status || '').toUpperCase()) && (['COMPLETED', 'CONFIRMED', 'PAID', 'IN_PROGRESS', 'ACCEPTED'].includes(b.status) || b.paymentStatus === 'PAID'))
@@ -1374,7 +1376,7 @@ export default function AdminDashboard() {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="relative h-36 rounded-xl overflow-hidden bg-slate-900 border border-slate-200">
                       <img
-                        src={v.images[0] || '/vehicles/prado-front.jpg'}
+                        src={(v.images[0] && !v.images[0].includes('prado')) ? v.images[0] : (isBusVehicle(v) ? '/vehicles/isuzu-coach-front.jpg' : (v.images[0] || '/vehicles/prado-front.jpg'))}
                         alt="Front View"
                         className="h-full w-full object-cover"
                       />
@@ -1384,7 +1386,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="relative h-36 rounded-xl overflow-hidden bg-slate-900 border border-slate-200">
                       <img
-                        src={v.images[1] || v.images[0] || '/vehicles/prado-rear.jpg'}
+                        src={(v.images[1] && !v.images[1].includes('prado')) ? v.images[1] : (isBusVehicle(v) ? '/vehicles/isuzu-coach-rear.jpg' : (v.images[1] || v.images[0] || '/vehicles/prado-rear.jpg'))}
                         alt="Rear View"
                         className="h-full w-full object-cover"
                       />
@@ -1718,7 +1720,7 @@ export default function AdminDashboard() {
 
                     <div className="relative h-36 rounded-xl overflow-hidden bg-slate-900">
                       <img
-                        src={v.images[0] || '/vehicles/prado-front.jpg'}
+                        src={(v.images[0] && !v.images[0].includes('prado')) ? v.images[0] : (isBusVehicle(v) ? '/vehicles/isuzu-coach-front.jpg' : (v.images[0] || '/vehicles/prado-front.jpg'))}
                         alt={`${v.make} ${v.model}`}
                         className="h-full w-full object-cover"
                       />
@@ -2732,7 +2734,7 @@ export default function AdminDashboard() {
             <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 flex items-center gap-3">
               <div className="h-14 w-20 rounded-lg overflow-hidden bg-slate-200 shrink-0">
                 <img
-                  src={vehicleToDelete.images[0] || '/vehicles/prado-front.jpg'}
+                  src={(vehicleToDelete.images[0] && !vehicleToDelete.images[0].includes('prado')) ? vehicleToDelete.images[0] : (isBusVehicle(vehicleToDelete) ? '/vehicles/isuzu-coach-front.jpg' : (vehicleToDelete.images[0] || '/vehicles/prado-front.jpg'))}
                   alt={vehicleToDelete.make}
                   className="h-full w-full object-cover"
                 />

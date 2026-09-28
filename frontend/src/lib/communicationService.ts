@@ -160,7 +160,8 @@ export async function sendHostVehicleApprovedEmail(params: {
   const subject = `✨ Your ${vehicle.make} ${vehicle.model} is Approved & Live on M-TRAVEL Fleet`;
   const previewText = `Congratulations ${hostName}! Your ${vehicle.make} ${vehicle.model} has passed inspection and is now live for guest bookings.`;
 
-  const vehicleImage = vehicle.images?.[0] || '/vehicles/prado-front.jpg';
+  const isBus = (vehicle.type || '').toUpperCase() === 'BUS' || (vehicle.model || '').toLowerCase().includes('bus') || (vehicle.model || '').toLowerCase().includes('coach') || Number(vehicle.seats) >= 20;
+  const vehicleImage = (vehicle.images?.[0] && !vehicle.images[0].includes('prado')) ? vehicle.images[0] : (isBus ? '/vehicles/isuzu-coach-front.jpg' : (vehicle.images?.[0] || '/vehicles/prado-front.jpg'));
   const dailyRate = Number(vehicle.pricePerDay || 15000);
 
   const htmlContent = `

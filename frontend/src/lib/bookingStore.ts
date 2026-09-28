@@ -151,6 +151,7 @@ const DELETED_VEHICLES_KEY = 'mt_deleted_vehicle_ids';
 const DEFAULT_DELETED_VEHICLE_IDS = [
   'a5ddaf53-f49a-488b-87f1-e46f4fc1e6e4',
   '9beb7a95-89a5-4475-99fe-56b66ac65f8c',
+  '2d6614f3-9e8f-43af-826f-c89228c935c0', // duplicate vehicle submission
 ];
 
 export const getDeletedVehicleIds = (): Set<string> => {
@@ -289,7 +290,15 @@ export const isBusVehicle = (v: any): boolean => {
   const modelStr = (v.model || '').toLowerCase().trim();
   const nameStr = `${makeStr} ${modelStr}`;
   if (typeStr === 'BUS' || typeStr === 'MINIBUS' || typeStr === 'COASTER') return true;
-  if (nameStr.includes('coaster') || nameStr.includes('nqr bus') || nameStr.includes(' bus') || nameStr.startsWith('bus ')) return true;
+  if (
+    nameStr.includes('coaster') ||
+    nameStr.includes('coach') ||
+    nameStr.includes('nqr bus') ||
+    nameStr.includes(' bus') ||
+    nameStr.startsWith('bus ') ||
+    (v.id === '48d4aa37-a383-40cf-9b17-19548457dd95') ||
+    Number(v.seats) >= 20
+  ) return true;
   return false;
 };
 
@@ -314,6 +323,7 @@ const DEMO_VEHICLE_IDS = new Set([
   '35d3ca61-971e-434c-ae2f-cb6601fd7376',
   'c53e7096-a526-4101-8c8c-10838d828545',
   'e3aedb74-5c0a-4932-b33b-94430fe5edf1',
+  '2d6614f3-9e8f-43af-826f-c89228c935c0', // duplicate vehicle submission
   'v-safari-1',
   'v-alphard-2',
   'v-rav4-1',
@@ -423,9 +433,12 @@ export const syncLocalStoreToSupabase = async (): Promise<void> => {
 
       if (!vErr && Array.isArray(v.images) && v.images.length > 0) {
         await supabase.from('vehicle_images').delete().eq('vehicle_id', vId);
+        const isBus = isBusVehicle(v);
         const imgRows = v.images.slice(0, 5).map((url, idx) => ({
           vehicle_id: vId,
-          url: url.startsWith('data:') ? '/vehicles/prado-front.jpg' : url,
+          url: url.startsWith('data:')
+            ? (isBus ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : (idx === 0 ? '/vehicles/prado-front.jpg' : '/vehicles/prado-rear.jpg'))
+            : (isBus && url.includes('prado') ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : url),
           is_primary: idx === 0,
         }));
         await supabase.from('vehicle_images').insert(imgRows);
@@ -669,8 +682,20 @@ export const getStoredVehicles = (): StoredVehicle[] => {
         p.ownerId &&
         p.createdAt
       ) {
+        const isBus = isBusVehicle(p) || p.model?.toLowerCase().includes('coach') || p.model?.toLowerCase().includes('bus') || p.id === '48d4aa37-a383-40cf-9b17-19548457dd95';
+        let images = Array.isArray(p.images) ? p.images : [];
+        if (isBus) {
+          images = images.map((img: string, idx: number) =>
+            (!img || img.includes('prado')) ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : img
+          );
+          if (images.length === 0) {
+            images = ['/vehicles/isuzu-coach-front.jpg', '/vehicles/isuzu-coach-rear.jpg'];
+          }
+        }
         valid.push({
           ...p,
+          type: (isBus ? 'BUS' : p.type).toUpperCase(),
+          images,
           documents: ensureVehicleComplianceDocs(p.id, p),
           isLive: overrides[p.id] !== undefined ? overrides[p.id] : p.isLive !== false,
         });
@@ -739,8 +764,9 @@ export const syncBookingsFromSupabase = async (): Promise<StoredBooking[]> => {
         if (!vehicleImage && Array.isArray(vehicle.vehicle_images) && vehicle.vehicle_images.length > 0) {
           vehicleImage = vehicle.vehicle_images[0]?.url;
         }
-        if (!vehicleImage) {
-          vehicleImage = '/vehicles/prado-front.jpg';
+        const isBus = isBusVehicle(vehicle) || vehicle.model?.toLowerCase().includes('coach') || vehicle.model?.toLowerCase().includes('bus') || vehicle.id === '48d4aa37-a383-40cf-9b17-19548457dd95';
+        if (!vehicleImage || (isBus && vehicleImage.includes('prado'))) {
+          vehicleImage = isBus ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/prado-front.jpg';
         }
 
         return {
@@ -889,9 +915,20 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
           const ownerEmail = owner.email || existing?.ownerEmail || (ownerName.toLowerCase().includes('james') ? 'james.mwangi@mtravel.co.ke' : undefined);
           const ownerId = existing?.ownerId || v.owner_id || 'a0000000-0000-0000-0000-000000000002';
 
-          const images: string[] = (Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0)
+          const isBus = isBusVehicle(v) || (v.model?.toLowerCase().includes('bus') || v.model?.toLowerCase().includes('coach') || v.make?.toLowerCase().includes('bus') || Number(v.seats) >= 20 || v.id === '48d4aa37-a383-40cf-9b17-19548457dd95');
+
+          let images: string[] = (Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0)
             ? v.vehicle_images.map((img: any) => img.url).filter(Boolean)
-            : (existing?.images && existing.images.length > 0 ? existing.images : [getVehicleFallbackImage(v.make, v.model, v.type, v.id)]);
+            : (existing?.images && existing.images.length > 0 ? existing.images : [getVehicleFallbackImage(v.make, v.model, isBus ? 'BUS' : v.type, v.id)]);
+
+          if (isBus) {
+            images = images.map((img: string, idx: number) =>
+              (!img || img.includes('prado')) ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : img
+            );
+            if (images.length === 0) {
+              images = ['/vehicles/isuzu-coach-front.jpg', '/vehicles/isuzu-coach-rear.jpg'];
+            }
+          }
 
           const isApprovedInDb = Boolean(v.is_approved);
           const adminLiveOverride = overrides[v.id];
@@ -899,7 +936,7 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
             ? adminLiveOverride
             : (isApprovedInDb && v.is_available !== false);
 
-          const inferredType = existing?.type || (v.model?.toLowerCase().includes('bus') || v.make?.toLowerCase().includes('bus') ? 'BUS' : v.type);
+          const inferredType = isBus ? 'BUS' : (existing?.type || v.type);
 
           return {
             id: v.id,
@@ -947,6 +984,18 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
           localStorage.setItem(VEHICLES_KEY, nextRaw);
         } catch (e) {
           console.warn('LocalStorage quota warning in syncVehiclesFromSupabase:', e);
+          const sanitized = merged.map(v => {
+            const isBus = isBusVehicle(v);
+            return {
+              ...v,
+              images: v.images.map((img, i) => img.startsWith('data:')
+                ? (isBus ? (i === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : (i === 0 ? '/vehicles/prado-front.jpg' : '/vehicles/prado-rear.jpg'))
+                : img)
+            };
+          });
+          try {
+            localStorage.setItem(VEHICLES_KEY, JSON.stringify(sanitized));
+          } catch {}
         }
         window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: merged }));
       }
@@ -991,10 +1040,15 @@ export const saveVehicle = async (vehicle: Omit<StoredVehicle, 'id' | 'createdAt
     localStorage.setItem(VEHICLES_KEY, JSON.stringify(updated));
   } catch (err) {
     console.warn('LocalStorage quota warning in saveVehicle, saving with pruned images:', err);
-    const sanitized = updated.map(v => ({
-      ...v,
-      images: v.images.map((img, i) => img.startsWith('data:') ? (i === 0 ? '/vehicles/prado-front.jpg' : '/vehicles/prado-rear.jpg') : img)
-    }));
+    const sanitized = updated.map(v => {
+      const isBus = isBusVehicle(v);
+      return {
+        ...v,
+        images: v.images.map((img, i) => img.startsWith('data:') 
+          ? (isBus ? (i === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : (i === 0 ? '/vehicles/prado-front.jpg' : '/vehicles/prado-rear.jpg')) 
+          : img)
+      };
+    });
     try {
       localStorage.setItem(VEHICLES_KEY, JSON.stringify(sanitized));
     } catch {}

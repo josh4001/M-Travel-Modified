@@ -7,7 +7,7 @@ import {
   RefreshCw, CheckCircle, Clock, XCircle, Bell, Image as ImageIcon, ShieldCheck,
   Banknote, BarChart3, Star, Calendar, Upload, Wallet, Sparkles,
   CheckCircle2, X, FileText, Paperclip, Eye, Download, Check, Fuel, Gauge, Trash2,
-  Navigation
+  Navigation, Camera
 } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import { fetchNotifications, sendNotification, type AppNotification } from '@/lib/notificationService';
@@ -17,6 +17,7 @@ import {
   generateSampleBookingForVehicle,
   getVehicleHireStatus,
   isTripBooking,
+  isBusVehicle,
   type StoredBooking, type StoredVehicle, type VehicleDocument
 } from '@/lib/bookingStore';
 import { getLocalWallet } from '@/lib/paymentService';
@@ -133,8 +134,8 @@ export default function OwnerDashboard() {
     make: '', model: '', year: '2024', type: '4x4', price_per_day: '15000', seats: '7', address: '', plateNumber: '',
     fuelType: 'Diesel', transmission: 'Automatic',
   });
-  const [frontPhoto, setFrontPhoto] = useState<string>('/vehicles/prado-front.jpg');
-  const [backPhoto, setBackPhoto] = useState<string>('/vehicles/prado-rear.jpg');
+  const [frontPhoto, setFrontPhoto] = useState<string>('');
+  const [backPhoto, setBackPhoto] = useState<string>('');
   const [extraPhotos, setExtraPhotos] = useState<string[]>([]);
   const [extraPhotoInput, setExtraPhotoInput] = useState('');
 
@@ -383,8 +384,10 @@ export default function OwnerDashboard() {
     setAddMsg('');
 
     try {
+      const isBus = (newV.type || '').toUpperCase() === 'BUS' || (newV.model || '').toLowerCase().includes('bus') || (newV.model || '').toLowerCase().includes('coach') || Number(newV.seats) >= 20;
       const vehiclePhotos = [frontPhoto, backPhoto, ...extraPhotos].filter(Boolean);
-      const chosenPhotos = vehiclePhotos.length > 0 ? vehiclePhotos : ['/vehicles/prado-front.jpg', '/vehicles/prado-rear.jpg'];
+      const defaultPhotos = isBus ? ['/vehicles/isuzu-coach-front.jpg', '/vehicles/isuzu-coach-rear.jpg'] : ['/vehicles/prado-front.jpg', '/vehicles/prado-rear.jpg'];
+      const chosenPhotos = vehiclePhotos.length > 0 ? vehiclePhotos : defaultPhotos;
 
       await saveVehicle({
         make: newV.make,
@@ -599,7 +602,15 @@ export default function OwnerDashboard() {
                 return (
                   <div key={v.id} className="rounded-2xl bg-white border border-slate-200/90 p-5 space-y-3 shadow-sm hover:shadow-md transition">
                     <div className="relative h-44 rounded-xl overflow-hidden bg-slate-900 border border-slate-200/60">
-                      <img src={v.images[0] || '/vehicles/prado-front.jpg'} alt={v.make} className="h-full w-full object-cover" />
+                      <img
+                        src={
+                          (v.images && v.images[0] && !v.images[0].includes('prado'))
+                            ? v.images[0]
+                            : (isBusVehicle(v) ? '/vehicles/isuzu-coach-front.jpg' : (v.images?.[0] || '/vehicles/prado-front.jpg'))
+                        }
+                        alt={v.make}
+                        className="h-full w-full object-cover"
+                      />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                       <span className="absolute top-3 left-3 rounded-full bg-mtravel-burgundy text-amber-300 font-mono text-[10px] font-bold px-2.5 py-0.5 border border-amber-400/30">
                         {v.type}
@@ -1059,7 +1070,15 @@ export default function OwnerDashboard() {
                 <div key={v.id} className="rounded-2xl bg-white border border-slate-200/90 p-4 flex items-center justify-between gap-4 shadow-sm">
                   <div className="flex items-center gap-3">
                     <div className="h-12 w-16 rounded-lg overflow-hidden bg-slate-900 shrink-0">
-                      <img src={v.images[0]} alt={v.make} className="h-full w-full object-cover" />
+                      <img
+                        src={
+                          (v.images && v.images[0] && !v.images[0].includes('prado'))
+                            ? v.images[0]
+                            : (isBusVehicle(v) ? '/vehicles/isuzu-coach-front.jpg' : (v.images?.[0] || '/vehicles/prado-front.jpg'))
+                        }
+                        alt={v.make}
+                        className="h-full w-full object-cover"
+                      />
                     </div>
                     <div>
                       <p className="font-display font-bold text-slate-900 text-sm">{v.make} {v.model}</p>
@@ -1303,8 +1322,15 @@ export default function OwnerDashboard() {
                   <span className="text-xs font-bold text-slate-900">1. Front Exterior Photo</span>
                   <span className="rounded bg-amber-100 text-amber-900 px-2 py-0.5 text-[9px] font-mono font-bold">Front View</span>
                 </div>
-                <div className="relative h-32 rounded-lg overflow-hidden border border-slate-200 bg-slate-900">
-                  <img src={frontPhoto} alt="Front View" className="h-full w-full object-cover" />
+                <div className="relative h-32 rounded-lg overflow-hidden border border-slate-200 bg-slate-900 flex items-center justify-center">
+                  {frontPhoto ? (
+                    <img src={frontPhoto} alt="Front View" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="text-center p-3 text-slate-400">
+                      <Camera className="h-7 w-7 mx-auto mb-1 opacity-60 text-amber-500" />
+                      <span className="text-[11px] font-medium text-slate-300">Upload Front Vehicle Photo</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <label className="btn-secondary flex-1 text-center cursor-pointer !py-1.5 text-xs font-bold text-slate-800 border-slate-200 hover:bg-slate-50 flex items-center justify-center gap-1.5">
@@ -1327,8 +1353,15 @@ export default function OwnerDashboard() {
                   <span className="text-xs font-bold text-slate-900">2. Back / Rear Photo</span>
                   <span className="rounded bg-teal-100 text-teal-900 px-2 py-0.5 text-[9px] font-mono font-bold">Back View</span>
                 </div>
-                <div className="relative h-32 rounded-lg overflow-hidden border border-slate-200 bg-slate-900">
-                  <img src={backPhoto} alt="Back View" className="h-full w-full object-cover" />
+                <div className="relative h-32 rounded-lg overflow-hidden border border-slate-200 bg-slate-900 flex items-center justify-center">
+                  {backPhoto ? (
+                    <img src={backPhoto} alt="Back View" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="text-center p-3 text-slate-400">
+                      <Camera className="h-7 w-7 mx-auto mb-1 opacity-60 text-teal-400" />
+                      <span className="text-[11px] font-medium text-slate-300">Upload Rear Vehicle Photo</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <label className="btn-secondary flex-1 text-center cursor-pointer !py-1.5 text-xs font-bold text-slate-800 border-slate-200 hover:bg-slate-50 flex items-center justify-center gap-1.5">

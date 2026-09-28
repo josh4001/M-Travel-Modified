@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, ShieldAlert, Paperclip
 } from 'lucide-react';
 import type { StoredVehicle, VehicleDocument } from '@/lib/bookingStore';
-import { ensureVehicleComplianceDocs } from '@/lib/bookingStore';
+import { ensureVehicleComplianceDocs, isBusVehicle } from '@/lib/bookingStore';
 import { getHostRejectionWhatsAppUrl } from '@/lib/communicationService';
 
 interface VehicleInspectionModalProps {
@@ -47,10 +47,17 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
   const [previewingDoc, setPreviewingDoc] = useState<VehicleDocument | null>(null);
 
   const vehicleImages = useMemo(() => {
-    return vehicle.images && vehicle.images.length > 0
+    const isBus = isBusVehicle(vehicle) || vehicle.model?.toLowerCase().includes('coach') || vehicle.model?.toLowerCase().includes('bus') || vehicle.id === '48d4aa37-a383-40cf-9b17-19548457dd95';
+    let imgs = vehicle.images && vehicle.images.length > 0
       ? vehicle.images
-      : ['/vehicles/prado-front.jpg', '/vehicles/prado-rear.jpg'];
-  }, [vehicle.images]);
+      : (isBus ? ['/vehicles/isuzu-coach-front.jpg', '/vehicles/isuzu-coach-rear.jpg'] : ['/vehicles/prado-front.jpg', '/vehicles/prado-rear.jpg']);
+    if (isBus) {
+      imgs = imgs.map((img: string, idx: number) =>
+        (!img || img.includes('prado')) ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : img
+      );
+    }
+    return imgs;
+  }, [vehicle]);
 
   const vehicleDocs = useMemo(() => {
     return ensureVehicleComplianceDocs(vehicle.id, vehicle);

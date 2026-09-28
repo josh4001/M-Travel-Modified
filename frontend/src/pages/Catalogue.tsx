@@ -114,7 +114,7 @@ export default function Catalogue() {
         badge: isBus ? 'BUS VEHICLE' : `${v.type} Vehicle`,
         priceKES: v.pricePerDay,
         priceUnit: '/ day',
-        imageUrl: v.images[0] || '/vehicles/prado-front.jpg',
+        imageUrl: (v.images[0] && !v.images[0].includes('prado')) ? v.images[0] : (isBus ? '/vehicles/isuzu-coach-front.jpg' : (v.images[0] || '/vehicles/prado-front.jpg')),
         location: v.address || 'Nairobi & National Parks',
         specs: [`${v.seats} Seats`, v.fuelType, v.transmission, v.hasInsurance ? 'Verified & Insured' : 'Standard Insurance'],
         rating: v.ratingAverage || 4.9,

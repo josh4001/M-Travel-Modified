@@ -33,17 +33,35 @@ export function getVehicleFallbackImage(make: string = '', model: string = '', t
   if (id === '33333333-3333-4333-8333-333333333333' || text.includes('prado')) {
     return '/vehicles/prado-front.jpg';
   }
+  if (text.includes('coach') || text.includes('bus') || text.includes('isuzu') || text.includes('coaster') || id === '48d4aa37-a383-40cf-9b17-19548457dd95') {
+    return '/vehicles/isuzu-coach-front.jpg';
+  }
+  if (text.includes('pickup') || text.includes('hilux')) {
+    return '/vehicles/pickup.jpg';
+  }
+  if (text.includes('van') || text.includes('hiace')) {
+    return '/vehicles/van.jpg';
+  }
+  if (text.includes('suv') || text.includes('landcruiser') || text.includes('cruiser') || text.includes('4x4')) {
+    return '/vehicles/suv.jpg';
+  }
   return '/vehicles/prado-front.jpg';
 }
 
 export function formatDbVehicle(v: any): any {
-  const hostImage = getVehicleFallbackImage(v.make, v.model, v.type, v.id);
+  const isBus = (v.model || '').toLowerCase().includes('bus') || 
+                (v.model || '').toLowerCase().includes('coach') || 
+                (v.make || '').toLowerCase().includes('bus') || 
+                Number(v.seats) >= 20 ||
+                v.id === '48d4aa37-a383-40cf-9b17-19548457dd95';
+
+  const hostImage = getVehicleFallbackImage(v.make, v.model, isBus ? 'BUS' : v.type, v.id);
 
   let images: { id: string; url: string; isPrimary: boolean }[] = [];
   if (Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0) {
     images = v.vehicle_images.map((img: any, idx: number) => ({
       id: img.id || `img-${idx}`,
-      url: img.url,
+      url: (isBus && (!img.url || img.url.includes('prado'))) ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : img.url,
       isPrimary: Boolean(img.is_primary || idx === 0),
     }));
   }
@@ -58,7 +76,7 @@ export function formatDbVehicle(v: any): any {
 
   return {
     id: v.id,
-    type: (v.type || 'SUV').toUpperCase(),
+    type: (isBus ? 'BUS' : (v.type || 'SUV')).toUpperCase(),
     make: (v.make || 'Toyota').trim(),
     model: (v.model || 'Cruiser').trim(),
     year: v.year || 2024,

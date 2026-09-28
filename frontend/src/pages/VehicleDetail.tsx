@@ -15,7 +15,7 @@ import { selectUser } from '@/store/slices/authSlice';
 import { useCurrency } from '@/context/CurrencyContext';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
 import { sendNotification } from '@/lib/notificationService';
-import { saveBooking, getStoredVehicles, getVehicleHireStatus, isVehicleLive } from '@/lib/bookingStore';
+import { saveBooking, getStoredVehicles, getVehicleHireStatus, isVehicleLive, isBusVehicle } from '@/lib/bookingStore';
 import { VehicleStatusBadge } from '@/components/ui/LuxuryVehicleBadges';
 import {
   sendTravelerBookingEmail,
@@ -244,7 +244,11 @@ export default function VehicleDetail() {
         vehicleMake: targetVehicle.make,
         vehicleModel: targetVehicle.model,
         vehicleName: `${targetVehicle.make} ${targetVehicle.model}`,
-        vehicleImage: targetVehicle.images?.[0]?.url || (targetVehicle as any).imageUrl || '/vehicles/prado-front.jpg',
+        vehicleImage: (() => {
+          const targetIsBus = isBusVehicle(targetVehicle) || targetVehicle.model?.toLowerCase().includes('coach') || targetVehicle.model?.toLowerCase().includes('bus') || Number(targetVehicle.seats) >= 20;
+          const targetImg = targetVehicle.images?.[0]?.url || (targetVehicle as any).imageUrl;
+          return (targetImg && !targetImg.includes('prado')) ? targetImg : (targetIsBus ? '/vehicles/isuzu-coach-front.jpg' : (targetImg || '/vehicles/prado-front.jpg'));
+        })(),
         ownerId: hostOwnerId,
         driverId: undefined,
         driverName: withDriver ? 'Verified Station Chauffeur' : undefined,
@@ -376,7 +380,11 @@ export default function VehicleDetail() {
         <div className="space-y-6">
           <div className="relative h-80 rounded-2xl bg-slate-100 overflow-hidden border border-slate-200 shadow-sm group">
             <img
-              src={targetVehicle.images[0]?.url || '/vehicles/prado-front.jpg'}
+              src={(() => {
+                const targetIsBus = isBusVehicle(targetVehicle) || targetVehicle.model?.toLowerCase().includes('coach') || targetVehicle.model?.toLowerCase().includes('bus') || Number(targetVehicle.seats) >= 20;
+                const targetImg = targetVehicle.images[0]?.url;
+                return (targetImg && !targetImg.includes('prado')) ? targetImg : (targetIsBus ? '/vehicles/isuzu-coach-front.jpg' : (targetImg || '/vehicles/prado-front.jpg'));
+              })()}
               className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700"
               alt={`${targetVehicle.make} ${targetVehicle.model}`}
             />
