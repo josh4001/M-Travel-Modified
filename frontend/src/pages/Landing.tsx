@@ -260,9 +260,9 @@ export default function Landing() {
             alt="Kenya Safari 4x4 Cruiser Expedition at Sunset"
             className="w-full h-full object-cover object-[center_60%]"
           />
-          {/* Subtle warm vignette overlay allowing the glowing sunset & cruiser to show vibrantly */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/45 to-slate-950/60" />
-          <div className="absolute inset-0 bg-amber-950/20 mix-blend-multiply pointer-events-none" />
+          {/* Luminous warm vignette overlay preserving the golden sunset & landscape */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-black/15 to-slate-950/35" />
+          <div className="absolute inset-0 bg-radial from-amber-500/10 via-transparent to-black/25 pointer-events-none" />
         </div>
 
         <motion.div
@@ -272,27 +272,34 @@ export default function Landing() {
           variants={fadeUp}
           className="mx-auto max-w-3xl relative z-10"
         >
-          <div className="rounded-3xl border border-white/20 bg-slate-950/60 backdrop-blur-md p-8 sm:p-12 md:p-14 text-center shadow-2xl ring-1 ring-amber-400/30">
-            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/15 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-300 shadow-sm mb-6">
+          {/* Ambient Golden Safari Backlight Glow */}
+          <div className="absolute -inset-1.5 rounded-[36px] bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-amber-500/20 blur-2xl opacity-65 pointer-events-none -z-10" />
+
+          {/* Ultra-Sheer Luxury Glass Console */}
+          <div className="relative rounded-3xl border border-white/20 bg-slate-950/15 backdrop-blur-[3px] p-8 sm:p-12 md:p-14 text-center shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-amber-400/30 overflow-hidden">
+            {/* Subtle inner glass gradient shine */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-transparent pointer-events-none" />
+
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/50 bg-amber-500/20 backdrop-blur-sm px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-200 shadow-sm mb-6">
               <Sparkles className="h-3.5 w-3.5 text-amber-400" /> Bespoke Safari Expeditions
             </div>
 
-            <h2 className="font-serif text-3xl font-bold tracking-tight md:text-5xl text-white">
+            <h2 className="font-serif text-3xl font-bold tracking-tight md:text-5xl text-white drop-shadow-[0_3px_14px_rgba(0,0,0,0.95)]">
               Ready for your next Kenya adventure?
             </h2>
-            <p className="mt-4 text-sm md:text-base text-slate-200 max-w-xl mx-auto leading-relaxed">
+            <p className="mt-4 text-sm md:text-base text-slate-100 max-w-xl mx-auto leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] font-medium">
               Create your free M-TRAVEL account, explore handpicked 4x4 safari fleets, and reserve your bespoke travel journey in seconds.
             </p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4 relative z-10">
               <Link
                 to="/register"
-                className="btn-primary !px-8 !py-3.5 text-sm font-bold shadow-lg hover:shadow-xl transition-all"
+                className="btn-primary !px-8 !py-3.5 text-sm font-bold shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all"
               >
                 Get Started Free
               </Link>
               <Link
                 to="/catalogue"
-                className="rounded-xl border border-white/30 bg-white/10 hover:bg-white/20 backdrop-blur-md px-8 py-3.5 text-sm font-bold text-white transition-all shadow-md"
+                className="rounded-xl border border-white/35 bg-slate-950/30 hover:bg-slate-950/50 backdrop-blur-sm px-8 py-3.5 text-sm font-bold text-white transition-all shadow-md hover:scale-[1.02]"
               >
                 Browse Full Fleet
               </Link>
