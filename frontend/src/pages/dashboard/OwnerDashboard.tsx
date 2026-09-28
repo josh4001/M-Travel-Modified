@@ -44,21 +44,70 @@ const STATUS_CFG: Record<string, { color: string; icon: any; label: string }> = 
 };
 
 export default function OwnerDashboard() {
-  const user = useSelector((s: RootState) => s.auth.user);
+  const authUser = useSelector((s: RootState) => s.auth.user);
+  const user = authUser || (() => {
+    try {
+      const raw = localStorage.getItem('mt_user');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
   const { formatPrice } = useCurrency();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as 'fleet' | 'bookings' | 'earnings' | 'add' | 'alerts' | null;
 
+  const filterOwnerVehicles = (all: StoredVehicle[], u: any) => {
+    if (!u) return [];
+    const uid = String(u.id || '').toLowerCase();
+    const uEmail = String(u.email || '').toLowerCase();
+    const uFirstName = String(u.firstName || '').toLowerCase();
+    const isJames = uEmail.includes('james') || uid === 'a0000000-0000-0000-0000-000000000002' || uid === 'owner-safari-1' || uid === 'user-host-1';
+    const isHarry = uEmail.includes('harry') || (uFirstName && uFirstName.includes('harry'));
+
+    return all.filter(v => {
+      if (!v) return false;
+      const vOwnerId = String(v.ownerId || '').toLowerCase();
+      const vOwnerEmail = String(v.ownerEmail || '').toLowerCase();
+      const vOwnerName = String(v.ownerName || '').toLowerCase();
+
+      if (uid && vOwnerId && vOwnerId === uid) return true;
+      if (uEmail && vOwnerEmail && vOwnerEmail === uEmail) return true;
+      if (isJames && (vOwnerEmail.includes('james') || vOwnerId === 'a0000000-0000-0000-0000-000000000002' || vOwnerId === 'owner-safari-1' || vOwnerId === 'user-host-1' || vOwnerName.includes('james'))) return true;
+      if (isHarry && (vOwnerEmail.includes('harry') || vOwnerName.includes('harry') || vOwnerId === 'a0b9e2d7-9157-488f-969f-70f439226d2f')) return true;
+      if (uFirstName && vOwnerName && vOwnerName.includes(uFirstName)) return true;
+      return false;
+    });
+  };
+
+  const filterOwnerBookings = (allBookings: StoredBooking[], ownerVehicleIds: Set<string>, u: any) => {
+    if (!u) return [];
+    const uid = String(u.id || '').toLowerCase();
+    const uEmail = String(u.email || '').toLowerCase();
+    const isJames = uEmail.includes('james') || uid === 'a0000000-0000-0000-0000-000000000002' || uid === 'owner-safari-1' || uid === 'user-host-1';
+    const isHarry = uEmail.includes('harry') || (u.firstName && String(u.firstName).toLowerCase().includes('harry'));
+
+    return allBookings.filter(b => {
+      if (!b) return false;
+      const bOwnerId = String(b.ownerId || '').toLowerCase();
+      if (uid && bOwnerId && bOwnerId === uid) return true;
+      if (uEmail && bOwnerId && bOwnerId === uEmail) return true;
+      if (ownerVehicleIds.has(b.vehicleId)) return true;
+      if (isJames && (bOwnerId === 'a0000000-0000-0000-0000-000000000002' || bOwnerId === 'owner-safari-1' || bOwnerId === 'user-host-1' || bOwnerId.includes('james') || !b.ownerId)) return true;
+      if (isHarry && (bOwnerId.includes('harry') || bOwnerId === 'a0b9e2d7-9157-488f-969f-70f439226d2f')) return true;
+      return false;
+    });
+  };
+
   const [vehicles, setVehicles] = useState<StoredVehicle[]>(() => {
     const all = getStoredVehicles();
-    const uid = user?.id;
-    return uid ? all.filter(v => v.ownerId === uid || (user?.email && v.ownerEmail === user.email)) : [];
+    return filterOwnerVehicles(all, user);
   });
   const [bookings, setBookings] = useState<StoredBooking[]>(() => {
     const all = getStoredBookings();
-    const uid = user?.id;
-    const vIds = new Set(getStoredVehicles().filter(v => uid && (v.ownerId === uid || (user?.email && v.ownerEmail === user.email))).map(v => v.id));
-    return uid ? all.filter(b => (b.ownerId && (b.ownerId === uid || (user?.email && b.ownerId === user.email))) || vIds.has(b.vehicleId)) : [];
+    const ownerVehs = filterOwnerVehicles(getStoredVehicles(), user);
+    const vIds = new Set(ownerVehs.map(v => v.id));
+    return filterOwnerBookings(all, vIds, user);
   });
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading] = useState(false);
@@ -229,34 +278,10 @@ export default function OwnerDashboard() {
     // 1. Immediately render local stored vehicles & bookings
     const allVehicles = getStoredVehicles();
     const allBookings = getStoredBookings();
-    const currentUserId = user?.id;
 
-    const ownerVehicles = currentUserId
-      ? allVehicles.filter(v => 
-          v.ownerId === currentUserId || 
-          (user?.email && v.ownerEmail && v.ownerEmail.toLowerCase() === user.email.toLowerCase()) ||
-          (user?.email?.toLowerCase().includes('james') && (v.ownerEmail?.toLowerCase().includes('james') || v.ownerId === 'a0000000-0000-0000-0000-000000000002' || v.ownerName?.toLowerCase().includes('james')))
-        )
-      : allVehicles;
+    const ownerVehicles = filterOwnerVehicles(allVehicles, user);
     const ownerVehicleIds = new Set(ownerVehicles.map(v => v.id));
-
-    const isJames = (user?.email && user.email.toLowerCase().includes('james')) ||
-                    currentUserId === 'a0000000-0000-0000-0000-000000000002' ||
-                    currentUserId === 'owner-safari-1' ||
-                    currentUserId === 'user-host-1';
-
-    const ownerBookings = currentUserId
-      ? allBookings.filter(b => 
-          (b.ownerId && (b.ownerId === currentUserId || (user?.email && b.ownerId === user.email))) || 
-          ownerVehicleIds.has(b.vehicleId) ||
-          (isJames && (
-            b.ownerId === 'a0000000-0000-0000-0000-000000000002' ||
-            b.ownerId === 'owner-safari-1' ||
-            b.ownerId === 'user-host-1' ||
-            !b.ownerId
-          ))
-        )
-      : allBookings;
+    const ownerBookings = filterOwnerBookings(allBookings, ownerVehicleIds, user);
 
     setVehicles(ownerVehicles);
     setBookings(ownerBookings);
@@ -269,27 +294,9 @@ export default function OwnerDashboard() {
       const refreshedVehicles = getStoredVehicles();
       const refreshedBookings = getStoredBookings();
 
-      const updatedOwnerVehicles = currentUserId
-        ? refreshedVehicles.filter(v => 
-            v.ownerId === currentUserId || 
-            (user?.email && v.ownerEmail && v.ownerEmail.toLowerCase() === user.email.toLowerCase()) ||
-            (user?.email?.toLowerCase().includes('james') && (v.ownerEmail?.toLowerCase().includes('james') || v.ownerId === 'a0000000-0000-0000-0000-000000000002' || v.ownerName?.toLowerCase().includes('james')))
-          )
-        : refreshedVehicles;
+      const updatedOwnerVehicles = filterOwnerVehicles(refreshedVehicles, user);
       const updatedVehicleIds = new Set(updatedOwnerVehicles.map(v => v.id));
-
-      const updatedOwnerBookings = currentUserId
-        ? refreshedBookings.filter(b => 
-            (b.ownerId && (b.ownerId === currentUserId || (user?.email && b.ownerId === user.email))) || 
-            updatedVehicleIds.has(b.vehicleId) ||
-            (isJames && (
-              b.ownerId === 'a0000000-0000-0000-0000-000000000002' ||
-              b.ownerId === 'owner-safari-1' ||
-              b.ownerId === 'user-host-1' ||
-              !b.ownerId
-            ))
-          )
-        : refreshedBookings;
+      const updatedOwnerBookings = filterOwnerBookings(refreshedBookings, updatedVehicleIds, user);
 
       setVehicles(updatedOwnerVehicles);
       setBookings(updatedOwnerBookings);

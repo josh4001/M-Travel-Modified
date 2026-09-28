@@ -344,14 +344,14 @@ export const ensureUUID = (str?: string): string => {
 export const isDemoVehicle = (v: any): boolean => {
   if (!v) return true;
   const id = String(v.id || '');
-  const make = String(v.make || '').toLowerCase();
-  const model = String(v.model || '').toLowerCase();
 
-  // Explicitly purge un-registered Isuzu NQR buses
-  if (make.includes('isuzu') || model.includes('isuzu') || model.includes('nqr')) {
-    if (id === '9beb7a95-89a5-4475-99fe-56b66ac65f8c' || id === 'a5ddaf53-f49a-488b-87f1-e46f4fc1e6e4' || !APPROVED_HOST_VEHICLE_IDS.has(id)) {
-      return true;
-    }
+  // Explicitly purge legacy demo mock vehicle IDs
+  if (
+    id === '9beb7a95-89a5-4475-99fe-56b66ac65f8c' || 
+    id === 'a5ddaf53-f49a-488b-87f1-e46f4fc1e6e4' || 
+    DEMO_VEHICLE_IDS.has(id)
+  ) {
+    return true;
   }
 
   // Prado and approved host vehicles are real registered fleet vehicles
@@ -359,7 +359,7 @@ export const isDemoVehicle = (v: any): boolean => {
     return false;
   }
 
-  // Only mock seed IDs are demo vehicles
+  // Only mock seed IDs with demo prefixes are demo vehicles
   if (id.startsWith('v-') || id.startsWith('mv-') || id.startsWith('00000000-') || id.startsWith('b0000000-')) {
     return true;
   }
