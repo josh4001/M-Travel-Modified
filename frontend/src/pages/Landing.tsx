@@ -253,15 +253,19 @@ export default function Landing() {
       {/* AI SAFARI & TOUR CONCIERGE SHOWCASE SECTION */}
       <AiConciergeShowcase />
 
-      {/* TRUST & INFRASTRUCTURE STRIP - RICHER LIGHT BROWN WILDLIFE BACKGROUND */}
-      <section className="border-b border-[#BA9E7E] bg-[#CBB296] px-6 py-16">
-        <div className="mx-auto grid max-w-7xl gap-8 sm:grid-cols-3">
+      {/* TRUST & INFRASTRUCTURE STRIP - FOOTER DEEP BROWN WILDLIFE BACKGROUND */}
+      <section className="relative border-y border-[#3b2516] bg-gradient-to-b from-[#22140b] via-[#1a0f07] to-[#120a04] px-6 py-16 overflow-hidden">
+        {/* Subtle warm amber rim glow at the top edge matching the footer */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/30 to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent pointer-events-none" />
+
+        <div className="mx-auto grid max-w-7xl gap-8 sm:grid-cols-3 relative z-10">
           {[
             { icon: ShieldCheck, title: 'Verified & Insured Fleet', desc: 'Every 4x4 cruiser and executive van undergoes rigorous mechanical inspection and carries comprehensive PSV insurance.' },
             { icon: Compass, title: 'Seamless Flexible Booking', desc: 'Reserve frictionlessly in Kenyan Shillings or international currencies with transparent, all-inclusive pricing.' },
             { icon: Star, title: 'Rigorous Quality Assurance', desc: 'Hand-vetted safari guides, transparent vehicle specs, and strict service quality standards ensure top-tier experiences from Nairobi to the Mara.' },
           ].map((f) => (
-            <Card3D key={f.title} intensity={6} className="p-6 !bg-[#F8F2EA] !border-[#BA9E7E] shadow-sm">
+            <Card3D key={f.title} intensity={6} className="p-6 !bg-[#F8F2EA] !border-amber-900/20 shadow-md hover:!border-amber-500 hover:shadow-xl transition-all">
               <div className="flex items-start gap-4">
                 <div className="rounded-2xl border border-amber-400 bg-amber-100/90 p-3.5 text-amber-900 shadow-2xs shrink-0">
                   <f.icon className="h-6 w-6" strokeWidth={1.75} />
