@@ -189,8 +189,8 @@ export default function Landing() {
             alt="Quiver Trees & African Savannah at Sunset in Kenya"
             className="w-full h-full object-cover object-[center_45%]"
           />
-          {/* Luminous scrim gradients balancing the quiver tree silhouettes and golden dusk sky with readable content */}
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/75 via-slate-950/45 to-slate-950/80" />
+          {/* Luminous scrim gradients balancing the quiver tree silhouettes and golden dusk sky with readable translucent cards */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/65 via-slate-950/30 to-slate-950/70" />
           <div className="absolute inset-0 bg-radial from-amber-500/10 via-transparent to-black/30 pointer-events-none" />
         </div>
 
@@ -219,24 +219,24 @@ export default function Landing() {
                 className="h-full"
               >
                 <Link to={c.to} className="block group h-full">
-                  <Card3D intensity={10} className="p-6 h-full flex flex-col justify-between !bg-white/95 !backdrop-blur-md !border-amber-900/20 shadow-[0_10px_25px_rgba(0,0,0,0.25)] hover:!border-amber-500 hover:shadow-[0_15px_35px_rgba(0,0,0,0.4)] transition-all">
+                  <Card3D intensity={10} className="p-6 h-full flex flex-col justify-between !bg-slate-950/45 hover:!bg-slate-950/60 !backdrop-blur-md !border-white/20 hover:!border-amber-400/80 shadow-[0_12px_32px_rgba(0,0,0,0.4)] ring-1 ring-white/10 transition-all">
                     <div>
                       <div className="flex items-center justify-between">
-                        <div className="rounded-2xl border border-amber-400 bg-amber-100/90 p-3 text-amber-900 shadow-2xs group-hover:scale-110 transition-transform">
+                        <div className="rounded-2xl border border-amber-400/50 bg-amber-500/20 backdrop-blur-sm p-3 text-amber-300 shadow-2xs group-hover:scale-110 group-hover:bg-amber-500/30 transition-all">
                           <c.icon className="h-6 w-6" strokeWidth={2} />
                         </div>
-                        <span className="rounded-full bg-amber-100 border border-amber-300/80 px-3 py-1 text-[11px] font-bold text-amber-950">
+                        <span className="rounded-full bg-black/40 border border-white/20 backdrop-blur-sm px-3 py-1 text-[11px] font-bold text-amber-200">
                           {c.count}
                         </span>
                       </div>
 
-                      <h3 className="mt-6 font-serif text-xl font-bold text-[#1A0D05] group-hover:text-amber-800 transition-colors">
+                      <h3 className="mt-6 font-serif text-xl font-bold text-white group-hover:text-amber-300 transition-colors drop-shadow-sm">
                         {c.title}
                       </h3>
-                      <p className="mt-2 text-xs text-[#5C3D24] leading-relaxed min-h-[2.5rem] font-medium">{c.desc}</p>
+                      <p className="mt-2 text-xs text-slate-200 leading-relaxed min-h-[2.5rem] font-medium drop-shadow-xs">{c.desc}</p>
                     </div>
 
-                    <div className="mt-6 pt-4 border-t border-amber-200/60 flex items-center gap-1 text-xs font-bold text-amber-900 group-hover:translate-x-1 transition-transform">
+                    <div className="mt-6 pt-4 border-t border-white/15 flex items-center gap-1 text-xs font-bold text-amber-300 group-hover:text-amber-200 group-hover:translate-x-1 transition-all">
                       Explore category <ArrowRight className="h-3.5 w-3.5" />
                     </div>
                   </Card3D>
