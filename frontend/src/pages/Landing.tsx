@@ -252,17 +252,17 @@ export default function Landing() {
       </section>
 
       {/* FINAL HIGH-IMPACT CTA WITH REAL SAFARI EXPEDITION PHOTOGRAPHY */}
-      <section className="relative px-6 py-24 md:py-32 overflow-hidden text-center">
+      <section className="relative px-6 py-24 md:py-36 overflow-hidden text-center">
         {/* Photographic Background */}
         <div className="absolute inset-0 z-0">
           <img
             src="/images/adventure-safari.jpg"
-            alt="Kenya Safari Adventure in 4x4 Cruiser"
-            className="w-full h-full object-cover object-center"
+            alt="Kenya Safari 4x4 Cruiser Expedition at Sunset"
+            className="w-full h-full object-cover object-[center_60%]"
           />
-          {/* Elegant cinematic dark gradient overlay for luxury contrast */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/65 to-slate-950/75 backdrop-blur-[1px]" />
-          <div className="absolute inset-0 bg-radial from-amber-500/10 via-transparent to-black/60 pointer-events-none" />
+          {/* Subtle warm vignette overlay allowing the glowing sunset & cruiser to show vibrantly */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/45 to-slate-950/60" />
+          <div className="absolute inset-0 bg-amber-950/20 mix-blend-multiply pointer-events-none" />
         </div>
 
         <motion.div
