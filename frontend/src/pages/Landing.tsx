@@ -8,10 +8,6 @@ import { Hero3DCanvas } from '@/components/ui/Hero3DCanvas';
 import { Card3D } from '@/components/ui/Card3D';
 import { AiConciergeShowcase } from '@/components/ui/AiConciergeShowcase';
 import { OffersRewards } from '@/components/ui/OffersRewards';
-import {
-  LionWatermark,
-  SafariCruiserWatermark
-} from '@/components/ui/SafariBackgroundWatermarks';
 
 
 const journey = [
@@ -184,25 +180,32 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      {/* CATEGORIES WITH 3D TACTILE CARDS - RICHER LIGHT BROWN WILDLIFE BACKGROUND */}
-      <section className="px-6 py-20 relative bg-[#D4BEA3] border-y border-[#BA9E7E] overflow-hidden">
-
-        {/* Subtle Watermarks */}
-        <LionWatermark className="top-4 right-1/4 w-72 h-72 opacity-[0.045] md:opacity-[0.065]" />
-        <SafariCruiserWatermark className="bottom-2 left-1/4 w-80 h-40 opacity-[0.045] md:opacity-[0.065]" />
+      {/* CATEGORIES WITH 3D TACTILE CARDS - HD QUIVER TREES SAFARI BACKGROUND */}
+      <section className="px-6 py-20 relative border-y border-[#BA9E7E] overflow-hidden">
+        {/* Photographic Background - Quiver Trees Safari HD */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/images/quiver-trees-safari.jpg"
+            alt="Quiver Trees & African Savannah at Sunset in Kenya"
+            className="w-full h-full object-cover object-[center_45%]"
+          />
+          {/* Luminous scrim gradients balancing the quiver tree silhouettes and golden dusk sky with readable content */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/75 via-slate-950/45 to-slate-950/80" />
+          <div className="absolute inset-0 bg-radial from-amber-500/10 via-transparent to-black/30 pointer-events-none" />
+        </div>
 
         <div className="mx-auto max-w-7xl relative z-10">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#BA9E7E] pb-6 gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-amber-500/30 pb-6 gap-4">
             <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={fadeUp}>
-              <span className="text-xs uppercase tracking-widest text-amber-950 font-bold">
-                Curated Fleet &amp; Stays
+              <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/20 backdrop-blur-md px-3.5 py-1 text-xs uppercase tracking-widest text-amber-300 font-bold mb-2 shadow-xs">
+                <Sparkles className="h-3.5 w-3.5 text-amber-400" /> Curated Fleet &amp; Stays
               </span>
-              <h2 className="mt-1 font-serif text-3xl font-bold tracking-tight md:text-4xl text-[#1A0D05]">
+              <h2 className="mt-1 font-serif text-3xl font-bold tracking-tight md:text-4xl text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
                 Everywhere you need to go in Kenya
               </h2>
             </motion.div>
 
-            <Link to="/catalogue" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-amber-950 hover:text-black">
+            <Link to="/catalogue" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-amber-300 hover:text-white transition-colors bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-amber-500/30 shadow-sm">
               View all offerings <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -216,24 +219,24 @@ export default function Landing() {
                 className="h-full"
               >
                 <Link to={c.to} className="block group h-full">
-                  <Card3D intensity={10} className="p-6 h-full flex flex-col justify-between !bg-[#F8F2EA] !border-[#BA9E7E] shadow-sm hover:!border-amber-700 hover:shadow-card-hover">
+                  <Card3D intensity={10} className="p-6 h-full flex flex-col justify-between !bg-white/95 !backdrop-blur-md !border-amber-900/20 shadow-[0_10px_25px_rgba(0,0,0,0.25)] hover:!border-amber-500 hover:shadow-[0_15px_35px_rgba(0,0,0,0.4)] transition-all">
                     <div>
                       <div className="flex items-center justify-between">
                         <div className="rounded-2xl border border-amber-400 bg-amber-100/90 p-3 text-amber-900 shadow-2xs group-hover:scale-110 transition-transform">
                           <c.icon className="h-6 w-6" strokeWidth={2} />
                         </div>
-                        <span className="rounded-full bg-[#C4AC90] border border-[#AF9374] px-3 py-1 text-[11px] font-bold text-[#1A0D05]">
+                        <span className="rounded-full bg-amber-100 border border-amber-300/80 px-3 py-1 text-[11px] font-bold text-amber-950">
                           {c.count}
                         </span>
                       </div>
 
-                      <h3 className="mt-6 font-serif text-xl font-bold text-[#1A0D05] group-hover:text-amber-900 transition-colors">
+                      <h3 className="mt-6 font-serif text-xl font-bold text-[#1A0D05] group-hover:text-amber-800 transition-colors">
                         {c.title}
                       </h3>
-                      <p className="mt-2 text-xs text-[#452C1A] leading-relaxed min-h-[2.5rem] font-medium">{c.desc}</p>
+                      <p className="mt-2 text-xs text-[#5C3D24] leading-relaxed min-h-[2.5rem] font-medium">{c.desc}</p>
                     </div>
 
-                    <div className="mt-6 pt-4 border-t border-[#D9C4AC] flex items-center gap-1 text-xs font-bold text-amber-900 group-hover:translate-x-1 transition-transform">
+                    <div className="mt-6 pt-4 border-t border-amber-200/60 flex items-center gap-1 text-xs font-bold text-amber-900 group-hover:translate-x-1 transition-transform">
                       Explore category <ArrowRight className="h-3.5 w-3.5" />
                     </div>
                   </Card3D>
