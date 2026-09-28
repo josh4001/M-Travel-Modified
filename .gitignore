@@ -37,3 +37,6 @@ Thumbs.db
 # Testing
 coverage/
 .nyc_output/
+
+# Scratch & temporary workspace
+scratch/

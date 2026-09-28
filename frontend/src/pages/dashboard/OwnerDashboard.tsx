@@ -18,6 +18,7 @@ import {
   getVehicleHireStatus,
   isTripBooking,
   isBusVehicle,
+  putDocumentInVault,
   type StoredBooking, type StoredVehicle, type VehicleDocument
 } from '@/lib/bookingStore';
 import { getLocalWallet } from '@/lib/paymentService';
@@ -207,8 +208,10 @@ export default function OwnerDashboard() {
         fileName: file.name,
         fileSize: sizeStr,
         uploadedAt: new Date().toISOString(),
+        isRealUpload: true,
       };
 
+      putDocumentInVault(newDoc).catch(() => {});
       setDocuments((prev) => [...prev.filter((d) => d.type !== type), newDoc]);
     } finally {
       setDocUploadLoading(false);
@@ -1735,18 +1738,24 @@ export default function OwnerDashboard() {
                previewDoc.fileName.match(/\.(jpg|jpeg|png|webp|svg)$/i) ? (
                 <img src={previewDoc.fileUrl} alt={previewDoc.name} className="max-h-[60vh] w-auto rounded-lg object-contain shadow-xs" />
               ) : (
-                <div className="p-8 text-center space-y-3">
-                  <FileText className="h-12 w-12 text-slate-400 mx-auto" />
-                  <p className="text-xs text-slate-600 font-medium">PDF Document Uploaded</p>
-                  <a
-                    href={previewDoc.fileUrl}
-                    download={previewDoc.fileName}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary inline-flex items-center gap-1.5 text-xs font-bold text-white !py-2 !px-4"
-                  >
-                    <Download className="h-3.5 w-3.5" /> Download / Open Document
-                  </a>
+                <div className="w-full h-[60vh] flex flex-col rounded-xl overflow-hidden bg-white border border-slate-200">
+                  <div className="bg-slate-50 px-3 py-2 border-b border-slate-200 flex items-center justify-between shrink-0">
+                    <span className="font-mono text-xs font-bold text-slate-700 truncate">{previewDoc.fileName}</span>
+                    <a
+                      href={previewDoc.fileUrl}
+                      download={previewDoc.fileName}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-primary inline-flex items-center gap-1.5 text-xs font-bold text-white !py-1 !px-3"
+                    >
+                      <Download className="h-3 w-3" /> Download / Open
+                    </a>
+                  </div>
+                  <iframe
+                    src={previewDoc.fileUrl}
+                    title={previewDoc.name}
+                    className="w-full flex-1 border-0"
+                  />
                 </div>
               )}
             </div>

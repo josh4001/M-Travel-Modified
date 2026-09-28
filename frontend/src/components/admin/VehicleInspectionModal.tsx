@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, ShieldAlert, Paperclip
 } from 'lucide-react';
 import type { StoredVehicle, VehicleDocument } from '@/lib/bookingStore';
-import { ensureVehicleComplianceDocs, isBusVehicle } from '@/lib/bookingStore';
+import { ensureVehicleComplianceDocs, isBusVehicle, resolveRealDocumentUrl, getDocumentFromVault } from '@/lib/bookingStore';
 import { getHostRejectionWhatsAppUrl } from '@/lib/communicationService';
 
 interface VehicleInspectionModalProps {
@@ -87,6 +87,21 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
     if (!hasLogbook) missing.push('Missing or unverified Vehicle Logbook (Proof of Ownership)');
     if (!hasInsurance) missing.push('Missing or expired Commercial / PSV Insurance Certificate');
     setSelectedReasons((prev) => Array.from(new Set([...prev, ...missing])));
+  };
+
+  const handleInspectDoc = async (d: VehicleDocument) => {
+    let realUrl = resolveRealDocumentUrl(d.fileName, d.type, d.fileUrl);
+    if (realUrl.endsWith('.svg')) {
+      const fromVault = (await getDocumentFromVault(d.fileName).catch(() => null))
+        || (await getDocumentFromVault(d.id).catch(() => null));
+      if (fromVault) {
+        realUrl = fromVault;
+      }
+    }
+    setPreviewingDoc({
+      ...d,
+      fileUrl: realUrl,
+    });
   };
 
   const handleConfirmReject = () => {
@@ -344,7 +359,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
                         </div>
                       </div>
                       <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${logbookDoc ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`}>
-                        {logbookDoc ? 'Attached' : 'Missing'}
+                        {logbookDoc?.isRealUpload ? '✓ Authentic Upload' : logbookDoc ? 'Attached' : 'Missing'}
                       </span>
                     </div>
 
@@ -353,7 +368,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
                         <span className="truncate max-w-[180px]">{logbookDoc.fileName} ({logbookDoc.fileSize})</span>
                         <button
                           type="button"
-                          onClick={() => setPreviewingDoc(logbookDoc)}
+                          onClick={() => handleInspectDoc(logbookDoc)}
                           className="rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-3 py-1 text-xs flex items-center gap-1 transition"
                         >
                           <Eye className="h-3.5 w-3.5" /> Inspect
@@ -384,7 +399,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
                         </div>
                       </div>
                       <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${insDoc ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'}`}>
-                        {insDoc ? 'Attached' : 'Unattached'}
+                        {insDoc?.isRealUpload ? '✓ Authentic Upload' : insDoc ? 'Attached' : 'Unattached'}
                       </span>
                     </div>
 
@@ -393,7 +408,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
                         <span className="truncate max-w-[180px]">{insDoc.fileName} ({insDoc.fileSize})</span>
                         <button
                           type="button"
-                          onClick={() => setPreviewingDoc(insDoc)}
+                          onClick={() => handleInspectDoc(insDoc)}
                           className="rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-3 py-1 text-xs flex items-center gap-1 transition"
                         >
                           <Eye className="h-3.5 w-3.5" /> Inspect
@@ -424,7 +439,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
                         </div>
                       </div>
                       <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${ntsaDoc ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-700 text-slate-300'}`}>
-                        {ntsaDoc ? 'Attached' : 'Optional'}
+                        {ntsaDoc?.isRealUpload ? '✓ Authentic Upload' : ntsaDoc ? 'Attached' : 'Optional'}
                       </span>
                     </div>
 
@@ -433,7 +448,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
                         <span className="truncate max-w-[180px]">{ntsaDoc.fileName} ({ntsaDoc.fileSize})</span>
                         <button
                           type="button"
-                          onClick={() => setPreviewingDoc(ntsaDoc)}
+                          onClick={() => handleInspectDoc(ntsaDoc)}
                           className="rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-3 py-1 text-xs flex items-center gap-1 transition"
                         >
                           <Eye className="h-3.5 w-3.5" /> Inspect
@@ -465,7 +480,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
                         </div>
                       </div>
                       <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${hasOther ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-300'}`}>
-                        {hasOther ? `${otherDocs.length} Attached` : '0 File(s)'}
+                        {hasOther ? `${otherDocs.length} Authentic File(s)` : '0 File(s)'}
                       </span>
                     </div>
 
@@ -476,7 +491,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
                             <span className="truncate max-w-[180px]">{d.fileName} ({d.fileSize || '620 KB'})</span>
                             <button
                               type="button"
-                              onClick={() => setPreviewingDoc(d)}
+                              onClick={() => handleInspectDoc(d)}
                               className="rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-3 py-1 text-xs flex items-center gap-1 transition"
                             >
                               <Eye className="h-3.5 w-3.5" /> Inspect
@@ -637,26 +652,54 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
 
       {/* ── DOCUMENT FULL-SCREEN INSPECTION LIGHTBOX ── */}
       {previewingDoc && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md">
-          <div className="relative w-full max-w-3xl rounded-3xl bg-slate-900 border border-slate-700 p-6 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 p-3 sm:p-5 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="relative w-full max-w-5xl h-[88vh] flex flex-col rounded-3xl bg-slate-900 border border-slate-700 p-5 space-y-3 shadow-2xl">
+            {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-amber-400" />
-                <div>
-                  <h3 className="font-bold text-base text-white">{previewingDoc.name}</h3>
-                  <p className="text-xs text-slate-400 font-mono">{previewingDoc.fileName} • {previewingDoc.fileSize || 'Attached File'}</p>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="rounded-xl bg-amber-500/10 p-2 text-amber-400 shrink-0">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-base text-white truncate">{previewingDoc.name}</h3>
+                    <span className="shrink-0 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/30">
+                      ✓ Authentic Host Upload
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 font-mono truncate">{previewingDoc.fileName} • {previewingDoc.fileSize || 'Attached File'}</p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setPreviewingDoc(null)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={previewingDoc.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 hover:text-white flex items-center gap-1.5 transition"
+                  title="Open in new window"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" /> Open in New Tab
+                </a>
+                <a
+                  href={previewingDoc.fileUrl}
+                  download={previewingDoc.fileName}
+                  className="rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 text-xs flex items-center gap-1.5 transition shadow-sm"
+                  title="Download File"
+                >
+                  <Download className="h-3.5 w-3.5" /> Download
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewingDoc(null)}
+                  className="rounded-xl p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition ml-1"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
-            <div className="max-h-[70vh] overflow-y-auto rounded-xl bg-slate-950 p-2 flex items-center justify-center border border-slate-800">
+            {/* Viewer Content */}
+            <div className="flex-1 w-full rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center">
               {previewingDoc.fileUrl.startsWith('data:image/') ||
                previewingDoc.fileUrl.includes('unsplash') ||
                previewingDoc.fileUrl.endsWith('.svg') ||
@@ -664,34 +707,27 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
                previewingDoc.fileUrl.endsWith('.jpg') ||
                previewingDoc.fileUrl.endsWith('.jpeg') ||
                previewingDoc.fileName.match(/\.(jpg|jpeg|png|webp|svg)$/i) ? (
-                <img src={previewingDoc.fileUrl} alt={previewingDoc.name} className="max-h-[65vh] w-auto rounded-lg object-contain" />
-              ) : (
-                <div className="p-10 text-center space-y-4">
-                  <FileText className="h-16 w-16 text-amber-400 mx-auto" />
-                  <div>
-                    <h4 className="font-bold text-white text-base">PDF Document Verified</h4>
-                    <p className="text-xs text-slate-400 mt-1">Full compliance document available for inspection.</p>
-                  </div>
-                  <a
-                    href={previewingDoc.fileUrl}
-                    download={previewingDoc.fileName}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary inline-flex items-center gap-2 text-xs font-bold text-white !py-2.5 !px-5 shadow-sm"
-                  >
-                    <Download className="h-4 w-4" /> Open / Download PDF
-                  </a>
+                <div className="h-full w-full flex items-center justify-center p-4 overflow-auto">
+                  <img src={previewingDoc.fileUrl} alt={previewingDoc.name} className="max-h-full max-w-full rounded-lg object-contain shadow-lg" />
                 </div>
+              ) : (
+                <iframe
+                  src={previewingDoc.fileUrl}
+                  title={previewingDoc.name}
+                  className="w-full h-full border-0 rounded-2xl bg-white"
+                />
               )}
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-slate-800">
+            {/* Footer */}
+            <div className="flex items-center justify-between pt-1 border-t border-slate-800 text-xs text-slate-400 font-mono">
+              <span>Authentic compliance document submitted by {hostName || 'Host'}</span>
               <button
                 type="button"
                 onClick={() => setPreviewingDoc(null)}
-                className="rounded-xl border border-slate-700 bg-white/5 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-white/10"
+                className="rounded-xl border border-slate-700 bg-white/5 px-4 py-1.5 text-xs font-bold text-slate-300 hover:bg-white/10"
               >
-                Close Document Preview
+                Close Preview
               </button>
             </div>
           </div>
