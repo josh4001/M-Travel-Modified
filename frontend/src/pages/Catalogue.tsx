@@ -151,87 +151,94 @@ export default function Catalogue() {
   });
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 space-y-12">
-      {/* HEADER HERO BANNER */}
-      <div className="relative rounded-3xl overflow-hidden border border-slate-200/80 bg-gradient-to-br from-amber-500/10 via-white to-amber-500/5 p-8 md:p-12 shadow-card">
-        <div className="relative z-10 max-w-3xl space-y-4">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-800">
-            <Sparkles className="h-3.5 w-3.5 text-amber-600" /> M-TRAVEL Verified Marketplace
-          </span>
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-600 shadow-sm">
-              {activeTab === 'vehicles' && <Car className="h-6 w-6 stroke-[2]" />}
-              {activeTab === 'buses' && <Bus className="h-6 w-6 stroke-[2]" />}
-            </div>
-            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-slate-900">
-              {activeTab === 'buses' && 'Bus Reservations & Coach Routes'}
-              {activeTab === 'vehicles' && 'Live Fleet Vehicles & Safari Hire'}
-            </h1>
-          </div>
-          <p className="text-sm md:text-base text-slate-600 leading-relaxed">
-            {activeTab === 'buses' && 'Book luxury highway coaches & intercity express shuttles with seat selection, onboard WiFi, and instant QR tickets.'}
-            {activeTab === 'vehicles' && 'Explore live certified 4x4 safari cruisers, executive SUVs, and passenger vehicles registered by approved fleet hosts.'}
-          </p>
+    <div className="min-h-screen bg-[#060302] text-slate-100 relative overflow-hidden font-display">
+      {/* ATMOSPHERIC GLOWING BROWN AMBIENT RADIANCE */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[650px] bg-gradient-to-b from-amber-900/20 via-[#22140b]/35 to-transparent blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-1/4 -right-40 w-96 h-96 bg-amber-800/10 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute bottom-1/3 -left-40 w-96 h-96 bg-[#22140b]/25 rounded-full blur-3xl pointer-events-none -z-10" />
 
-          {/* HOLIDAYS AND TOURS PROMPT BANNER */}
-          <div className="pt-2">
-            <div className="rounded-2xl bg-white/80 border border-amber-300/80 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-              <div className="flex items-center gap-2.5">
-                <Palmtree className="h-5 w-5 text-amber-600 shrink-0" />
-                <span className="text-xs text-slate-700 font-medium">
-                  Looking for Guided Safaris, Mara Packages, or Holiday Homes?
-                </span>
+      <div className="mx-auto max-w-7xl px-4 py-12 space-y-12 relative z-10">
+        {/* HEADER HERO BANNER */}
+        <div className="relative rounded-3xl overflow-hidden border border-amber-500/25 bg-gradient-to-br from-[#1c1008]/90 via-[#100905]/95 to-black/95 p-8 md:p-12 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+          <div className="absolute -top-24 -right-24 w-80 h-80 bg-amber-600/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10 max-w-3xl space-y-4">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/15 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-300">
+              <Sparkles className="h-3.5 w-3.5 text-amber-400" /> M-TRAVEL Verified Marketplace
+            </span>
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 shadow-sm">
+                {activeTab === 'vehicles' && <Car className="h-6 w-6 stroke-[2]" />}
+                {activeTab === 'buses' && <Bus className="h-6 w-6 stroke-[2]" />}
               </div>
-              <Link
-                to="/holidays-and-tours"
-                className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 hover:text-amber-800 hover:underline"
-              >
-                <span>Visit Holidays and Tours</span>
-                <ArrowRight className="h-3 w-3" />
-              </Link>
+              <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white">
+                {activeTab === 'buses' && 'Bus Reservations & Coach Routes'}
+                {activeTab === 'vehicles' && 'Live Fleet Vehicles & Safari Hire'}
+              </h1>
             </div>
-          </div>
+            <p className="text-sm md:text-base text-amber-100/70 leading-relaxed">
+              {activeTab === 'buses' && 'Book luxury highway coaches & intercity express shuttles with seat selection, onboard WiFi, and instant QR tickets.'}
+              {activeTab === 'vehicles' && 'Explore live certified 4x4 safari cruisers, executive SUVs, and passenger vehicles registered by approved fleet hosts.'}
+            </p>
 
-          {/* SEARCH BAR */}
-          <div className="pt-2 max-w-xl">
-            <div className="relative">
-              <Search className="absolute left-4 top-3.5 h-5 w-5 text-amber-600" />
-              <input
-                type="text"
-                placeholder={`Search ${TABS.find(t => t.id === activeTab)?.label} by name, location...`}
-                className="input-field pl-12 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 text-xs md:text-sm focus:border-amber-500 shadow-sm"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            {/* HOLIDAYS AND TOURS PROMPT BANNER */}
+            <div className="pt-2">
+              <div className="rounded-2xl bg-black/40 border border-amber-500/30 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
+                <div className="flex items-center gap-2.5">
+                  <Palmtree className="h-5 w-5 text-amber-400 shrink-0" />
+                  <span className="text-xs text-amber-200/80 font-medium">
+                    Looking for Guided Safaris, Mara Packages, or Holiday Homes?
+                  </span>
+                </div>
+                <Link
+                  to="/holidays-and-tours"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-amber-400 hover:text-amber-300 hover:underline"
+                >
+                  <span>Visit Holidays and Tours</span>
+                  <ArrowRight className="h-3 w-3" />
+                </Link>
+              </div>
+            </div>
+
+            {/* SEARCH BAR */}
+            <div className="pt-2 max-w-xl">
+              <div className="relative">
+                <Search className="absolute left-4 top-3.5 h-5 w-5 text-amber-400" />
+                <input
+                  type="text"
+                  placeholder={`Search ${TABS.find(t => t.id === activeTab)?.label} by name, location...`}
+                  className="input-field pl-12 bg-black/60 border-amber-900/50 text-white placeholder:text-amber-100/40 text-xs md:text-sm focus:border-amber-400 shadow-inner"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* CATEGORY TABS BAR */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className={`flex items-center gap-3 p-4 rounded-2xl border transition-all duration-200 ${
-                isActive
-                  ? 'bg-amber-500 text-white border-amber-500 shadow-md scale-[1.02]'
-                  : 'bg-white text-slate-700 border-slate-200 hover:border-amber-400 hover:bg-amber-50/40 shadow-sm'
-              }`}
-            >
-              <Icon className="h-5 w-5 shrink-0" />
-              <div className="text-left">
-                <span className="block font-bold text-sm leading-none">{tab.label}</span>
-                <span className="text-[10px] font-medium opacity-80 mt-0.5 block">{tab.desc}</span>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+        {/* CATEGORY TABS BAR */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`flex items-center gap-3 p-4 rounded-2xl border transition-all duration-200 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-amber-600 to-amber-500 text-white border-amber-400/60 shadow-[0_4px_20px_rgba(217,119,6,0.3)] scale-[1.02]'
+                    : 'bg-[#150d08]/80 text-amber-100/75 border-amber-900/40 hover:border-amber-500/50 hover:bg-[#20130b] hover:text-white backdrop-blur-md shadow-sm'
+                }`}
+              >
+                <Icon className="h-5 w-5 shrink-0" />
+                <div className="text-left">
+                  <span className="block font-bold text-sm leading-none">{tab.label}</span>
+                  <span className="text-[10px] font-medium opacity-80 mt-0.5 block">{tab.desc}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
 
       {/* ADMIN NOTIFICATION TOAST */}
       {adminNotice && (
@@ -256,15 +263,15 @@ export default function Catalogue() {
         >
           {filteredItems.length === 0 ? (
             activeTab === 'vehicles' ? (
-              <div className="col-span-full rounded-3xl bg-white border border-slate-200/90 p-12 md:p-16 text-center space-y-4 shadow-sm">
-                <div className="h-16 w-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mx-auto">
+              <div className="col-span-full rounded-3xl bg-[#120a05]/90 border border-amber-900/40 p-12 md:p-16 text-center space-y-4 shadow-xl backdrop-blur-md">
+                <div className="h-16 w-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
                   <Car className="h-8 w-8 stroke-[1.75]" />
                 </div>
                 <div className="space-y-1.5 max-w-md mx-auto">
-                  <h3 className="font-serif text-2xl font-bold text-slate-900">
+                  <h3 className="font-serif text-2xl font-bold text-white">
                     No vehicles available at the moment
                   </h3>
-                  <p className="text-xs md:text-sm text-slate-500 font-medium leading-relaxed">
+                  <p className="text-xs md:text-sm text-amber-100/65 font-medium leading-relaxed">
                     {searchTerm
                       ? `No approved vehicles match "${searchTerm}". Try searching for another keyword or location.`
                       : 'There are currently no approved fleet vehicles listed for hire. Check back soon or register as a fleet host to list your vehicle.'}
@@ -274,7 +281,7 @@ export default function Catalogue() {
                   {searchTerm && (
                     <button
                       onClick={() => setSearchTerm('')}
-                      className="btn-secondary !py-2 !px-4 text-xs font-bold border-slate-200 text-slate-700"
+                      className="btn-secondary !bg-[#1c1008] !border-amber-900/50 !text-amber-200 hover:!bg-[#28170d] !py-2 !px-4 text-xs font-bold"
                     >
                       Clear Search
                     </button>
@@ -288,15 +295,15 @@ export default function Catalogue() {
                 </div>
               </div>
             ) : (
-              <div className="col-span-full rounded-3xl bg-white border border-slate-200/90 p-12 md:p-16 text-center space-y-4 shadow-sm">
-                <div className="h-16 w-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mx-auto">
+              <div className="col-span-full rounded-3xl bg-[#120a05]/90 border border-amber-900/40 p-12 md:p-16 text-center space-y-4 shadow-xl backdrop-blur-md">
+                <div className="h-16 w-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
                   <Bus className="h-8 w-8 stroke-[1.75]" />
                 </div>
                 <div className="space-y-1.5 max-w-md mx-auto">
-                  <h3 className="font-serif text-2xl font-bold text-slate-900">
+                  <h3 className="font-serif text-2xl font-bold text-white">
                     No buses at the moment
                   </h3>
-                  <p className="text-xs md:text-sm text-slate-500 font-medium leading-relaxed">
+                  <p className="text-xs md:text-sm text-amber-100/65 font-medium leading-relaxed">
                     {searchTerm
                       ? `No buses match "${searchTerm}". Try searching for another route or keyword.`
                       : 'There are currently no buses registered into the system. Admin and hosts can register buses under live fleet.'}
@@ -306,7 +313,7 @@ export default function Catalogue() {
                   <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
                     <button
                       onClick={() => setSearchTerm('')}
-                      className="btn-secondary !py-2 !px-4 text-xs font-bold border-slate-200 text-slate-700"
+                      className="btn-secondary !bg-[#1c1008] !border-amber-900/50 !text-amber-200 hover:!bg-[#28170d] !py-2 !px-4 text-xs font-bold"
                     >
                       Clear Search
                     </button>
@@ -324,16 +331,16 @@ export default function Catalogue() {
               return (
                 <div
                   key={item.id}
-                  className="card-luxe overflow-hidden rounded-3xl border border-slate-200/90 shadow-card hover:shadow-card-hover transition-all duration-300 group flex flex-col sm:flex-row hover:-translate-y-1 h-full"
+                  className="overflow-hidden rounded-3xl border border-amber-900/40 bg-gradient-to-b from-[#140c07]/90 to-[#0c0704]/95 backdrop-blur-md shadow-xl hover:shadow-[0_12px_36px_rgba(217,119,6,0.15)] hover:border-amber-500/40 transition-all duration-300 group flex flex-col sm:flex-row hover:-translate-y-1 h-full"
                 >
                   {/* IMAGE */}
-                  <div className="relative h-60 sm:h-auto sm:w-1/2 overflow-hidden bg-slate-100 shrink-0">
+                  <div className="relative h-60 sm:h-auto sm:w-1/2 overflow-hidden bg-slate-950 shrink-0">
                     <img
                       src={item.imageUrl}
                       alt={item.title}
                       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
-                    <span className="absolute top-3 left-3 rounded-full bg-white/95 backdrop-blur-md border border-amber-200 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-800 shadow-sm">
+                    <span className="absolute top-3 left-3 rounded-full bg-black/85 backdrop-blur-md border border-amber-400/40 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-300 shadow-sm">
                       {item.badge}
                     </span>
 
@@ -361,29 +368,29 @@ export default function Catalogue() {
                   {/* DETAILS */}
                   <div className="p-6 flex flex-col justify-between flex-1 space-y-4">
                     <div>
-                      <div className="flex items-center text-xs text-teal-700 font-semibold mb-1">
+                      <div className="flex items-center text-xs text-amber-400 font-semibold mb-1">
                         <span className="flex items-center gap-1">
-                          <MapPin className="h-3.5 w-3.5 text-teal-600" /> {item.location}
+                          <MapPin className="h-3.5 w-3.5 text-amber-400" /> {item.location}
                         </span>
                       </div>
-                      <h3 className="font-serif text-xl font-bold text-slate-900 group-hover:text-amber-700 transition-colors">
+                      <h3 className="font-serif text-xl font-bold text-white group-hover:text-amber-400 transition-colors">
                         {item.title}
                       </h3>
-                      <p className="mt-1.5 text-xs text-slate-600 leading-relaxed">
+                      <p className="mt-1.5 text-xs text-amber-100/70 leading-relaxed">
                         {item.subtitle}
                       </p>
 
                       {/* ADMIN LIVE FLEET OVERRIDE BAR */}
                       {isAdmin && isVehicle && (
-                        <div className="mt-3 p-2.5 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-between text-xs">
+                        <div className="mt-3 p-2.5 rounded-xl bg-purple-950/50 border border-purple-500/30 flex items-center justify-between text-xs">
                           <div className="flex items-center gap-1.5">
-                            <ShieldCheck className="h-4 w-4 text-purple-700 shrink-0" />
+                            <ShieldCheck className="h-4 w-4 text-purple-400 shrink-0" />
                             <div>
-                              <span className="font-bold text-purple-900 block text-[11px]">Admin Fleet Controls</span>
+                              <span className="font-bold text-purple-200 block text-[11px]">Admin Fleet Controls</span>
                               <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-[10px] text-purple-700 font-medium">Status:</span>
-                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${isLive ? 'text-emerald-700' : 'text-slate-600'}`}>
-                                  <span className={`h-1.5 w-1.5 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                                <span className="text-[10px] text-purple-300 font-medium">Status:</span>
+                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${isLive ? 'text-emerald-400' : 'text-slate-400'}`}>
+                                  <span className={`h-1.5 w-1.5 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
                                   {isLive ? 'Live on Marketplace' : 'Offline (Paused)'}
                                 </span>
                               </div>
@@ -401,7 +408,7 @@ export default function Catalogue() {
                             }}
                             className={`px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-sm transition flex items-center gap-1 shrink-0 ${
                               isLive
-                                ? 'bg-rose-100 text-rose-800 border border-rose-300 hover:bg-rose-200'
+                                ? 'bg-rose-950 text-rose-300 border border-rose-700 hover:bg-rose-900'
                                 : 'bg-emerald-600 text-white hover:bg-emerald-700'
                             }`}
                             title={isLive ? 'Take offline upon host request' : 'Turn live upon host request'}
@@ -414,20 +421,20 @@ export default function Catalogue() {
 
                       {/* UNAVAILABILITY & HIRED NOTICES FOR TRAVELERS */}
                       {isVehicle && hireStatus.isHired && (
-                        <div className="mt-2.5 p-2.5 rounded-xl bg-amber-500/10 border border-amber-400/30 text-amber-950 text-[11px] font-medium flex items-start gap-2 shadow-xs">
-                          <div className="p-1 rounded-lg bg-amber-500/15 text-amber-800 shrink-0 mt-0.5">
+                        <div className="mt-2.5 p-2.5 rounded-xl bg-amber-950/60 border border-amber-600/40 text-amber-200 text-[11px] font-medium flex items-start gap-2 shadow-xs">
+                          <div className="p-1 rounded-lg bg-amber-500/20 text-amber-300 shrink-0 mt-0.5">
                             <Navigation className="h-3.5 w-3.5 -rotate-45" />
                           </div>
                           <div className="leading-snug">
-                            <span className="font-bold block text-amber-900">Active Passenger Journey</span>
+                            <span className="font-bold block text-amber-300">Active Passenger Journey</span>
                             Currently on an active trip with a traveler until {hireStatus.returnDate || 'return'}. Cannot be hired until returned.
                           </div>
                         </div>
                       )}
 
                       {isVehicle && !hireStatus.isHired && !isLive && (
-                        <div className="mt-2.5 p-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-[11px] font-medium flex items-start gap-1.5">
-                          <AlertTriangle className="h-3.5 w-3.5 text-rose-600 shrink-0 mt-0.5" />
+                        <div className="mt-2.5 p-2 rounded-xl bg-rose-950/60 border border-rose-700/50 text-rose-200 text-[11px] font-medium flex items-start gap-1.5">
+                          <AlertTriangle className="h-3.5 w-3.5 text-rose-400 shrink-0 mt-0.5" />
                           <span>
                             <strong>Temporarily offline:</strong> This car is not available for hire at the moment upon host/admin request.
                           </span>
@@ -439,7 +446,7 @@ export default function Catalogue() {
                         {item.specs.map((spec) => (
                           <span
                             key={spec}
-                            className="rounded-lg bg-slate-100 border border-slate-200/60 px-2.5 py-1 text-[10px] font-medium text-slate-700"
+                            className="rounded-lg bg-black/40 border border-amber-900/40 px-2.5 py-1 text-[10px] font-medium text-amber-200/80"
                           >
                             {spec}
                           </span>
@@ -447,12 +454,12 @@ export default function Catalogue() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-slate-150 pt-4">
+                    <div className="flex items-center justify-between border-t border-amber-900/30 pt-4">
                       <div>
-                        <span className="text-[10px] text-slate-400 uppercase tracking-widest block font-bold">Rate</span>
-                        <span className="text-xl font-bold text-slate-900">
+                        <span className="text-[10px] text-amber-300/50 uppercase tracking-widest block font-bold">Rate</span>
+                        <span className="text-xl font-bold text-white">
                           {formatPrice(item.priceKES)}
-                          <span className="text-xs font-normal text-slate-500">{item.priceUnit}</span>
+                          <span className="text-xs font-normal text-amber-200/60">{item.priceUnit}</span>
                         </span>
                       </div>
 
@@ -466,27 +473,27 @@ export default function Catalogue() {
                               setSelectedItem(item);
                             }
                           }}
-                          className="rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold transition shadow-xs cursor-pointer"
+                          className="rounded-xl bg-[#1c1008] hover:bg-[#28170d] border border-amber-800/40 text-amber-200 !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold transition shadow-xs cursor-pointer"
                         >
-                          <ShieldCheck className="h-3.5 w-3.5 text-amber-600" />
+                          <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />
                           <span>View Description &amp; Specs</span>
                         </button>
                       ) : isVehicle && hireStatus.isHired ? (
                         <button
                           disabled
-                          className="rounded-xl bg-slate-100 border border-slate-200 text-slate-400 !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold cursor-not-allowed shadow-none"
+                          className="rounded-xl bg-black/40 border border-white/10 text-slate-500 !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold cursor-not-allowed shadow-none"
                           title={`This vehicle is hired until ${hireStatus.returnDate || 'return'}`}
                         >
-                          <Lock className="h-3.5 w-3.5 text-slate-400" />
+                          <Lock className="h-3.5 w-3.5 text-slate-500" />
                           Currently In Use
                         </button>
                       ) : isVehicle && !isLive ? (
                         <button
                           disabled
-                          className="rounded-xl bg-slate-100 border border-slate-200 text-slate-400 !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold cursor-not-allowed shadow-none"
+                          className="rounded-xl bg-black/40 border border-white/10 text-slate-500 !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold cursor-not-allowed shadow-none"
                           title="Vehicle is temporarily paused from hire"
                         >
-                          <Lock className="h-3.5 w-3.5 text-slate-400" />
+                          <Lock className="h-3.5 w-3.5 text-slate-500" />
                           Unavailable
                         </button>
                       ) : (
@@ -498,7 +505,7 @@ export default function Catalogue() {
                               setSelectedItem(item);
                             }
                           }}
-                          className="btn-primary !px-5 !py-2 text-xs flex items-center gap-1.5 font-bold shadow-sm"
+                          className="btn-primary !px-5 !py-2 text-xs flex items-center gap-1.5 font-bold shadow-md shadow-amber-500/20"
                         >
                           {activeTab === 'buses' ? 'Reserve Bus Seat' : 'Book Vehicle'}
                           <ArrowRight className="h-3.5 w-3.5" />
@@ -843,6 +850,7 @@ export default function Catalogue() {
           }}
         />
       )}
+      </div>
     </div>
   );
 }

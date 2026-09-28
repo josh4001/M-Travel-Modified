@@ -80,21 +80,21 @@ export const PinterestThemes: React.FC = () => {
 
   return (
     <section className="py-12">
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-6 mb-8">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-amber-900/30 pb-6 mb-8">
         <div>
-          <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-600 font-display">
-            <Compass className="h-4 w-4 text-amber-600" /> Curated Tourist Mood Boards
+          <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-400 font-display">
+            <Compass className="h-4 w-4 text-amber-400" /> Curated Tourist Mood Boards
           </span>
-          <h2 className="mt-2 font-display text-3xl font-bold tracking-tight md:text-4xl text-slate-900">
+          <h2 className="mt-2 font-display text-3xl font-bold tracking-tight md:text-4xl text-white">
             Tourism Vibe & Experiences
           </h2>
-          <p className="mt-1 text-sm text-slate-600 font-medium">
+          <p className="mt-1 text-sm text-amber-100/70 font-medium">
             Get inspired for your next Kenyan journey. Save your favorite vibes and book matching vehicles.
           </p>
         </div>
         <Link
           to="/catalogue"
-          className="btn-ghost text-xs !px-4 !py-2 flex items-center gap-1.5 border border-slate-200 text-slate-700 hover:text-slate-900"
+          className="btn-secondary !bg-[#1c1008] !border-amber-900/50 !text-amber-200 hover:!bg-[#28170d] text-xs !px-4 !py-2 flex items-center gap-1.5 font-bold"
         >
           View All Trips <ArrowUpRight className="h-3.5 w-3.5" />
         </Link>
@@ -109,7 +109,7 @@ export const PinterestThemes: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: i * 0.08 }}
-            className="break-inside-avoid group relative overflow-hidden rounded-3xl bg-slate-900 border border-slate-200/80 shadow-md hover:border-amber-500/50 hover:shadow-xl transition-all duration-300"
+            className="break-inside-avoid group relative overflow-hidden rounded-3xl bg-slate-900 border border-amber-900/40 shadow-xl hover:border-amber-500/50 hover:shadow-2xl transition-all duration-300"
           >
             {/* IMAGE WITH ASPECT RATIO */}
             <div className={`relative w-full ${pin.aspect} overflow-hidden bg-slate-950`}>

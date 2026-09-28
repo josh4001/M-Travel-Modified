@@ -126,19 +126,19 @@ export const CatalogueTabs: React.FC = () => {
   return (
     <section className="py-10">
       <div className="text-center max-w-3xl mx-auto mb-8">
-        <span className="inline-block rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-800">
+        <span className="inline-block rounded-full border border-amber-400/40 bg-amber-500/15 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-300">
           Catalogue & Services
         </span>
-        <h2 className="mt-3 font-serif text-3xl md:text-4xl font-bold text-slate-900">
+        <h2 className="mt-3 font-serif text-3xl md:text-4xl font-bold text-white">
           Explore Our Specialized Service Catalogues
         </h2>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-amber-100/70">
           Switch tabs to preview dedicated vehicles, luxury bus coaches, safaris, and holiday stays.
         </p>
       </div>
 
       {/* CATALOGUE TABS BAR */}
-      <div className="mx-auto max-w-4xl flex flex-wrap gap-2 justify-center rounded-2xl border border-slate-200/80 bg-white p-2 mb-8 shadow-card">
+      <div className="mx-auto max-w-4xl flex flex-wrap gap-2 justify-center rounded-2xl border border-amber-900/40 bg-[#120a05]/90 backdrop-blur-md p-2 mb-8 shadow-xl">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -148,8 +148,8 @@ export const CatalogueTabs: React.FC = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 min-w-[160px] flex items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-xs font-bold transition-all duration-200 ${
                 isActive
-                  ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  ? 'bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
+                  : 'text-amber-100/75 hover:text-white hover:bg-[#1f1209]'
               }`}
             >
               <Icon className="h-4 w-4 shrink-0" />
@@ -172,14 +172,14 @@ export const CatalogueTabs: React.FC = () => {
           className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 items-stretch"
         >
           {currentItems.length === 0 ? (
-            <div className="col-span-full rounded-3xl bg-white border border-slate-200/90 p-12 text-center space-y-3 shadow-sm">
-              <div className="h-12 w-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto">
+            <div className="col-span-full rounded-3xl bg-[#120a05]/90 border border-amber-900/40 p-12 text-center space-y-3 shadow-xl backdrop-blur-md">
+              <div className="h-12 w-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
                 {activeTab === 'buses' ? <Bus className="h-6 w-6" /> : <Car className="h-6 w-6" />}
               </div>
-              <h3 className="font-serif text-lg font-bold text-slate-900">
+              <h3 className="font-serif text-lg font-bold text-white">
                 {activeTab === 'buses' ? 'No buses at the moment' : 'No vehicles available at the moment'}
               </h3>
-              <p className="text-xs text-slate-500 font-medium max-w-md mx-auto">
+              <p className="text-xs text-amber-100/65 font-medium max-w-md mx-auto">
                 {activeTab === 'buses'
                   ? 'There are currently no buses registered into the system. Admin and hosts can register buses under live fleet.'
                   : 'Fleet hosts have not yet listed any approved vehicles for hire. Check back soon or register as a host.'}
@@ -193,16 +193,16 @@ export const CatalogueTabs: React.FC = () => {
           ) : currentItems.map((item) => (
             <div
               key={item.id}
-              className="card-luxe overflow-hidden rounded-3xl border border-slate-200/90 shadow-card hover:shadow-card-hover transition-all duration-300 group flex flex-col md:flex-row hover:-translate-y-1 h-full"
+              className="overflow-hidden rounded-3xl border border-amber-900/40 bg-gradient-to-b from-[#140c07]/90 to-[#0c0704]/95 backdrop-blur-md shadow-xl hover:shadow-[0_12px_36px_rgba(217,119,6,0.15)] hover:border-amber-500/40 transition-all duration-300 group flex flex-col md:flex-row hover:-translate-y-1 h-full"
             >
               {/* SPECIFIC CATALOGUE IMAGE */}
-              <div className="relative h-60 md:h-auto md:w-1/2 overflow-hidden bg-slate-100 shrink-0">
+              <div className="relative h-60 md:h-auto md:w-1/2 overflow-hidden bg-slate-950 shrink-0">
                 <img
                   src={item.imageUrl}
                   alt={item.title}
                   className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
-                <span className="absolute top-3 left-3 rounded-full bg-white/95 backdrop-blur-md border border-amber-200 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-800 shadow-sm">
+                <span className="absolute top-3 left-3 rounded-full bg-black/85 backdrop-blur-md border border-amber-400/40 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-300 shadow-sm">
                   {item.badge}
                 </span>
               </div>
@@ -210,13 +210,13 @@ export const CatalogueTabs: React.FC = () => {
               {/* DETAILS */}
               <div className="p-6 flex flex-col justify-between flex-1">
                 <div>
-                  <span className="flex items-center gap-1 text-xs text-teal-700 font-semibold mb-1">
-                    <MapPin className="h-3.5 w-3.5 text-teal-600" /> {item.location}
+                  <span className="flex items-center gap-1 text-xs text-amber-400 font-semibold mb-1">
+                    <MapPin className="h-3.5 w-3.5 text-amber-400" /> {item.location}
                   </span>
-                  <h3 className="font-serif text-xl font-bold text-slate-900 group-hover:text-amber-700 transition-colors">
+                  <h3 className="font-serif text-xl font-bold text-white group-hover:text-amber-400 transition-colors">
                     {item.title}
                   </h3>
-                  <p className="mt-1.5 text-xs text-slate-600 leading-relaxed">
+                  <p className="mt-1.5 text-xs text-amber-100/70 leading-relaxed">
                     {item.subtitle}
                   </p>
 
@@ -225,7 +225,7 @@ export const CatalogueTabs: React.FC = () => {
                     {item.specs.map((spec) => (
                       <span
                         key={spec}
-                        className="rounded-lg bg-slate-100 border border-slate-200/60 px-2.5 py-1 text-[10px] font-medium text-slate-700"
+                        className="rounded-lg bg-black/40 border border-amber-900/40 px-2.5 py-1 text-[10px] font-medium text-amber-200/80"
                       >
                         {spec}
                       </span>
@@ -233,18 +233,18 @@ export const CatalogueTabs: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mt-6 flex items-center justify-between border-t border-slate-150 pt-4">
+                <div className="mt-6 flex items-center justify-between border-t border-amber-900/30 pt-4">
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-widest block font-bold">Rate</span>
-                    <span className="text-xl font-bold text-slate-900">
+                    <span className="text-[10px] text-amber-300/50 uppercase tracking-widest block font-bold">Rate</span>
+                    <span className="text-xl font-bold text-white">
                       {formatPrice(item.priceKES)}
-                      <span className="text-xs font-normal text-slate-500">{item.priceUnit}</span>
+                      <span className="text-xs font-normal text-amber-200/60">{item.priceUnit}</span>
                     </span>
                   </div>
 
                   <Link
                     to={`/catalogue?category=${activeTab}`}
-                    className="btn-primary !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold shadow-sm"
+                    className="btn-primary !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold shadow-md shadow-amber-500/20"
                   >
                     Select Catalogue <ArrowRight className="h-3.5 w-3.5" />
                   </Link>

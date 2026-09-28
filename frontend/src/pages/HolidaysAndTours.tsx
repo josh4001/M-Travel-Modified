@@ -195,109 +195,115 @@ export default function HolidaysAndTours() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 space-y-12 font-display">
-      {/* HERO BANNER */}
-      <div className="relative rounded-3xl overflow-hidden border border-amber-400/30 bg-gradient-to-br from-amber-500/15 via-slate-900 to-slate-950 p-8 md:p-12 text-white shadow-2xl">
-        <div className="absolute -right-20 -top-20 w-80 h-80 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/20 px-4 py-1.5 backdrop-blur-md">
-            <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-            <span className="text-xs font-bold uppercase tracking-widest text-amber-200">
-              East Africa's Curated Holiday Sanctuaries
-            </span>
-          </div>
+    <div className="min-h-screen bg-[#060302] text-slate-100 relative overflow-hidden font-display">
+      {/* ATMOSPHERIC GLOWING BROWN AMBIENT RADIANCE */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[650px] bg-gradient-to-b from-amber-900/20 via-[#22140b]/35 to-transparent blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-1/4 -right-40 w-96 h-96 bg-amber-800/10 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute bottom-1/3 -left-40 w-96 h-96 bg-[#22140b]/25 rounded-full blur-3xl pointer-events-none -z-10" />
 
-          <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white leading-tight">
-            Holidays, Safaris & Private Villas
-          </h1>
+      <div className="mx-auto max-w-7xl px-4 py-12 space-y-12 relative z-10 font-display">
+        {/* HERO BANNER */}
+        <div className="relative rounded-3xl overflow-hidden border border-amber-500/25 bg-gradient-to-br from-[#1c1008]/90 via-[#100905]/95 to-black/95 p-8 md:p-12 text-white shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+          <div className="absolute -right-20 -top-20 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10 max-w-3xl space-y-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/15 px-4 py-1.5 backdrop-blur-md">
+              <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+              <span className="text-xs font-bold uppercase tracking-widest text-amber-200">
+                East Africa's Curated Holiday Sanctuaries
+              </span>
+            </div>
 
-          <p className="text-sm md:text-base text-slate-300 leading-relaxed max-w-2xl font-body">
-            Handpicked African holiday escapes verified by M-TRAVEL. Choose from all-inclusive Maasai Mara safari game drives, Mount Kenya retreats, and beachfront Swahili villas with private pools & personal chefs.
-          </p>
+            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white leading-tight">
+              Holidays, Safaris & Private Villas
+            </h1>
 
-          {/* SEARCH BAR */}
-          <div className="pt-2 max-w-xl">
-            <div className="relative">
-              <Search className="absolute left-4 top-3.5 h-5 w-5 text-amber-400" />
-              <input
-                type="text"
-                placeholder="Search safari packages, villas, beaches, or reserves..."
-                className="input-field pl-12 bg-slate-900/90 border-slate-700 text-white placeholder:text-slate-400 text-xs md:text-sm focus:border-amber-400 shadow-inner"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <p className="text-sm md:text-base text-amber-100/70 leading-relaxed max-w-2xl font-body">
+              Handpicked African holiday escapes verified by M-TRAVEL. Choose from all-inclusive Maasai Mara safari game drives, Mount Kenya retreats, and beachfront Swahili villas with private pools & personal chefs.
+            </p>
+
+            {/* SEARCH BAR */}
+            <div className="pt-2 max-w-xl">
+              <div className="relative">
+                <Search className="absolute left-4 top-3.5 h-5 w-5 text-amber-400" />
+                <input
+                  type="text"
+                  placeholder="Search safari packages, villas, beaches, or reserves..."
+                  className="input-field pl-12 bg-black/60 border-amber-900/50 text-white placeholder:text-amber-100/40 text-xs md:text-sm focus:border-amber-400 shadow-inner"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* CATEGORY SELECTOR TABS */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
-        <div className="flex items-center gap-2">
-          {[
-            { id: 'ALL' as TabFilter, label: 'All Holidays & Tours', icon: Compass, count: destinations.length },
-            { id: 'TOUR' as TabFilter, label: 'Guided Safaris & Tours', icon: Palmtree, count: destinations.filter(d => d.category === 'TOUR').length },
-            { id: 'HOLIDAY_HOME' as TabFilter, label: 'Holiday Homes & Villas', icon: Home, count: destinations.filter(d => d.category === 'HOLIDAY_HOME').length },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeCategory === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
-                  isActive
-                    ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
-                }`}
+        {/* CATEGORY SELECTOR TABS */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-amber-900/30 pb-4">
+          <div className="flex items-center gap-2">
+            {[
+              { id: 'ALL' as TabFilter, label: 'All Holidays & Tours', icon: Compass, count: destinations.length },
+              { id: 'TOUR' as TabFilter, label: 'Guided Safaris & Tours', icon: Palmtree, count: destinations.filter(d => d.category === 'TOUR').length },
+              { id: 'HOLIDAY_HOME' as TabFilter, label: 'Holiday Homes & Villas', icon: Home, count: destinations.filter(d => d.category === 'HOLIDAY_HOME').length },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeCategory === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+                    isActive
+                      ? 'bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
+                      : 'bg-[#150d08]/80 text-amber-100/75 border border-amber-900/40 hover:bg-[#20130b] hover:text-white backdrop-blur-md'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{tab.label}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${isActive ? 'bg-white/30 text-white' : 'bg-black/40 text-amber-300'}`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="text-xs text-amber-200/60 font-medium flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-emerald-400" />
+            <span>Curated & Updated Exclusively by M-TRAVEL Administration</span>
+          </div>
+        </div>
+
+        {/* PUBLIC TRAVELER BANNER (WHEN NOT LOGGED IN) */}
+        {!user && (
+          <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-[#180e08]/95 via-[#100905]/95 to-black/95 p-4 text-xs text-amber-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-amber-500/15 border border-amber-400/30 text-amber-400 flex items-center justify-center shrink-0">
+                <Lock className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="font-bold text-white text-xs sm:text-sm">Browsing M-TRAVEL Holidays & Stays</p>
+                <p className="text-amber-100/70 text-[11px] sm:text-xs">
+                  To confirm bookings, lock travel dates, and receive official digital itineraries, please register or sign in as a traveler.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                to="/register?role=TOURIST&redirect=/holidays-and-tours"
+                className="btn-primary !py-2 !px-3.5 text-xs font-bold shadow-xs flex items-center gap-1.5"
               >
-                <Icon className="h-4 w-4" />
-                <span>{tab.label}</span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${isActive ? 'bg-white/30 text-white' : 'bg-white text-slate-600'}`}>
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="text-xs text-slate-500 font-medium flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-emerald-600" />
-          <span>Curated & Updated Exclusively by M-TRAVEL Administration</span>
-        </div>
-      </div>
-
-      {/* PUBLIC TRAVELER BANNER (WHEN NOT LOGGED IN) */}
-      {!user && (
-        <div className="rounded-2xl border border-amber-200/90 bg-gradient-to-r from-amber-50/90 via-white to-amber-50/60 p-4 text-xs text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-amber-500/15 border border-amber-300 text-amber-800 flex items-center justify-center shrink-0">
-              <Lock className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="font-bold text-slate-900 text-xs sm:text-sm">Browsing M-TRAVEL Holidays & Stays</p>
-              <p className="text-slate-600 text-[11px] sm:text-xs">
-                To confirm bookings, lock travel dates, and receive official digital itineraries, please register or sign in as a traveler.
-              </p>
+                <UserPlus className="h-3.5 w-3.5" />
+                <span>Register as Traveler</span>
+              </Link>
+              <Link
+                to="/login?redirect=/holidays-and-tours"
+                className="btn-secondary !bg-[#1c1008] !border-amber-900/50 !text-amber-200 hover:!bg-[#28170d] !py-2 !px-3 text-xs font-semibold"
+              >
+                Sign In
+              </Link>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Link
-              to="/register?role=TOURIST&redirect=/holidays-and-tours"
-              className="btn-primary !py-2 !px-3.5 text-xs font-bold shadow-xs flex items-center gap-1.5"
-            >
-              <UserPlus className="h-3.5 w-3.5" />
-              <span>Register as Traveler</span>
-            </Link>
-            <Link
-              to="/login?redirect=/holidays-and-tours"
-              className="btn-secondary !py-2 !px-3 text-xs font-semibold"
-            >
-              Sign In
-            </Link>
-          </div>
-        </div>
-      )}
+        )}
 
       {/* SUCCESS CONFIRMATION MODAL */}
       {bookingSuccessRef && (
@@ -371,10 +377,10 @@ export default function HolidaysAndTours() {
 
       {/* ITEM GRID */}
       {filteredItems.length === 0 ? (
-        <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center shadow-sm space-y-4">
+        <div className="rounded-3xl border border-amber-900/40 bg-[#120a05]/90 p-12 text-center shadow-xl backdrop-blur-md space-y-4">
           <Palmtree className="h-12 w-12 text-amber-500 mx-auto" />
-          <h3 className="font-serif text-xl font-bold text-slate-800">No Holiday Packages Found</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          <h3 className="font-serif text-xl font-bold text-white">No Holiday Packages Found</h3>
+          <p className="text-xs text-amber-100/65 max-w-sm mx-auto">
             No active holiday destinations or safaris match your query. Try clearing your search term.
           </p>
           <button
@@ -392,11 +398,11 @@ export default function HolidaysAndTours() {
               layout
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-xl transition duration-300 flex flex-col justify-between group"
+              className="rounded-3xl border border-amber-900/40 bg-gradient-to-b from-[#140c07]/90 to-[#0c0704]/95 backdrop-blur-md overflow-hidden shadow-xl hover:shadow-[0_12px_36px_rgba(217,119,6,0.15)] hover:border-amber-500/40 transition duration-300 flex flex-col justify-between group"
             >
               <div>
                 {/* PHOTO CONTAINER */}
-                <div className="relative h-60 overflow-hidden bg-slate-900">
+                <div className="relative h-60 overflow-hidden bg-slate-950">
                   <img
                     src={item.imageUrl}
                     alt={item.title}
@@ -424,16 +430,16 @@ export default function HolidaysAndTours() {
                 {/* CONTENT */}
                 <div className="p-6 space-y-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-500/30">
                       {item.category === 'TOUR' ? 'Safari Package' : 'Holiday Home'}
                     </span>
                   </div>
 
-                  <h3 className="font-serif text-xl font-bold text-slate-900 group-hover:text-amber-700 transition line-clamp-2">
+                  <h3 className="font-serif text-xl font-bold text-white group-hover:text-amber-400 transition line-clamp-2">
                     {item.title}
                   </h3>
 
-                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-amber-100/65 line-clamp-2 leading-relaxed">
                     {item.subtitle}
                   </p>
 
@@ -442,7 +448,7 @@ export default function HolidaysAndTours() {
                     {item.specs.slice(0, 3).map((spec, i) => (
                       <span
                         key={i}
-                        className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700 border border-slate-200/60"
+                        className="rounded-lg bg-black/40 px-2.5 py-1 text-[11px] font-medium text-amber-200/80 border border-amber-900/40"
                       >
                         {spec}
                       </span>
@@ -452,21 +458,21 @@ export default function HolidaysAndTours() {
               </div>
 
               {/* FOOTER & PRICING */}
-              <div className="p-5 pt-0 border-t border-slate-100 mt-4 flex items-center justify-between gap-2">
+              <div className="p-5 pt-0 border-t border-amber-900/30 mt-4 flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <span className="block text-[10px] uppercase font-bold text-slate-400 truncate">All-Inclusive Rate</span>
+                  <span className="block text-[10px] uppercase font-bold text-amber-300/50 truncate">All-Inclusive Rate</span>
                   <div className="flex items-baseline gap-1 whitespace-nowrap">
-                    <span className="font-serif text-lg sm:text-xl font-bold text-slate-950">
+                    <span className="font-serif text-lg sm:text-xl font-bold text-white">
                       {formatPrice(item.priceKES)}
                     </span>
-                    <span className="text-[11px] text-slate-500 font-medium truncate">{item.priceUnit}</span>
+                    <span className="text-[11px] text-amber-200/60 font-medium truncate">{item.priceUnit}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => setSelectedItem(item)}
-                    className="rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-100 px-2.5 py-2 text-xs font-bold text-slate-800 transition whitespace-nowrap"
+                    className="rounded-xl border border-amber-800/40 hover:border-amber-600 bg-[#1c1008] hover:bg-[#28170d] px-2.5 py-2 text-xs font-bold text-amber-200 transition whitespace-nowrap"
                   >
                     Details
                   </button>
@@ -778,6 +784,7 @@ export default function HolidaysAndTours() {
           onClose={() => setShowEmailModal(false)}
         />
       )}
+      </div>
     </div>
   );
 }
