@@ -350,9 +350,12 @@ export async function syncUsersFromSupabase(): Promise<LocalAccount[]> {
       localMap.set(a.email.toLowerCase(), a);
     }
 
+    const deletedEmails = new Set(getDeletedAccountEmails().map((e) => e.toLowerCase()));
+
     for (const u of data) {
       if (u.email) {
         const clean = u.email.toLowerCase();
+        if (deletedEmails.has(clean)) continue;
         const existing = localMap.get(clean);
         localMap.set(clean, {
           id: u.id || existing?.id || `user-${Date.now()}`,
@@ -368,7 +371,7 @@ export async function syncUsersFromSupabase(): Promise<LocalAccount[]> {
       }
     }
 
-    const merged = Array.from(localMap.values());
+    const merged = Array.from(localMap.values()).filter(a => !deletedEmails.has(a.email.toLowerCase()));
     try {
       localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(merged));
       if (typeof window !== 'undefined') {
@@ -543,7 +546,8 @@ export async function updateUserProfile(
 // Delete Account
 // ---------------------------------------------------------------------------
 export async function deleteUserAccount(
-  userIdOrEmail: string
+  userIdOrEmail: string,
+  userEmail?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const accounts = getLocalAccounts();
@@ -551,30 +555,56 @@ export async function deleteUserAccount(
       (a) => a.id === userIdOrEmail || a.email.toLowerCase() === userIdOrEmail.toLowerCase()
     );
 
-    const targetEmail = (targetAccount?.email || userIdOrEmail).toLowerCase();
+    // Determine target email with full fallbacks
+    let targetEmail = (targetAccount?.email || userEmail || '').toLowerCase();
+    if (!targetEmail && userIdOrEmail.includes('@')) {
+      targetEmail = userIdOrEmail.toLowerCase();
+    }
+    if (!targetEmail) {
+      try {
+        const raw = localStorage.getItem('mt_user');
+        if (raw) {
+          const u = JSON.parse(raw);
+          if (u.id === userIdOrEmail || !userIdOrEmail) {
+            targetEmail = (u.email || '').toLowerCase();
+          }
+        }
+      } catch {}
+    }
+
     const targetId = targetAccount?.id || userIdOrEmail;
 
     // 1. Record in tombstone deleted accounts list
-    try {
-      const deleted = getDeletedAccountEmails();
-      if (!deleted.map((e) => e.toLowerCase()).includes(targetEmail)) {
-        deleted.push(targetEmail);
-        localStorage.setItem(DELETED_ACCOUNTS_KEY, JSON.stringify(deleted));
-      }
-    } catch {}
+    if (targetEmail) {
+      try {
+        const deleted = getDeletedAccountEmails();
+        if (!deleted.map((e) => e.toLowerCase()).includes(targetEmail)) {
+          deleted.push(targetEmail);
+          localStorage.setItem(DELETED_ACCOUNTS_KEY, JSON.stringify(deleted));
+        }
+      } catch {}
+    }
 
-    // 2. Remove from active local accounts list
+    // 2. Remove from active local accounts list across all storage keys
     const filteredAccounts = accounts.filter(
-      (a) => a.id !== targetId && a.email.toLowerCase() !== targetEmail
+      (a) => a.id !== targetId && (!targetEmail || a.email.toLowerCase() !== targetEmail)
     );
     try {
       localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(filteredAccounts));
-      localStorage.setItem('mt_user_credentials', JSON.stringify(filteredAccounts));
+      for (const k of LEGACY_STORAGE_KEYS) {
+        localStorage.setItem(k, JSON.stringify(filteredAccounts));
+      }
     } catch {}
 
     // 3. Remove from Supabase users table
     try {
-      await supabase.from('users').delete().eq('id', targetId);
+      if (targetEmail && targetId && targetId !== targetEmail) {
+        await supabase.from('users').delete().or(`id.eq.${targetId},email.ilike.${targetEmail}`);
+      } else if (targetEmail) {
+        await supabase.from('users').delete().ilike('email', targetEmail);
+      } else if (targetId) {
+        await supabase.from('users').delete().eq('id', targetId);
+      }
     } catch (e) {
       console.warn('Supabase delete notice:', e);
     }
@@ -583,20 +613,22 @@ export async function deleteUserAccount(
     try {
       const creditProfiles = getStoredCreditProfiles();
       const updatedProfiles = creditProfiles.filter(
-        (p) => p.userId !== targetId && p.touristEmail.toLowerCase() !== targetEmail
+        (p) => p.userId !== targetId && (!targetEmail || p.touristEmail.toLowerCase() !== targetEmail)
       );
       saveCreditProfiles(updatedProfiles);
     } catch {}
 
     // 5. Audit Log
-    logAuditEvent(
-      'USER_ACCOUNT_DELETED',
-      'User',
-      targetEmail,
-      `User account for ${targetAccount?.firstName || ''} ${targetAccount?.lastName || ''} (${targetEmail}) was permanently deleted`,
-      `${targetAccount?.firstName || ''} ${targetAccount?.lastName || ''}`.trim() || 'User',
-      targetAccount?.role || 'USER'
-    );
+    if (targetEmail) {
+      logAuditEvent(
+        'USER_ACCOUNT_DELETED',
+        'User',
+        targetEmail,
+        `User account for ${targetAccount?.firstName || ''} ${targetAccount?.lastName || ''} (${targetEmail}) was permanently deleted`,
+        `${targetAccount?.firstName || ''} ${targetAccount?.lastName || ''}`.trim() || 'User',
+        targetAccount?.role || 'USER'
+      );
+    }
 
     // 6. Purge active local session tokens & emit account updates
     logout();
@@ -765,6 +797,12 @@ export async function login(
 ): Promise<AuthResponse> {
   const cleanEmail = email.trim().toLowerCase();
 
+  // 0. Check if account was permanently deleted
+  const deletedEmails = getDeletedAccountEmails().map((e) => e.toLowerCase());
+  if (deletedEmails.includes(cleanEmail)) {
+    throw new Error('This account does not exist as it has been permanently deleted. Please register for a new account if you wish to join M-TRAVEL.');
+  }
+
   // 1. Check local persistent account database
   const accounts = getLocalAccounts();
   const matched = accounts.find(a => a.email.toLowerCase() === cleanEmail);
@@ -825,6 +863,10 @@ export async function login(
     const { data: user, error } = await Promise.race([supabasePromise, timeoutPromise]) as any;
 
     if (user && !error) {
+      if (deletedEmails.includes(user.email.toLowerCase())) {
+        throw new Error('This account does not exist as it has been permanently deleted. Please register for a new account if you wish to join M-TRAVEL.');
+      }
+
       if (!user.is_active) {
         throw new Error('This account has been suspended. Contact safari@jambo.africa');
       }
@@ -872,61 +914,11 @@ export async function login(
       };
     }
   } catch (err: any) {
-    if (err.message && err.message.includes('suspended')) throw err;
+    if (err.message && (err.message.includes('suspended') || err.message.includes('deleted'))) throw err;
   }
 
-  // 3. Fallback Auto-Provisioning for Demo/Dev Mode
-  // If the user inputs a valid email structure (e.g. michael@gmail.com) and password,
-  // automatically create their Explorer session so they are never locked out of testing.
-  if (cleanEmail.includes('@') && cleanEmail.includes('.') && password.length >= 4) {
-    const namePart = cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').trim();
-    const firstName = (namePart.charAt(0).toUpperCase() + namePart.slice(1)) || 'Explorer';
-    const determinedRole = cleanEmail.includes('admin')
-      ? 'ADMIN'
-      : cleanEmail.includes('owner') || cleanEmail.includes('host')
-      ? 'VEHICLE_OWNER'
-      : 'TOURIST';
-    const autoAccount: LocalAccount = {
-      id: `user-${Date.now()}`,
-      email: cleanEmail,
-      password: password,
-      role: determinedRole,
-      firstName,
-      lastName: '',
-      phone: '0712345678',
-      isActive: true,
-    };
-
-    saveLocalAccount(autoAccount);
-    const mockTokens = buildMockTokens(autoAccount.id, autoAccount.email, autoAccount.role);
-    persistTokens(mockTokens.accessToken, mockTokens.refreshToken);
-
-    const authUser: AuthUser = {
-      id: autoAccount.id,
-      email: autoAccount.email,
-      role: autoAccount.role,
-      firstName: autoAccount.firstName,
-      lastName: '',
-      phone: autoAccount.phone,
-    };
-    localStorage.setItem('mt_user', JSON.stringify(authUser));
-
-    logAuditEvent(
-      'USER_LOGIN',
-      'User',
-      autoAccount.email,
-      `User ${autoAccount.firstName} (${autoAccount.email}) logged into system with role ${autoAccount.role}`,
-      autoAccount.firstName,
-      autoAccount.role
-    );
-
-    return {
-      ...mockTokens,
-      user: authUser,
-    };
-  }
-
-  throw new Error('Invalid email or password. Please check your credentials or register an account.');
+  // Strictly reject non-existent accounts - NEVER auto-provision on login
+  throw new Error('Account does not exist. Please check your credentials or register for an account.');
 }
 
 // ---------------------------------------------------------------------------

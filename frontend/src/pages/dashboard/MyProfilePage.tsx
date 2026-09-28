@@ -47,7 +47,7 @@ export default function MyProfilePage() {
     setIsDeleting(true);
     setDeleteError(null);
     try {
-      const res = await deleteUserAccount(user.id);
+      const res = await deleteUserAccount(user.id, user.email);
       if (res.success) {
         dispatch(logout());
         window.location.href = '/login?deleted=true';

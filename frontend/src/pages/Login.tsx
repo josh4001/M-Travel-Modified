@@ -169,7 +169,16 @@ export default function Login() {
             {error && (
               <div className="rounded-xl bg-red-500/15 border border-red-400/30 px-4 py-3 text-xs text-red-200 flex items-start gap-2.5">
                 <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
-                <span className="leading-relaxed">{error}</span>
+                <div className="leading-relaxed">
+                  <span>{error}</span>
+                  {error.toLowerCase().includes('deleted') && (
+                    <div className="mt-1.5">
+                      <Link to="/register" className="font-bold text-amber-400 hover:text-amber-300 underline inline-flex items-center gap-1">
+                        Register a new account &rarr;
+                      </Link>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
