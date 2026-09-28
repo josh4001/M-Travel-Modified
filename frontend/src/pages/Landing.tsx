@@ -2,9 +2,8 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
   Car, Bus, Palmtree, Home, ShieldCheck, Star, ArrowRight,
-  Compass, Crown, Search, CalendarCheck, Sparkles
+  Compass, Crown, Search, CalendarCheck, Sparkles, Phone
 } from 'lucide-react';
-import { RouteGlobe } from '@/components/RouteGlobe';
 import { Hero3DCanvas } from '@/components/ui/Hero3DCanvas';
 import { Card3D } from '@/components/ui/Card3D';
 import { AiConciergeShowcase } from '@/components/ui/AiConciergeShowcase';
@@ -36,7 +35,7 @@ const fadeUp = {
 
 export default function Landing() {
   return (
-    <div className="relative overflow-hidden font-display text-slate-900 bg-[#EDE2D4]">
+    <div className="relative overflow-hidden font-display text-slate-900 bg-[#D4BEA3]">
       {/* 3D BACKGROUND CANVAS */}
       <Hero3DCanvas />
 
@@ -56,39 +55,50 @@ export default function Landing() {
         </div>
 
         <div className="mx-auto max-w-7xl space-y-8 md:space-y-10 relative z-10">
-          {/* HERO HEADLINE & 3D GLOBE */}
-          <div className="grid max-w-7xl items-center gap-10 lg:grid-cols-[1.15fr_1fr]">
-            <motion.div initial="hidden" animate="show" variants={fadeUp} className="max-w-2xl relative">
-              {/* Trust Badge */}
-              <div className="mb-5 flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/15 backdrop-blur-md px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-300 shadow-sm">
-                  <Crown className="h-3.5 w-3.5 text-amber-400" /> East Africa's Premier Travel Marketplace
-                </span>
-              </div>
+          {/* HERO HEADLINE & LUXURY EXPERIENCE OVERVIEW */}
+          <motion.div initial="hidden" animate="show" variants={fadeUp} className="max-w-3xl lg:max-w-4xl relative">
+            {/* Trust Badge */}
+            <div className="mb-6 flex flex-wrap items-center gap-3">
+              <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/50 bg-amber-500/20 backdrop-blur-md px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-300 shadow-sm">
+                <Crown className="h-3.5 w-3.5 text-amber-400" /> East Africa's Premier Travel Marketplace
+              </span>
+              <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-amber-200/90 font-semibold bg-black/30 backdrop-blur-md px-3.5 py-1 rounded-full border border-white/10">
+                <Sparkles className="h-3.5 w-3.5 text-amber-400" /> Curated 4x4 Safari Fleets &amp; Beachfront Villas
+              </span>
+            </div>
 
-              <h1 className="font-serif text-5xl font-bold leading-[1.06] tracking-tight md:text-7xl text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">
-                Experience Kenya,
-                <br />
-                <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 bg-clip-text text-transparent drop-shadow-sm">
-                  In Unmatched Luxury.
-                </span>
-              </h1>
+            <h1 className="font-serif text-5xl font-bold leading-[1.06] tracking-tight md:text-7xl lg:text-[5.2rem] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.9)]">
+              Experience Kenya,
+              <br />
+              <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 bg-clip-text text-transparent drop-shadow-sm">
+                In Unmatched Luxury.
+              </span>
+            </h1>
 
-              <p className="mt-5 max-w-xl text-base md:text-lg text-slate-200 leading-relaxed drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)] font-medium">
-                Seamless 4x4 safari cruiser hire, executive chauffeurs, VIP intercity coaches, and beachfront holiday villas — curated to world-class hospitality standards with white-glove concierge service.
-              </p>
+            <p className="mt-6 max-w-2xl text-base md:text-xl text-slate-100 leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] font-medium">
+              Seamless 4x4 safari cruiser hire, executive chauffeurs, VIP intercity coaches, and beachfront holiday villas — curated to world-class hospitality standards with white-glove concierge service.
+            </p>
 
-              <div className="mt-8 flex flex-wrap items-center gap-4">
-                <Link to="/catalogue" className="btn-primary !px-7 !py-3.5 flex items-center gap-2 font-bold shadow-xl hover:shadow-2xl text-sm hover:scale-[1.02] transition-all">
-                  <Compass className="h-4 w-4" /> Explore Vehicles &amp; Safaris
-                </Link>
-                <Link to="/register" className="rounded-xl border border-white/30 bg-slate-950/40 hover:bg-slate-950/60 backdrop-blur-md px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-white transition-all shadow-md hover:scale-[1.02]">
-                  List Your Vehicle or Stay <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              <Link to="/catalogue" className="btn-primary !px-8 !py-4 flex items-center gap-2 font-bold shadow-xl hover:shadow-2xl text-sm hover:scale-[1.02] transition-all">
+                <Compass className="h-4 w-4" /> Explore Vehicles &amp; Safaris
+              </Link>
+              <Link to="/register" className="rounded-full border border-white/30 bg-slate-950/50 hover:bg-slate-950/70 backdrop-blur-md px-7 py-4 text-xs font-bold uppercase tracking-wider text-white transition-all shadow-md hover:scale-[1.02]">
+                List Your Vehicle or Stay <ArrowRight className="h-4 w-4 inline ml-1" />
+              </Link>
+              <a
+                href="https://wa.me/254791888840"
+                target="_blank"
+                rel="noreferrer"
+                className="hidden sm:inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/15 hover:bg-emerald-500/25 backdrop-blur-md px-6 py-4 text-xs font-bold uppercase tracking-wider text-emerald-300 transition-all shadow-md hover:scale-[1.02]"
+              >
+                <Phone className="h-3.5 w-3.5 text-emerald-400" /> WhatsApp Concierge
+              </a>
+            </div>
 
-              {/* SIGNATURE SAFARI SPECIALIST BADGE */}
-              <div className="mt-8 flex items-center gap-4 p-4 rounded-2xl bg-slate-950/40 backdrop-blur-md border border-white/20 shadow-xl max-w-xl">
+            {/* TWIN SIGNATURE SAFARI SPECIALIST CARDS */}
+            <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+              <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-950/50 backdrop-blur-md border border-white/20 shadow-xl">
                 <div className="h-12 w-12 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-300 flex items-center justify-center shrink-0 shadow-xs">
                   <Compass className="h-6 w-6 text-amber-400" />
                 </div>
@@ -98,44 +108,47 @@ export default function Landing() {
                     <span className="text-amber-400 font-bold">✨</span>
                   </p>
                   <p className="text-[11px] text-slate-300 font-medium leading-relaxed mt-0.5">
-                    Hand-inspected 4x4 Land Cruisers, executive safari vans, and coastal holiday stays ready for your Kenyan expedition.
+                    Hand-inspected 4x4 Land Cruisers, executive safari vans, and coastal holiday stays.
                   </p>
                 </div>
               </div>
 
-              {/* LIVE PLATFORM METRICS */}
-              <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-white/15 pt-6 relative">
-                <div>
-                  <p className="font-mono text-2xl font-bold text-white drop-shadow-sm">500+</p>
-                  <p className="text-[11px] text-slate-300 font-medium">Cruisers &amp; Villas</p>
+              <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-950/50 backdrop-blur-md border border-white/20 shadow-xl">
+                <div className="h-12 w-12 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 flex items-center justify-center shrink-0 shadow-xs">
+                  <ShieldCheck className="h-6 w-6 text-emerald-400" />
                 </div>
                 <div>
-                  <p className="font-mono text-2xl font-bold text-white drop-shadow-sm">99.2%</p>
-                  <p className="text-[11px] text-slate-300 font-medium">On-Time Trips</p>
-                </div>
-                <div>
-                  <p className="font-mono text-2xl font-bold text-emerald-400 drop-shadow-sm">100%</p>
-                  <p className="text-[11px] text-slate-300 font-medium">Verified Fleet</p>
-                </div>
-                <div>
-                  <p className="font-mono text-2xl font-bold text-amber-400 drop-shadow-sm">24/7</p>
-                  <p className="text-[11px] text-slate-300 font-medium">VIP Concierge</p>
+                  <p className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>Certified PSV &amp; Safari Insured</span>
+                    <span className="text-emerald-400 font-bold">✓</span>
+                  </p>
+                  <p className="text-[11px] text-slate-300 font-medium leading-relaxed mt-0.5">
+                    Full PSV insurance, vetted chauffeurs, and 24/7 emergency roadside support.
+                  </p>
                 </div>
               </div>
-            </motion.div>
+            </div>
 
-            {/* 3D GLOBE (CLEAN & UNOBSTRUCTED) */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2, duration: 0.9, ease: 'easeOut' }}
-              className="perspective-1000 relative"
-            >
-              {/* Ambient Glow Aura */}
-              <div className="absolute -inset-1.5 rounded-[32px] bg-gradient-to-tr from-amber-500/25 via-amber-400/10 to-rose-500/15 blur-2xl opacity-75 -z-10" />
-              <RouteGlobe />
-            </motion.div>
-          </div>
+            {/* LIVE PLATFORM METRICS */}
+            <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-6 border-t border-white/15 pt-6 max-w-2xl">
+              <div>
+                <p className="font-mono text-3xl font-bold text-white drop-shadow-sm">500+</p>
+                <p className="text-xs text-slate-300 font-medium mt-1">Cruisers &amp; Villas</p>
+              </div>
+              <div>
+                <p className="font-mono text-3xl font-bold text-white drop-shadow-sm">99.2%</p>
+                <p className="text-xs text-slate-300 font-medium mt-1">On-Time Trips</p>
+              </div>
+              <div>
+                <p className="font-mono text-3xl font-bold text-emerald-400 drop-shadow-sm">100%</p>
+                <p className="text-xs text-slate-300 font-medium mt-1">Verified Fleet</p>
+              </div>
+              <div>
+                <p className="font-mono text-3xl font-bold text-amber-400 drop-shadow-sm">24/7</p>
+                <p className="text-xs text-slate-300 font-medium mt-1">VIP Concierge</p>
+              </div>
+            </div>
+          </motion.div>
         </div>
 
         {/* JOURNEY PIPELINE */}
@@ -171,25 +184,25 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      {/* CATEGORIES WITH 3D TACTILE CARDS - LIGHT BROWN WILDLIFE BACKGROUND */}
-      <section className="px-6 py-20 relative bg-[#EDE2D4] border-y border-[#D4C3B0] overflow-hidden">
+      {/* CATEGORIES WITH 3D TACTILE CARDS - RICHER LIGHT BROWN WILDLIFE BACKGROUND */}
+      <section className="px-6 py-20 relative bg-[#D4BEA3] border-y border-[#BA9E7E] overflow-hidden">
 
         {/* Subtle Watermarks */}
-        <LionWatermark className="top-4 right-1/4 w-72 h-72 opacity-[0.035] md:opacity-[0.05]" />
-        <SafariCruiserWatermark className="bottom-2 left-1/4 w-80 h-40 opacity-[0.035] md:opacity-[0.05]" />
+        <LionWatermark className="top-4 right-1/4 w-72 h-72 opacity-[0.045] md:opacity-[0.065]" />
+        <SafariCruiserWatermark className="bottom-2 left-1/4 w-80 h-40 opacity-[0.045] md:opacity-[0.065]" />
 
         <div className="mx-auto max-w-7xl relative z-10">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#D4C3B0] pb-6 gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#BA9E7E] pb-6 gap-4">
             <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={fadeUp}>
-              <span className="text-xs uppercase tracking-widest text-amber-900 font-bold">
+              <span className="text-xs uppercase tracking-widest text-amber-950 font-bold">
                 Curated Fleet &amp; Stays
               </span>
-              <h2 className="mt-1 font-serif text-3xl font-bold tracking-tight md:text-4xl text-[#241308]">
+              <h2 className="mt-1 font-serif text-3xl font-bold tracking-tight md:text-4xl text-[#1A0D05]">
                 Everywhere you need to go in Kenya
               </h2>
             </motion.div>
 
-            <Link to="/catalogue" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-amber-900 hover:text-amber-950">
+            <Link to="/catalogue" className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-amber-950 hover:text-black">
               View all offerings <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -203,24 +216,24 @@ export default function Landing() {
                 className="h-full"
               >
                 <Link to={c.to} className="block group h-full">
-                  <Card3D intensity={10} className="p-6 h-full flex flex-col justify-between !bg-[#FAF5EE] !border-[#D4C3B0] shadow-sm hover:!border-amber-600 hover:shadow-card-hover">
+                  <Card3D intensity={10} className="p-6 h-full flex flex-col justify-between !bg-[#F8F2EA] !border-[#BA9E7E] shadow-sm hover:!border-amber-700 hover:shadow-card-hover">
                     <div>
                       <div className="flex items-center justify-between">
-                        <div className="rounded-2xl border border-amber-300/80 bg-amber-100/70 p-3 text-amber-800 shadow-2xs group-hover:scale-110 transition-transform">
+                        <div className="rounded-2xl border border-amber-400 bg-amber-100/90 p-3 text-amber-900 shadow-2xs group-hover:scale-110 transition-transform">
                           <c.icon className="h-6 w-6" strokeWidth={2} />
                         </div>
-                        <span className="rounded-full bg-[#E5D7C7] border border-[#D4C3B0]/70 px-3 py-1 text-[11px] font-bold text-[#3D2516]">
+                        <span className="rounded-full bg-[#C4AC90] border border-[#AF9374] px-3 py-1 text-[11px] font-bold text-[#1A0D05]">
                           {c.count}
                         </span>
                       </div>
 
-                      <h3 className="mt-6 font-serif text-xl font-bold text-[#241308] group-hover:text-amber-800 transition-colors">
+                      <h3 className="mt-6 font-serif text-xl font-bold text-[#1A0D05] group-hover:text-amber-900 transition-colors">
                         {c.title}
                       </h3>
-                      <p className="mt-2 text-xs text-[#5C4533] leading-relaxed min-h-[2.5rem] font-medium">{c.desc}</p>
+                      <p className="mt-2 text-xs text-[#452C1A] leading-relaxed min-h-[2.5rem] font-medium">{c.desc}</p>
                     </div>
 
-                    <div className="mt-6 pt-4 border-t border-[#E8DCCB] flex items-center gap-1 text-xs font-bold text-amber-800 group-hover:translate-x-1 transition-transform">
+                    <div className="mt-6 pt-4 border-t border-[#D9C4AC] flex items-center gap-1 text-xs font-bold text-amber-900 group-hover:translate-x-1 transition-transform">
                       Explore category <ArrowRight className="h-3.5 w-3.5" />
                     </div>
                   </Card3D>
@@ -237,22 +250,22 @@ export default function Landing() {
       {/* AI SAFARI & TOUR CONCIERGE SHOWCASE SECTION */}
       <AiConciergeShowcase />
 
-      {/* TRUST & INFRASTRUCTURE STRIP - LIGHT BROWN WILDLIFE BACKGROUND */}
-      <section className="border-b border-[#D4C3B0] bg-[#E8DCCB] px-6 py-16">
+      {/* TRUST & INFRASTRUCTURE STRIP - RICHER LIGHT BROWN WILDLIFE BACKGROUND */}
+      <section className="border-b border-[#BA9E7E] bg-[#CBB296] px-6 py-16">
         <div className="mx-auto grid max-w-7xl gap-8 sm:grid-cols-3">
           {[
             { icon: ShieldCheck, title: 'Verified & Insured Fleet', desc: 'Every 4x4 cruiser and executive van undergoes rigorous mechanical inspection and carries comprehensive PSV insurance.' },
             { icon: Compass, title: 'Seamless Flexible Booking', desc: 'Reserve frictionlessly in Kenyan Shillings or international currencies with transparent, all-inclusive pricing.' },
             { icon: Star, title: 'Rigorous Quality Assurance', desc: 'Hand-vetted safari guides, transparent vehicle specs, and strict service quality standards ensure top-tier experiences from Nairobi to the Mara.' },
           ].map((f) => (
-            <Card3D key={f.title} intensity={6} className="p-6 !bg-[#FAF5EE] !border-[#D4C3B0] shadow-sm">
+            <Card3D key={f.title} intensity={6} className="p-6 !bg-[#F8F2EA] !border-[#BA9E7E] shadow-sm">
               <div className="flex items-start gap-4">
-                <div className="rounded-2xl border border-amber-300/80 bg-amber-100/70 p-3.5 text-amber-800 shadow-2xs shrink-0">
+                <div className="rounded-2xl border border-amber-400 bg-amber-100/90 p-3.5 text-amber-900 shadow-2xs shrink-0">
                   <f.icon className="h-6 w-6" strokeWidth={1.75} />
                 </div>
                 <div>
-                  <h4 className="font-serif font-bold text-[#241308] text-lg">{f.title}</h4>
-                  <p className="mt-1.5 text-xs text-[#5C4533] leading-relaxed font-medium">{f.desc}</p>
+                  <h4 className="font-serif font-bold text-[#1A0D05] text-lg">{f.title}</h4>
+                  <p className="mt-1.5 text-xs text-[#452C1A] leading-relaxed font-medium">{f.desc}</p>
                 </div>
               </div>
             </Card3D>

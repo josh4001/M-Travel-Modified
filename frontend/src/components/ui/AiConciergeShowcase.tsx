@@ -56,16 +56,16 @@ export const AiConciergeShowcase: React.FC = () => {
   };
 
   return (
-    <section className="px-6 py-20 relative bg-[#EDE2D4] border-y border-[#D4C3B0] overflow-hidden">
+    <section className="px-6 py-20 relative bg-[#D4BEA3] border-y border-[#BA9E7E] overflow-hidden">
       {/* BACKGROUND DECORATIVE ACCENTS */}
       <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-amber-700/5 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-amber-800/10 blur-3xl pointer-events-none" />
 
       <div className="mx-auto max-w-7xl relative z-10 space-y-12">
         {/* SECTION HEADER */}
         <div className="text-center max-w-3xl mx-auto space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-100/70 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-900 shadow-2xs">
-            <Bot className="h-4 w-4 text-amber-700" />
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-400 bg-amber-100/90 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-950 shadow-2xs">
+            <Bot className="h-4 w-4 text-amber-800" />
             <span>M-TRAVEL AI Travel Concierge</span>
             <span className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -73,12 +73,12 @@ export const AiConciergeShowcase: React.FC = () => {
             </span>
           </div>
 
-          <h2 className="font-serif text-3xl md:text-5xl font-bold text-[#241308] tracking-tight">
+          <h2 className="font-serif text-3xl md:text-5xl font-bold text-[#1A0D05] tracking-tight">
             Your Dedicated Safari &amp; Travel AI,{' '}
             <span className="bg-gold-gradient bg-clip-text text-transparent">Available 24/7</span>
           </h2>
 
-          <p className="text-[#5C4533] text-sm md:text-base leading-relaxed font-medium">
+          <p className="text-[#452C1A] text-sm md:text-base leading-relaxed font-medium">
             Planning a journey across Kenya has never been simpler. Our intelligent concierge provides real-time
             safari planning, vehicle recommendations, route budget calculations, and local travel advice in seconds.
           </p>
@@ -89,28 +89,28 @@ export const AiConciergeShowcase: React.FC = () => {
           {AI_CAPABILITIES.map((cap) => (
             <div
               key={cap.title}
-              className="group relative rounded-2xl border border-[#D4C3B0] bg-[#FAF5EE] p-6 shadow-sm hover:border-amber-500 hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
+              className="group relative rounded-2xl border border-[#BA9E7E] bg-[#F8F2EA] p-6 shadow-sm hover:border-amber-700 hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="h-11 w-11 rounded-xl bg-amber-100/80 border border-amber-300 flex items-center justify-center text-amber-800 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all duration-300 shadow-2xs">
+                  <div className="h-11 w-11 rounded-xl bg-amber-100/90 border border-amber-400 flex items-center justify-center text-amber-900 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all duration-300 shadow-2xs">
                     <cap.icon className="h-5 w-5" />
                   </div>
-                  <span className="rounded-full bg-[#E5D7C7] border border-[#D4C3B0]/70 px-2.5 py-0.5 text-[10px] font-bold text-[#241308] uppercase font-mono">
+                  <span className="rounded-full bg-[#C4AC90] border border-[#AF9374] px-2.5 py-0.5 text-[10px] font-bold text-[#1A0D05] uppercase font-mono">
                     {cap.tag}
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="font-serif font-bold text-base text-[#241308] group-hover:text-amber-800 transition-colors">
+                  <h3 className="font-serif font-bold text-base text-[#1A0D05] group-hover:text-amber-900 transition-colors">
                     {cap.title}
                   </h3>
-                  <p className="mt-2 text-xs text-[#5C4533] leading-relaxed font-medium">{cap.desc}</p>
+                  <p className="mt-2 text-xs text-[#452C1A] leading-relaxed font-medium">{cap.desc}</p>
                 </div>
               </div>
 
-              <div className="mt-5 pt-3 border-t border-[#E8DCCB] flex items-center gap-1.5 text-[11px] font-bold text-amber-800">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+              <div className="mt-5 pt-3 border-t border-[#D9C4AC] flex items-center gap-1.5 text-[11px] font-bold text-amber-900">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700" />
                 <span>Instant AI Consultation</span>
               </div>
             </div>
@@ -118,17 +118,17 @@ export const AiConciergeShowcase: React.FC = () => {
         </div>
 
         {/* INTERACTIVE PREVIEW & LAUNCH BANNER */}
-        <div className="rounded-3xl border border-[#D4C3B0] bg-[#FAF5EE] p-6 md:p-8 shadow-sm">
+        <div className="rounded-3xl border border-[#BA9E7E] bg-[#F8F2EA] p-6 md:p-8 shadow-sm">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             {/* LEFT: SAMPLE DIALOGUE PREVIEW */}
             <div className="lg:col-span-7 space-y-4">
-              <div className="flex items-center gap-2 text-xs font-bold text-amber-900 uppercase tracking-wider">
-                <Sparkles className="h-4 w-4 text-amber-700" />
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-950 uppercase tracking-wider">
+                <Sparkles className="h-4 w-4 text-amber-800" />
                 <span>Live Travel Intelligence Preview</span>
               </div>
 
               {/* MOCK CHAT MESSAGES */}
-              <div className="space-y-3 bg-white rounded-2xl border border-[#D4C3B0] p-4 shadow-2xs">
+              <div className="space-y-3 bg-white rounded-2xl border border-[#BA9E7E] p-4 shadow-2xs">
                 {/* USER QUERY */}
                 <div className="flex justify-end">
                   <div className="max-w-md rounded-2xl rounded-tr-none bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold p-3 text-xs md:text-sm shadow-sm">
@@ -141,11 +141,11 @@ export const AiConciergeShowcase: React.FC = () => {
                   <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 font-bold flex items-center justify-center shrink-0 shadow-xs">
                     <Bot className="h-4 w-4" />
                   </div>
-                  <div className="max-w-xl rounded-2xl rounded-tl-none border border-[#D4C3B0] bg-[#FAF5EE] p-3 text-xs md:text-sm text-[#241308] space-y-1.5 shadow-2xs">
-                    <p className="font-bold text-[#241308]">
+                  <div className="max-w-xl rounded-2xl rounded-tl-none border border-[#BA9E7E] bg-[#F8F2EA] p-3 text-xs md:text-sm text-[#1A0D05] space-y-1.5 shadow-2xs">
+                    <p className="font-bold text-[#1A0D05]">
                       Recommendation: 4x4 Toyota Land Cruiser Safari Edition
                     </p>
-                    <p className="text-[#5C4533] leading-relaxed text-xs font-medium">
+                    <p className="text-[#452C1A] leading-relaxed text-xs font-medium">
                       July is peak Great Migration season. A 4x4 Land Cruiser with a pop-up roof is ideal: high clearance
                       navigates rough terrain during Mara river crossings, and 360° roof visibility ensures premier wildlife viewing for 4 passengers.
                     </p>
@@ -155,7 +155,7 @@ export const AiConciergeShowcase: React.FC = () => {
 
               {/* QUICK PROMPT CHIPS */}
               <div className="space-y-2">
-                <span className="text-[11px] font-bold text-[#735A47] uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-[#664933] uppercase tracking-wider">
                   Try asking the concierge:
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -163,9 +163,9 @@ export const AiConciergeShowcase: React.FC = () => {
                     <button
                       key={question}
                       onClick={() => handleLaunch(question)}
-                      className="rounded-full border border-[#D4C3B0] bg-white px-3.5 py-1.5 text-xs text-[#241308] font-bold hover:border-amber-600 hover:bg-amber-50 hover:text-amber-900 transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                      className="rounded-full border border-[#BA9E7E] bg-white px-3.5 py-1.5 text-xs text-[#1A0D05] font-bold hover:border-amber-700 hover:bg-amber-50 hover:text-amber-950 transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
                     >
-                      <MessageSquare className="h-3 w-3 text-amber-700" />
+                      <MessageSquare className="h-3 w-3 text-amber-800" />
                       <span>{question}</span>
                     </button>
                   ))}

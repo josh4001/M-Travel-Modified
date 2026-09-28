@@ -176,15 +176,15 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 font-display">
-      {/* LUXURY TOP UTILITY STRIP - WARM LIGHT BROWN WILDLIFE TONE */}
-      <div className="bg-[#DFD0BF] border-b border-[#CDBDAA] text-[11px] text-[#3D2516] px-4 py-1.5 font-medium">
+      {/* LUXURY TOP UTILITY STRIP - RICHER LIGHT BROWN WILDLIFE TONE */}
+      <div className="bg-[#C4AC90] border-b border-[#AF9374] text-[11px] text-[#221207] px-4 py-1.5 font-medium">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5 text-amber-900 font-bold">
-              <Phone className="h-3 w-3 text-amber-800" /> 24/7 Concierge: <strong className="text-[#241308] font-extrabold">0722 374 535</strong>
+            <span className="flex items-center gap-1.5 text-amber-950 font-bold">
+              <Phone className="h-3 w-3 text-amber-900" /> 24/7 Concierge: <strong className="text-[#1A0D05] font-extrabold">0722 374 535</strong>
             </span>
-            <span className="hidden sm:inline-flex items-center gap-1 text-[#5C3E28] border-l border-[#C4B29E] pl-4 font-semibold">
-              <Crown className="h-3 w-3 text-amber-800" /> East Africa's Luxury Travel Network
+            <span className="hidden sm:inline-flex items-center gap-1 text-[#452C1A] border-l border-[#AF9374] pl-4 font-semibold">
+              <Crown className="h-3 w-3 text-amber-900" /> East Africa's Luxury Travel Network
             </span>
           </div>
 
@@ -193,21 +193,21 @@ export function Navbar() {
               href="https://wa.me/254791888840"
               target="_blank"
               rel="noreferrer"
-              className="hidden md:inline-flex items-center gap-1 text-emerald-800 hover:text-emerald-950 font-bold transition"
+              className="hidden md:inline-flex items-center gap-1 text-emerald-950 hover:text-black font-bold transition"
             >
               WhatsApp Concierge
             </a>
 
             {/* CURRENCY SELECTOR */}
-            <div className="relative flex items-center gap-1 rounded-full border border-[#C4B29E] bg-[#EDE2D4] px-2.5 py-0.5 text-[11px] text-[#241308] font-bold shadow-2xs">
-              <Globe className="h-3 w-3 text-amber-800" />
+            <div className="relative flex items-center gap-1 rounded-full border border-[#AF9374] bg-[#D4BEA3] px-2.5 py-0.5 text-[11px] text-[#221207] font-bold shadow-2xs">
+              <Globe className="h-3 w-3 text-amber-900" />
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
-                className="bg-transparent font-bold text-[#241308] focus:outline-none cursor-pointer pr-1 text-[11px]"
+                className="bg-transparent font-bold text-[#221207] focus:outline-none cursor-pointer pr-1 text-[11px]"
               >
                 {Object.values(CURRENCIES).map((c) => (
-                  <option key={c.code} value={c.code} className="bg-[#EDE2D4] text-[#241308]">
+                  <option key={c.code} value={c.code} className="bg-[#D4BEA3] text-[#221207]">
                     {c.flag} {c.code}
                   </option>
                 ))}
@@ -217,8 +217,8 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* MAIN FROSTED NAVIGATION BAR - LIGHT BROWN WILDLIFE BACKGROUND */}
-      <div className="bg-[#EDE2D4]/95 backdrop-blur-xl border-b border-[#D4C3B0] shadow-[0_4px_20px_-4px_rgba(42,27,18,0.06)] px-4 py-2.5">
+      {/* MAIN FROSTED NAVIGATION BAR - RICHER LIGHT BROWN WILDLIFE BACKGROUND */}
+      <div className="bg-[#D4BEA3]/95 backdrop-blur-xl border-b border-[#BA9E7E] shadow-[0_4px_20px_-4px_rgba(34,18,7,0.12)] px-4 py-2.5">
         <nav className="mx-auto flex max-w-7xl items-center justify-between">
           {/* LOGO */}
           <Link to="/" className="flex items-center gap-3 group">
@@ -240,14 +240,14 @@ export function Navbar() {
                   to={item.path}
                   className={`relative flex items-center gap-1.5 px-4 py-2 text-xs font-bold tracking-wide uppercase transition-all duration-200 rounded-full ${
                     isActive
-                      ? 'text-amber-950 bg-amber-600/20 border border-amber-700/35 font-extrabold shadow-xs'
-                      : 'text-[#3D2516] hover:text-[#1A0F07] hover:bg-[#DFD0BF]/70 border border-transparent'
+                      ? 'text-[#221207] bg-amber-700/25 border border-amber-800/40 font-extrabold shadow-xs'
+                      : 'text-[#2C180B] hover:text-[#0F0702] hover:bg-[#C4AC90]/70 border border-transparent'
                   }`}
                 >
-                  {Icon && <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-amber-900' : 'text-[#6B462C]'}`} />}
+                  {Icon && <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-amber-950' : 'text-[#5C3A20]'}`} />}
                   <span>{item.label}</span>
                   {isActive && (
-                    <span className="absolute bottom-1 left-1/2 h-0.5 w-3 -translate-x-1/2 rounded-full bg-amber-700" />
+                    <span className="absolute bottom-1 left-1/2 h-0.5 w-3 -translate-x-1/2 rounded-full bg-amber-800" />
                   )}
                 </Link>
               );
@@ -263,17 +263,17 @@ export function Navbar() {
                   title="My Profile — Click to view & manage your account credentials, standing and settings"
                   className={`group flex items-center gap-2.5 rounded-full border pl-1.5 pr-3 py-1 transition-all duration-200 shadow-2xs cursor-pointer ${
                     location.pathname === '/profile' || location.pathname === '/dashboard/profile'
-                      ? 'border-amber-600 bg-amber-100/90 ring-2 ring-amber-400 shadow-xs'
-                      : 'border-[#C4B29E] bg-[#F7F1E9] hover:border-amber-600 hover:bg-white hover:shadow-xs'
+                      ? 'border-amber-700 bg-amber-100 ring-2 ring-amber-500 shadow-xs'
+                      : 'border-[#BA9E7E] bg-[#F8F2EA] hover:border-amber-700 hover:bg-white hover:shadow-xs'
                   }`}
                 >
                   {/* User Initial Avatar */}
-                  <div className="w-6 h-6 rounded-full bg-[#241308] text-amber-300 flex items-center justify-center font-bold text-[11px] shadow-2xs ring-1 ring-amber-700/50">
+                  <div className="w-6 h-6 rounded-full bg-[#1A0D05] text-amber-300 flex items-center justify-center font-bold text-[11px] shadow-2xs ring-1 ring-amber-700/50">
                     {user.firstName ? user.firstName.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : 'U')}
                   </div>
 
                   {/* User Name */}
-                  <span className="text-xs font-bold text-[#241308] group-hover:text-amber-950 transition max-w-[130px] truncate">
+                  <span className="text-xs font-bold text-[#1A0D05] group-hover:text-amber-950 transition max-w-[130px] truncate">
                     {user.firstName ? `${user.firstName} ${user.lastName ?? ''}`.trim() : user.email}
                   </span>
 
@@ -281,14 +281,14 @@ export function Navbar() {
                   {getRoleBadgeUI()}
 
                   {/* Dedicated Profile Action Pill */}
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-950 bg-amber-200/90 group-hover:bg-amber-300 border border-amber-400/80 px-2 py-0.5 rounded-full transition flex items-center gap-1 shadow-2xs">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-950 bg-amber-200 group-hover:bg-amber-300 border border-amber-400 px-2 py-0.5 rounded-full transition flex items-center gap-1 shadow-2xs">
                     <UserIcon className="h-2.5 w-2.5" /> Profile →
                   </span>
                 </Link>
 
                 <button
                   onClick={handleSignOut}
-                  className="rounded-full border border-[#C4B29E] bg-[#F7F1E9] hover:bg-white hover:border-[#A8937E] !px-3.5 !py-1.5 text-xs font-bold tracking-wide uppercase text-[#3D2516] transition shadow-2xs cursor-pointer"
+                  className="rounded-full border border-[#BA9E7E] bg-[#F8F2EA] hover:bg-white hover:border-[#967B5E] !px-3.5 !py-1.5 text-xs font-bold tracking-wide uppercase text-[#221207] transition shadow-2xs cursor-pointer"
                 >
                   Sign out
                 </button>
@@ -297,7 +297,7 @@ export function Navbar() {
               <>
                 <Link
                   to="/login"
-                  className="text-xs font-bold text-[#3D2516] hover:text-amber-900 px-3 py-1.5 transition tracking-wide uppercase"
+                  className="text-xs font-bold text-[#221207] hover:text-black px-3 py-1.5 transition tracking-wide uppercase"
                 >
                   Log in
                 </Link>
@@ -313,7 +313,7 @@ export function Navbar() {
 
           {/* MOBILE TOGGLE BUTTON */}
           <button
-            className="md:hidden text-[#3D2516] hover:text-[#1A0F07] p-1.5 rounded-lg hover:bg-[#DFD0BF]"
+            className="md:hidden text-[#221207] hover:text-[#0F0702] p-1.5 rounded-lg hover:bg-[#C4AC90]"
             onClick={() => setOpen(!open)}
             aria-label="Toggle menu"
           >
@@ -323,24 +323,24 @@ export function Navbar() {
 
         {/* MOBILE DRAWER */}
         {open && (
-          <div className="mt-3 mx-auto max-w-7xl rounded-2xl border border-[#D4C3B0] bg-[#EDE2D4] p-5 shadow-float lg:hidden animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="mt-3 mx-auto max-w-7xl rounded-2xl border border-[#BA9E7E] bg-[#D4BEA3] p-5 shadow-float lg:hidden animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="flex flex-col gap-2.5">
               {user && (
-                <div className="border-b border-[#D4C3B0] pb-3">
+                <div className="border-b border-[#BA9E7E] pb-3">
                   <Link
                     to="/profile"
                     onClick={() => setOpen(false)}
-                    className="flex items-center justify-between p-2.5 rounded-2xl bg-[#FAF5EE] border border-[#D4C3B0] hover:border-amber-600 hover:bg-amber-50/50 transition group"
+                    className="flex items-center justify-between p-2.5 rounded-2xl bg-[#F8F2EA] border border-[#BA9E7E] hover:border-amber-700 hover:bg-white transition group"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#241308] text-amber-300 flex items-center justify-center font-bold text-xs ring-1 ring-amber-700/50">
+                      <div className="w-8 h-8 rounded-full bg-[#1A0D05] text-amber-300 flex items-center justify-center font-bold text-xs ring-1 ring-amber-700/50">
                         {user.firstName ? user.firstName.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : 'U')}
                       </div>
                       <div className="flex flex-col text-left">
-                        <span className="text-xs font-bold text-[#241308] group-hover:text-amber-950">
+                        <span className="text-xs font-bold text-[#1A0D05] group-hover:text-amber-950">
                           {user.firstName ? `${user.firstName} ${user.lastName ?? ''}`.trim() : user.email}
                         </span>
-                        <span className="text-[10px] text-[#5C4533] font-medium">Manage Account &amp; Credentials</span>
+                        <span className="text-[10px] text-[#452C1A] font-medium">Manage Account &amp; Credentials</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -363,28 +363,28 @@ export function Navbar() {
                     onClick={() => setOpen(false)}
                     className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition ${
                       isActive
-                        ? 'bg-amber-600/20 text-amber-950 font-bold border border-amber-700/30'
-                        : 'text-[#3D2516] hover:bg-[#DFD0BF]'
+                        ? 'bg-amber-700/25 text-[#221207] font-bold border border-amber-800/40'
+                        : 'text-[#2C180B] hover:bg-[#C4AC90]'
                     }`}
                   >
-                    {Icon && <Icon className={`h-4 w-4 ${isActive ? 'text-amber-800' : 'text-[#6B462C]'}`} />}
+                    {Icon && <Icon className={`h-4 w-4 ${isActive ? 'text-amber-950' : 'text-[#5C3A20]'}`} />}
                     <span>{item.label}</span>
                   </Link>
                 );
               })}
 
               {user ? (
-                <div className="border-t border-[#D4C3B0] pt-3 flex items-center justify-end">
+                <div className="border-t border-[#BA9E7E] pt-3 flex items-center justify-end">
                   <button
                     onClick={() => { setOpen(false); handleSignOut(); }}
-                    className="text-xs text-rose-700 font-bold px-3 py-1.5 rounded-lg hover:bg-rose-100 transition"
+                    className="text-xs text-rose-800 font-bold px-3 py-1.5 rounded-lg hover:bg-rose-100 transition"
                   >
                     Sign out
                   </button>
                 </div>
               ) : (
-                <div className="border-t border-[#D4C3B0] pt-3 flex gap-2">
-                  <Link to="/login" onClick={() => setOpen(false)} className="btn-secondary w-1/2 !py-2.5 text-xs text-center !bg-[#FAF5EE] !border-[#D4C3B0] !text-[#241308] font-bold">
+                <div className="border-t border-[#BA9E7E] pt-3 flex gap-2">
+                  <Link to="/login" onClick={() => setOpen(false)} className="btn-secondary w-1/2 !py-2.5 text-xs text-center !bg-[#F8F2EA] !border-[#BA9E7E] !text-[#1A0D05] font-bold">
                     Log in
                   </Link>
                   <Link to="/catalogue" onClick={() => setOpen(false)} className="btn-primary w-1/2 !py-2.5 text-xs text-center font-bold">

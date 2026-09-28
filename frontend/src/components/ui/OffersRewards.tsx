@@ -10,62 +10,62 @@ export const OffersRewards: React.FC = () => {
   const [notified, setNotified] = useState(false);
 
   return (
-    <section className="py-20 px-6 relative bg-[#EDE2D4] border-y border-[#D4C3B0] overflow-hidden">
+    <section className="py-20 px-6 relative bg-[#D4BEA3] border-y border-[#BA9E7E] overflow-hidden">
       <div className="mx-auto max-w-7xl">
         {/* SECTION HEADER */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[#D4C3B0] pb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[#BA9E7E] pb-8">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-100/70 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-900 shadow-2xs">
-              <Crown className="h-4 w-4 text-amber-800" /> Upcoming Feature • M-TRAVEL Privilege Club
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400 bg-amber-100/90 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-950 shadow-2xs">
+              <Crown className="h-4 w-4 text-amber-900" /> Upcoming Feature • M-TRAVEL Privilege Club
             </div>
-            <h2 className="mt-3 font-serif text-3xl md:text-5xl font-bold text-[#241308] tracking-tight">
+            <h2 className="mt-3 font-serif text-3xl md:text-5xl font-bold text-[#1A0D05] tracking-tight">
               Fly, Drive &amp; Explore with <span className="bg-gold-gradient bg-clip-text text-transparent">M-TRAVEL</span>
             </h2>
-            <p className="mt-2 text-[#5C4533] text-sm max-w-xl font-medium">
+            <p className="mt-2 text-[#452C1A] text-sm max-w-xl font-medium">
               Enjoy curated luxury Kenyan travel packages inspired by global hospitality standards, with upcoming bespoke privileges and member rewards.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-amber-950 font-bold bg-amber-100/80 border border-amber-300 px-3.5 py-1.5 rounded-full shadow-2xs">
-            <Clock className="h-3.5 w-3.5 text-amber-800" />
+          <div className="flex items-center gap-2 text-xs text-amber-950 font-bold bg-amber-100/90 border border-amber-400 px-3.5 py-1.5 rounded-full shadow-2xs">
+            <Clock className="h-3.5 w-3.5 text-amber-900" />
             <span>Feature in Development • Coming Soon</span>
           </div>
         </div>
 
         {/* REWARDS CALLOUT BANNER (COMING SOON FEATURE PREVIEW) */}
-        <div className="mt-10 rounded-3xl border border-[#D4C3B0] bg-gradient-to-br from-[#FAF5EE] via-white to-[#F5ECE0] p-6 md:p-8 flex flex-col lg:flex-row items-center justify-between gap-8 shadow-sm relative overflow-hidden">
+        <div className="mt-10 rounded-3xl border border-[#BA9E7E] bg-gradient-to-br from-[#F8F2EA] via-white to-[#F2E8DC] p-6 md:p-8 flex flex-col lg:flex-row items-center justify-between gap-8 shadow-sm relative overflow-hidden">
           <div className="space-y-3 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 border border-amber-400/50 px-3 py-1 text-[11px] font-bold text-amber-950">
-                <Sparkles className="h-3.5 w-3.5 text-amber-700" /> Coming Soon
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/25 border border-amber-500/60 px-3 py-1 text-[11px] font-bold text-amber-950">
+                <Sparkles className="h-3.5 w-3.5 text-amber-800" /> Coming Soon
               </span>
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-950 bg-white/90 px-2.5 py-0.5 rounded-full border border-amber-300/80">
-                <Clock className="h-3 w-3 text-amber-700" /> Future Roadmap Feature
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-950 bg-white/90 px-2.5 py-0.5 rounded-full border border-amber-300">
+                <Clock className="h-3 w-3 text-amber-800" /> Future Roadmap Feature
               </span>
             </div>
 
-            <h3 className="font-serif text-2xl md:text-3xl font-bold text-[#241308]">
+            <h3 className="font-serif text-2xl md:text-3xl font-bold text-[#1A0D05]">
               The M-TRAVEL Privilege Club is Coming Soon
             </h3>
-            <p className="text-sm text-[#5C4533] leading-relaxed font-medium">
-              We are crafting an exclusive rewards journey for our travelers! In our upcoming release, every booking — from 4x4 safari cruisers and safari vans to intercity coaches — will earn you <span className="text-amber-800 font-bold">Explorer Loyalty Points</span> redeemable for complimentary vehicle upgrades, VIP airport concierge, and bespoke seasonal travel perks.
+            <p className="text-sm text-[#452C1A] leading-relaxed font-medium">
+              We are crafting an exclusive rewards journey for our travelers! In our upcoming release, every booking — from 4x4 safari cruisers and safari vans to intercity coaches — will earn you <span className="text-amber-900 font-bold">Explorer Loyalty Points</span> redeemable for complimentary vehicle upgrades, VIP airport concierge, and bespoke seasonal travel perks.
             </p>
 
             <div className="pt-2">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-[#735A47] mb-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#664933] mb-2">
                 Preview of Upcoming Member Privileges:
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div className="flex items-center gap-2 bg-[#FAF5EE] p-2.5 rounded-xl border border-[#D4C3B0] shadow-2xs text-[#241308] font-bold">
-                  <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                <div className="flex items-center gap-2 bg-[#F8F2EA] p-2.5 rounded-xl border border-[#BA9E7E] shadow-2xs text-[#1A0D05] font-bold">
+                  <Check className="h-4 w-4 text-emerald-700 shrink-0" />
                   <span>Complimentary Fleet Upgrades</span>
                 </div>
-                <div className="flex items-center gap-2 bg-[#FAF5EE] p-2.5 rounded-xl border border-[#D4C3B0] shadow-2xs text-[#241308] font-bold">
-                  <Check className="h-4 w-4 text-amber-700 shrink-0" />
+                <div className="flex items-center gap-2 bg-[#F8F2EA] p-2.5 rounded-xl border border-[#BA9E7E] shadow-2xs text-[#1A0D05] font-bold">
+                  <Check className="h-4 w-4 text-amber-800 shrink-0" />
                   <span>VIP Airport Meet &amp; Greet</span>
                 </div>
-                <div className="flex items-center gap-2 bg-[#FAF5EE] p-2.5 rounded-xl border border-[#D4C3B0] shadow-2xs text-[#241308] font-bold">
-                  <Check className="h-4 w-4 text-teal-700 shrink-0" />
+                <div className="flex items-center gap-2 bg-[#F8F2EA] p-2.5 rounded-xl border border-[#BA9E7E] shadow-2xs text-[#1A0D05] font-bold">
+                  <Check className="h-4 w-4 text-teal-800 shrink-0" />
                   <span>Priority 4x4 Cruiser Reservation</span>
                 </div>
               </div>
@@ -73,17 +73,17 @@ export const OffersRewards: React.FC = () => {
           </div>
 
           {/* RIGHT-HAND EARLY ACCESS PREVIEW CARD */}
-          <div className="bg-[#FAF5EE] p-6 rounded-2xl border border-[#D4C3B0] text-center space-y-3 w-full lg:w-72 shrink-0 shadow-card">
+          <div className="bg-[#F8F2EA] p-6 rounded-2xl border border-[#BA9E7E] text-center space-y-3 w-full lg:w-72 shrink-0 shadow-card">
             <div className="mx-auto w-12 h-12 rounded-full bg-gold-gradient flex items-center justify-center text-slate-950 shadow-md">
               <Gift className="h-6 w-6" />
             </div>
             <div className="space-y-0.5">
-              <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
+              <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-950 border border-amber-300">
                 Future Launch Bonus
               </span>
-              <p className="font-serif text-2xl font-bold text-[#241308] mt-1">500 Explorer Points</p>
+              <p className="font-serif text-2xl font-bold text-[#1A0D05] mt-1">500 Explorer Points</p>
             </div>
-            <p className="text-[11px] text-[#5C4533] leading-snug font-medium">
+            <p className="text-[11px] text-[#452C1A] leading-snug font-medium">
               Will be automatically unlocked for all registered traveler accounts upon official feature launch.
             </p>
 
@@ -92,12 +92,12 @@ export const OffersRewards: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setNotified(true)}
-                  className="w-full rounded-xl bg-amber-500/15 border border-amber-300 py-2.5 px-3 text-xs font-bold text-amber-950 hover:bg-amber-500/25 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full rounded-xl bg-amber-500/20 border border-amber-400 py-2.5 px-3 text-xs font-bold text-amber-950 hover:bg-amber-500/30 transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <ShieldCheck className="h-4 w-4 text-amber-700" />
+                  <ShieldCheck className="h-4 w-4 text-amber-800" />
                   {notified ? 'Early Access Confirmed!' : 'Early Access Reserved'}
                 </button>
-                <p className="text-[10px] text-[#735A47]">Your account will automatically qualify.</p>
+                <p className="text-[10px] text-[#664933]">Your account will automatically qualify.</p>
               </div>
             ) : (
               <div className="space-y-1 pt-1">
@@ -108,7 +108,7 @@ export const OffersRewards: React.FC = () => {
                   <Sparkles className="h-3.5 w-3.5" />
                   <span>Register for Early Access</span>
                 </button>
-                <p className="text-[10px] text-[#735A47]">100% Free • Early qualification when launched</p>
+                <p className="text-[10px] text-[#664933]">100% Free • Early qualification when launched</p>
               </div>
             )}
           </div>
