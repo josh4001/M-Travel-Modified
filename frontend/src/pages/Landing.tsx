@@ -10,8 +10,6 @@ import { Card3D } from '@/components/ui/Card3D';
 import { AiConciergeShowcase } from '@/components/ui/AiConciergeShowcase';
 import { OffersRewards } from '@/components/ui/OffersRewards';
 import {
-  SavannahHeroWatermark,
-  PalmFrondsWatermark,
   LionWatermark,
   SafariCruiserWatermark
 } from '@/components/ui/SafariBackgroundWatermarks';
@@ -42,11 +40,20 @@ export default function Landing() {
       {/* 3D BACKGROUND CANVAS */}
       <Hero3DCanvas />
 
-      {/* HERO SECTION WITH SUBTLE SAVANNAH WATERMARK */}
-      <section className="relative px-6 pt-10 pb-16 md:pt-14 md:pb-20 overflow-hidden">
-        {/* Subtle Savannah Horizon Vector Watermark */}
-        <SavannahHeroWatermark className="top-0 left-0 right-0 h-[620px] opacity-[0.05] md:opacity-[0.07]" />
-        <PalmFrondsWatermark className="top-10 right-4 w-72 h-72 opacity-[0.04] md:opacity-[0.06] -scale-x-100" />
+      {/* HERO SECTION WITH LUXURY 4X4 EXPEDITION SUNSET PHOTOGRAPHY */}
+      <section className="relative px-6 pt-10 pb-16 md:pt-14 md:pb-24 overflow-hidden">
+        {/* Photographic Background */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/images/hero-safari-luxury.jpg"
+            alt="Kenya Luxury Safari 4x4 Cruiser Expedition Across Golden Dunes at Sunset"
+            className="w-full h-full object-cover object-[center_35%]"
+          />
+          {/* Luminous gradient scrim balancing the glowing sunset, dunes & Land Cruiser with pristine typography contrast */}
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-slate-950/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-950/50" />
+          <div className="absolute inset-0 bg-radial from-amber-500/10 via-transparent to-black/30 pointer-events-none" />
+        </div>
 
         <div className="mx-auto max-w-7xl space-y-8 md:space-y-10 relative z-10">
           {/* HERO HEADLINE & 3D GLOBE */}
@@ -54,63 +61,65 @@ export default function Landing() {
             <motion.div initial="hidden" animate="show" variants={fadeUp} className="max-w-2xl relative">
               {/* Trust Badge */}
               <div className="mb-5 flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-800 shadow-sm">
-                  <Crown className="h-3.5 w-3.5 text-amber-600" /> East Africa's Premier Travel Marketplace
+                <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/15 backdrop-blur-md px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-300 shadow-sm">
+                  <Crown className="h-3.5 w-3.5 text-amber-400" /> East Africa's Premier Travel Marketplace
                 </span>
               </div>
 
-              <h1 className="font-serif text-5xl font-bold leading-[1.06] tracking-tight md:text-7xl text-slate-900">
+              <h1 className="font-serif text-5xl font-bold leading-[1.06] tracking-tight md:text-7xl text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">
                 Experience Kenya,
                 <br />
-                <span className="bg-gold-gradient bg-clip-text text-transparent">In Unmatched Luxury.</span>
+                <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 bg-clip-text text-transparent drop-shadow-sm">
+                  In Unmatched Luxury.
+                </span>
               </h1>
 
-              <p className="mt-5 max-w-xl text-base md:text-lg text-slate-600 leading-relaxed">
+              <p className="mt-5 max-w-xl text-base md:text-lg text-slate-200 leading-relaxed drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)] font-medium">
                 Seamless 4x4 safari cruiser hire, executive chauffeurs, VIP intercity coaches, and beachfront holiday villas — curated to world-class hospitality standards with white-glove concierge service.
               </p>
 
               <div className="mt-8 flex flex-wrap items-center gap-4">
-                <Link to="/catalogue" className="btn-primary !px-7 !py-3.5 flex items-center gap-2 font-bold shadow-md hover:shadow-lg text-sm">
-                  <Compass className="h-4 w-4" /> Explore Vehicles & Safaris
+                <Link to="/catalogue" className="btn-primary !px-7 !py-3.5 flex items-center gap-2 font-bold shadow-xl hover:shadow-2xl text-sm hover:scale-[1.02] transition-all">
+                  <Compass className="h-4 w-4" /> Explore Vehicles &amp; Safaris
                 </Link>
-                <Link to="/register" className="btn-secondary !px-6 !py-3.5 text-xs font-bold uppercase tracking-wider">
+                <Link to="/register" className="rounded-xl border border-white/30 bg-slate-950/40 hover:bg-slate-950/60 backdrop-blur-md px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-white transition-all shadow-md hover:scale-[1.02]">
                   List Your Vehicle or Stay <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
 
               {/* SIGNATURE SAFARI SPECIALIST BADGE */}
-              <div className="mt-8 flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-amber-50 via-white to-amber-50/60 border border-amber-300/80 shadow-2xs max-w-xl">
-                <div className="h-12 w-12 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 flex items-center justify-center shrink-0 shadow-xs">
-                  <Compass className="h-6 w-6 text-amber-600" />
+              <div className="mt-8 flex items-center gap-4 p-4 rounded-2xl bg-slate-950/40 backdrop-blur-md border border-white/20 shadow-xl max-w-xl">
+                <div className="h-12 w-12 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-300 flex items-center justify-center shrink-0 shadow-xs">
+                  <Compass className="h-6 w-6 text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                  <p className="text-xs font-bold text-white flex items-center gap-1.5">
                     <span>Jambo! Your Kenya Safari Specialist</span>
-                    <span className="text-amber-600 font-bold">✨</span>
+                    <span className="text-amber-400 font-bold">✨</span>
                   </p>
-                  <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-0.5">
+                  <p className="text-[11px] text-slate-300 font-medium leading-relaxed mt-0.5">
                     Hand-inspected 4x4 Land Cruisers, executive safari vans, and coastal holiday stays ready for your Kenyan expedition.
                   </p>
                 </div>
               </div>
 
               {/* LIVE PLATFORM METRICS */}
-              <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-slate-200/80 pt-6 relative">
+              <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-white/15 pt-6 relative">
                 <div>
-                  <p className="font-mono text-2xl font-bold text-slate-900">500+</p>
-                  <p className="text-[11px] text-slate-500 font-medium">Cruisers &amp; Villas</p>
+                  <p className="font-mono text-2xl font-bold text-white drop-shadow-sm">500+</p>
+                  <p className="text-[11px] text-slate-300 font-medium">Cruisers &amp; Villas</p>
                 </div>
                 <div>
-                  <p className="font-mono text-2xl font-bold text-slate-900">99.2%</p>
-                  <p className="text-[11px] text-slate-500 font-medium">On-Time Trips</p>
+                  <p className="font-mono text-2xl font-bold text-white drop-shadow-sm">99.2%</p>
+                  <p className="text-[11px] text-slate-300 font-medium">On-Time Trips</p>
                 </div>
                 <div>
-                  <p className="font-mono text-2xl font-bold text-emerald-600">100%</p>
-                  <p className="text-[11px] text-slate-500 font-medium">Verified Fleet</p>
+                  <p className="font-mono text-2xl font-bold text-emerald-400 drop-shadow-sm">100%</p>
+                  <p className="text-[11px] text-slate-300 font-medium">Verified Fleet</p>
                 </div>
                 <div>
-                  <p className="font-mono text-2xl font-bold text-amber-600">24/7</p>
-                  <p className="text-[11px] text-slate-500 font-medium">VIP Concierge</p>
+                  <p className="font-mono text-2xl font-bold text-amber-400 drop-shadow-sm">24/7</p>
+                  <p className="text-[11px] text-slate-300 font-medium">VIP Concierge</p>
                 </div>
               </div>
             </motion.div>
@@ -150,11 +159,11 @@ export default function Landing() {
                   transition={{ delay: 0.6 + i * 0.15, duration: 0.5 }}
                   className="relative z-10 flex flex-col items-center text-center max-w-[11rem] px-2"
                 >
-                  <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white border-2 border-amber-500 shadow-sm ring-4 ring-[#F8F9FA] transition-transform hover:scale-110">
-                    <StepIcon className="h-4 w-4 text-amber-700" />
+                  <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-slate-950/70 border-2 border-amber-400 shadow-md ring-4 ring-black/20 backdrop-blur-md transition-transform hover:scale-110">
+                    <StepIcon className="h-4 w-4 text-amber-300" />
                   </div>
-                  <h4 className="mt-3 font-serif text-sm font-bold text-slate-900">{stop.label}</h4>
-                  <p className="mt-1 text-xs text-slate-500 leading-relaxed">{stop.desc}</p>
+                  <h4 className="mt-3 font-serif text-sm font-bold text-white drop-shadow-sm">{stop.label}</h4>
+                  <p className="mt-1 text-xs text-slate-300 leading-relaxed">{stop.desc}</p>
                 </motion.div>
               );
             })}
