@@ -15,13 +15,7 @@ import {
   LionWatermark,
   SafariCruiserWatermark
 } from '@/components/ui/SafariBackgroundWatermarks';
-import {
-  HeroCartoonExplorer,
-  PeekingExplorerIllustration,
-  PalmTreeCartoon,
-  SavannahGrassTuft,
-  AcaciaTreeCartoon
-} from '@/components/ui/CartoonSafariIllustrations';
+
 
 const journey = [
   { label: 'Explore', desc: 'Browse curated safari cruisers, luxury vans, and private villas.' },
@@ -48,7 +42,7 @@ export default function Landing() {
       {/* 3D BACKGROUND CANVAS */}
       <Hero3DCanvas />
 
-      {/* HERO SECTION WITH SUBTLE SAVANNAH WATERMARK & CARTOON EXPLORER */}
+      {/* HERO SECTION WITH SUBTLE SAVANNAH WATERMARK */}
       <section className="relative px-6 pt-10 pb-16 md:pt-14 md:pb-20 overflow-hidden">
         {/* Subtle Savannah Horizon Vector Watermark */}
         <SavannahHeroWatermark className="top-0 left-0 right-0 h-[620px] opacity-[0.05] md:opacity-[0.07]" />
@@ -84,15 +78,15 @@ export default function Landing() {
                 </Link>
               </div>
 
-              {/* HERO CARTOON SAFARI SPECIALIST BADGE (ZERO OBSTRUCTION) */}
-              <div className="mt-8 flex items-center gap-4 p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50/80 border border-amber-300/80 shadow-2xs max-w-xl">
-                <div className="shrink-0">
-                  <HeroCartoonExplorer size={76} />
+              {/* SIGNATURE SAFARI SPECIALIST BADGE */}
+              <div className="mt-8 flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-amber-50 via-white to-amber-50/60 border border-amber-300/80 shadow-2xs max-w-xl">
+                <div className="h-12 w-12 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 flex items-center justify-center shrink-0 shadow-xs">
+                  <Compass className="h-6 w-6 text-amber-600" />
                 </div>
                 <div>
                   <p className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
                     <span>Jambo! Your Kenya Safari Specialist</span>
-                    <span className="text-orange-500 font-bold">✨</span>
+                    <span className="text-amber-600 font-bold">✨</span>
                   </p>
                   <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-0.5">
                     Hand-inspected 4x4 Land Cruisers, executive safari vans, and coastal holiday stays ready for your Kenyan expedition.
@@ -100,11 +94,11 @@ export default function Landing() {
                 </div>
               </div>
 
-              {/* LIVE PLATFORM METRICS WITH SAVANNAH GRASS ACCENT */}
+              {/* LIVE PLATFORM METRICS */}
               <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-slate-200/80 pt-6 relative">
                 <div>
                   <p className="font-mono text-2xl font-bold text-slate-900">500+</p>
-                  <p className="text-[11px] text-slate-500 font-medium">Cruisers & Villas</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Cruisers &amp; Villas</p>
                 </div>
                 <div>
                   <p className="font-mono text-2xl font-bold text-slate-900">99.2%</p>
@@ -117,11 +111,6 @@ export default function Landing() {
                 <div>
                   <p className="font-mono text-2xl font-bold text-amber-600">24/7</p>
                   <p className="text-[11px] text-slate-500 font-medium">VIP Concierge</p>
-                </div>
-
-                {/* Savannah grass tuft tucked beside metrics in System Orange */}
-                <div className="absolute -bottom-2 -right-4 opacity-40 pointer-events-none hidden sm:block">
-                  <SavannahGrassTuft size={80} />
                 </div>
               </div>
             </motion.div>
@@ -140,7 +129,7 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* JOURNEY PIPELINE WITH CARTOON SAVANNAH ACCENTS */}
+        {/* JOURNEY PIPELINE */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -170,25 +159,11 @@ export default function Landing() {
               );
             })}
           </div>
-
-          {/* Gentle Savannah Grass accents along the journey base */}
-          <div className="flex justify-between items-center mt-3 px-8 opacity-35 pointer-events-none">
-            <SavannahGrassTuft size={70} />
-            <SavannahGrassTuft size={60} />
-            <SavannahGrassTuft size={70} />
-          </div>
         </motion.div>
       </section>
 
-      {/* CATEGORIES WITH 3D TACTILE CARDS & CARTOON FLORA ACCENTS */}
+      {/* CATEGORIES WITH 3D TACTILE CARDS */}
       <section className="px-6 py-20 relative bg-white border-y border-slate-200/70 overflow-hidden">
-        {/* Cartoon Palm Tree & Acacia Flora Accents in background */}
-        <div className="absolute -top-4 right-6 opacity-30 md:opacity-45 pointer-events-none">
-          <PalmTreeCartoon size={160} />
-        </div>
-        <div className="absolute -bottom-6 left-6 opacity-25 md:opacity-40 pointer-events-none">
-          <AcaciaTreeCartoon size={160} />
-        </div>
 
         {/* Subtle Watermarks */}
         <LionWatermark className="top-4 right-1/4 w-72 h-72 opacity-[0.025] md:opacity-[0.04]" />
@@ -276,37 +251,49 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* FINAL HIGH-IMPACT CTA WITH PEEKING CARTOON EXPLORER & FLORA ACCENTS */}
-      <section className="px-6 py-24 text-center relative bg-white overflow-hidden">
-        {/* Background Cartoon Palm Tree & Savannah Flora */}
-        <div className="absolute top-8 left-4 md:left-12 opacity-35 md:opacity-50 pointer-events-none">
-          <PalmTreeCartoon size={160} />
-        </div>
-        <div className="absolute bottom-6 right-4 md:right-12 opacity-35 md:opacity-50 pointer-events-none">
-          <AcaciaTreeCartoon size={170} />
+      {/* FINAL HIGH-IMPACT CTA WITH REAL SAFARI EXPEDITION PHOTOGRAPHY */}
+      <section className="relative px-6 py-24 md:py-32 overflow-hidden text-center">
+        {/* Photographic Background */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/images/adventure-safari.jpg"
+            alt="Kenya Safari Adventure in 4x4 Cruiser"
+            className="w-full h-full object-cover object-center"
+          />
+          {/* Elegant cinematic dark gradient overlay for luxury contrast */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/65 to-slate-950/75 backdrop-blur-[1px]" />
+          <div className="absolute inset-0 bg-radial from-amber-500/10 via-transparent to-black/60 pointer-events-none" />
         </div>
 
-        {/* Subtle Savannah Horizon Watermark */}
-        <SavannahHeroWatermark className="top-0 left-0 right-0 h-full opacity-[0.035] md:opacity-[0.05]" />
-
-        <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={fadeUp} className="mx-auto max-w-3xl relative z-10">
-          <div className="rounded-3xl border-2 border-amber-300/80 bg-gradient-to-br from-amber-50/90 via-white to-amber-50/40 p-8 sm:p-12 md:p-14 text-center shadow-card relative overflow-hidden">
-            {/* Peeking Cartoon Explorer in System Orange (Positioned cleanly above heading with ZERO text overlap) */}
-            <div className="flex justify-center mb-6">
-              <PeekingExplorerIllustration bubbleText="Ready for your adventure?" />
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          variants={fadeUp}
+          className="mx-auto max-w-3xl relative z-10"
+        >
+          <div className="rounded-3xl border border-white/20 bg-slate-950/60 backdrop-blur-md p-8 sm:p-12 md:p-14 text-center shadow-2xl ring-1 ring-amber-400/30">
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/15 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-300 shadow-sm mb-6">
+              <Sparkles className="h-3.5 w-3.5 text-amber-400" /> Bespoke Safari Expeditions
             </div>
 
-            <h2 className="font-serif text-3xl font-bold tracking-tight md:text-5xl text-slate-900">
+            <h2 className="font-serif text-3xl font-bold tracking-tight md:text-5xl text-white">
               Ready for your next Kenya adventure?
             </h2>
-            <p className="mt-4 text-sm md:text-base text-slate-600 max-w-xl mx-auto">
+            <p className="mt-4 text-sm md:text-base text-slate-200 max-w-xl mx-auto leading-relaxed">
               Create your free M-TRAVEL account, explore handpicked 4x4 safari fleets, and reserve your bespoke travel journey in seconds.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <Link to="/register" className="btn-primary !px-8 !py-3.5 text-sm font-bold shadow-md hover:shadow-lg">
+              <Link
+                to="/register"
+                className="btn-primary !px-8 !py-3.5 text-sm font-bold shadow-lg hover:shadow-xl transition-all"
+              >
                 Get Started Free
               </Link>
-              <Link to="/catalogue" className="btn-secondary !px-8 !py-3.5 text-sm font-semibold">
+              <Link
+                to="/catalogue"
+                className="rounded-xl border border-white/30 bg-white/10 hover:bg-white/20 backdrop-blur-md px-8 py-3.5 text-sm font-bold text-white transition-all shadow-md"
+              >
                 Browse Full Fleet
               </Link>
             </div>
