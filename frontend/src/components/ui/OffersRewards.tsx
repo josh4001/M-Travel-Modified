@@ -10,37 +10,53 @@ export const OffersRewards: React.FC = () => {
   const [notified, setNotified] = useState(false);
 
   return (
-    <section className="py-20 px-6 relative bg-[#D4BEA3] border-y border-[#BA9E7E] overflow-hidden">
-      <div className="mx-auto max-w-7xl">
+    <section className="py-20 px-6 relative border-y border-[#BA9E7E] overflow-hidden">
+      {/* Photographic Background - Safari Giraffes & Land Cruiser HD */}
+      <div className="absolute inset-0 z-0">
+        <img
+          src="/images/safari-giraffes-drive.jpg"
+          alt="Safari Land Cruiser & Giraffes on the Golden Savannah Plains in Kenya"
+          className="w-full h-full object-cover object-[center_35%]"
+        />
+        {/* Balanced scrim gradients ensuring the safari scene, giraffes, vehicle, and savannah shine through while keeping cards and text razor sharp */}
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/50 to-slate-950/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-transparent to-slate-950/60" />
+        <div className="absolute inset-0 bg-radial from-amber-500/10 via-transparent to-black/30 pointer-events-none" />
+      </div>
+
+      <div className="mx-auto max-w-7xl relative z-10">
         {/* SECTION HEADER */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[#BA9E7E] pb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-amber-500/30 pb-8">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400 bg-amber-100/90 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-950 shadow-2xs">
-              <Crown className="h-4 w-4 text-amber-900" /> Upcoming Feature • M-TRAVEL Privilege Club
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/50 bg-amber-500/20 backdrop-blur-md px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-300 shadow-sm">
+              <Crown className="h-4 w-4 text-amber-400" /> Upcoming Feature • M-TRAVEL Privilege Club
             </div>
-            <h2 className="mt-3 font-serif text-3xl md:text-5xl font-bold text-[#1A0D05] tracking-tight">
-              Fly, Drive &amp; Explore with <span className="bg-gold-gradient bg-clip-text text-transparent">M-TRAVEL</span>
+            <h2 className="mt-3 font-serif text-3xl md:text-5xl font-bold text-white tracking-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
+              Fly, Drive &amp; Explore with{' '}
+              <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 bg-clip-text text-transparent drop-shadow-sm">
+                M-TRAVEL
+              </span>
             </h2>
-            <p className="mt-2 text-[#452C1A] text-sm max-w-xl font-medium">
+            <p className="mt-2 text-slate-100 text-sm max-w-xl font-medium drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
               Enjoy curated luxury Kenyan travel packages inspired by global hospitality standards, with upcoming bespoke privileges and member rewards.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-amber-950 font-bold bg-amber-100/90 border border-amber-400 px-3.5 py-1.5 rounded-full shadow-2xs">
-            <Clock className="h-3.5 w-3.5 text-amber-900" />
+          <div className="flex items-center gap-2 text-xs text-amber-200 font-bold bg-black/40 backdrop-blur-md border border-amber-400/40 px-3.5 py-1.5 rounded-full shadow-sm">
+            <Clock className="h-3.5 w-3.5 text-amber-400" />
             <span>Feature in Development • Coming Soon</span>
           </div>
         </div>
 
         {/* REWARDS CALLOUT BANNER (COMING SOON FEATURE PREVIEW) */}
-        <div className="mt-10 rounded-3xl border border-[#BA9E7E] bg-gradient-to-br from-[#F8F2EA] via-white to-[#F2E8DC] p-6 md:p-8 flex flex-col lg:flex-row items-center justify-between gap-8 shadow-sm relative overflow-hidden">
+        <div className="mt-10 rounded-3xl border border-amber-900/20 bg-white/95 backdrop-blur-md p-6 md:p-8 flex flex-col lg:flex-row items-center justify-between gap-8 shadow-[0_15px_40px_rgba(0,0,0,0.3)] relative overflow-hidden">
           <div className="space-y-3 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/25 border border-amber-500/60 px-3 py-1 text-[11px] font-bold text-amber-950">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 border border-amber-500/50 px-3 py-1 text-[11px] font-bold text-amber-950">
                 <Sparkles className="h-3.5 w-3.5 text-amber-800" /> Coming Soon
               </span>
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-950 bg-white/90 px-2.5 py-0.5 rounded-full border border-amber-300">
-                <Clock className="h-3 w-3 text-amber-800" /> Future Roadmap Feature
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-300">
+                <Clock className="h-3 w-3 text-slate-700" /> Future Roadmap Feature
               </span>
             </div>
 
