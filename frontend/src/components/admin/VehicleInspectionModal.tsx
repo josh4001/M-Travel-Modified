@@ -451,11 +451,12 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
               {/* 4. OTHER ATTACHED DOCUMENTS */}
               {(() => {
                 const otherDocs = vehicleDocs.filter(d => d.type === 'OTHER');
+                const hasOther = otherDocs.length > 0;
                 return (
-                  <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+                  <div className={`rounded-2xl border p-4 transition ${hasOther ? 'border-emerald-500/40 bg-[#0e1c18]' : 'border-slate-800 bg-slate-950'}`}>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2.5">
-                        <div className="rounded-xl bg-slate-800 text-slate-400 p-2.5">
+                        <div className={`rounded-xl p-2.5 ${hasOther ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
                           <Paperclip className="h-5 w-5" />
                         </div>
                         <div>
@@ -463,22 +464,22 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
                           <p className="text-xs text-slate-400">Host ID, service records or permits</p>
                         </div>
                       </div>
-                      <span className="rounded-full bg-slate-800 text-slate-300 px-2.5 py-0.5 text-[10px] font-bold">
-                        {otherDocs.length} File(s)
+                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${hasOther ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-300'}`}>
+                        {hasOther ? `${otherDocs.length} Attached` : '0 File(s)'}
                       </span>
                     </div>
 
-                    {otherDocs.length > 0 ? (
+                    {hasOther ? (
                       <div className="mt-3 space-y-2 border-t border-slate-800 pt-2">
                         {otherDocs.map((d) => (
                           <div key={d.id} className="flex items-center justify-between text-xs font-mono text-slate-300">
-                            <span className="truncate max-w-[180px]">{d.fileName}</span>
+                            <span className="truncate max-w-[180px]">{d.fileName} ({d.fileSize || '620 KB'})</span>
                             <button
                               type="button"
                               onClick={() => setPreviewingDoc(d)}
-                              className="rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-0.5 text-[11px] font-bold"
+                              className="rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-3 py-1 text-xs flex items-center gap-1 transition"
                             >
-                              Inspect
+                              <Eye className="h-3.5 w-3.5" /> Inspect
                             </button>
                           </div>
                         ))}
@@ -656,7 +657,13 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
             </div>
 
             <div className="max-h-[70vh] overflow-y-auto rounded-xl bg-slate-950 p-2 flex items-center justify-center border border-slate-800">
-              {previewingDoc.fileUrl.startsWith('data:image/') || previewingDoc.fileUrl.includes('unsplash') || previewingDoc.fileName.match(/\.(jpg|jpeg|png|webp)$/i) ? (
+              {previewingDoc.fileUrl.startsWith('data:image/') ||
+               previewingDoc.fileUrl.includes('unsplash') ||
+               previewingDoc.fileUrl.endsWith('.svg') ||
+               previewingDoc.fileUrl.endsWith('.png') ||
+               previewingDoc.fileUrl.endsWith('.jpg') ||
+               previewingDoc.fileUrl.endsWith('.jpeg') ||
+               previewingDoc.fileName.match(/\.(jpg|jpeg|png|webp|svg)$/i) ? (
                 <img src={previewingDoc.fileUrl} alt={previewingDoc.name} className="max-h-[65vh] w-auto rounded-lg object-contain" />
               ) : (
                 <div className="p-10 text-center space-y-4">

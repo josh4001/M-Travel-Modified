@@ -1726,7 +1726,13 @@ export default function OwnerDashboard() {
             </div>
 
             <div className="max-h-[70vh] overflow-y-auto rounded-xl bg-slate-100 p-2 flex items-center justify-center">
-              {previewDoc.fileUrl.startsWith('data:image/') || previewDoc.fileUrl.includes('unsplash') || previewDoc.fileName.match(/\.(jpg|jpeg|png|webp)$/i) ? (
+              {previewDoc.fileUrl.startsWith('data:image/') ||
+               previewDoc.fileUrl.includes('unsplash') ||
+               previewDoc.fileUrl.endsWith('.svg') ||
+               previewDoc.fileUrl.endsWith('.png') ||
+               previewDoc.fileUrl.endsWith('.jpg') ||
+               previewDoc.fileUrl.endsWith('.jpeg') ||
+               previewDoc.fileName.match(/\.(jpg|jpeg|png|webp|svg)$/i) ? (
                 <img src={previewDoc.fileUrl} alt={previewDoc.name} className="max-h-[60vh] w-auto rounded-lg object-contain shadow-xs" />
               ) : (
                 <div className="p-8 text-center space-y-3">

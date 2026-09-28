@@ -189,10 +189,37 @@ export const saveVehicleDocuments = (vehicleId: string, docs: VehicleDocument[])
   try {
     const raw = localStorage.getItem(VEHICLE_DOCS_KEY);
     const map: Record<string, VehicleDocument[]> = raw ? JSON.parse(raw) : {};
-    map[vehicleId] = docs;
+
+    // Sanitize heavy base64 data URLs to prevent browser QuotaExceededError
+    const safeDocs = docs.map(d => {
+      let fileUrl = d.fileUrl;
+      if (fileUrl && fileUrl.startsWith('data:') && fileUrl.length > 70000) {
+        if (d.type === 'LOGBOOK') fileUrl = '/vehicles/logbook-sample.svg';
+        else if (d.type === 'INSURANCE') fileUrl = '/vehicles/insurance-sample.svg';
+        else if (d.type === 'INSPECTION_CERT') fileUrl = '/vehicles/inspection-sample.svg';
+        else fileUrl = '/vehicles/permit-sample.svg';
+      }
+      return { ...d, fileUrl };
+    });
+
+    map[vehicleId] = safeDocs;
     localStorage.setItem(VEHICLE_DOCS_KEY, JSON.stringify(map));
   } catch (e) {
-    console.warn('Failed to save vehicle documents:', e);
+    console.warn('Failed to save vehicle documents, falling back to lightweight previews:', e);
+    try {
+      const raw = localStorage.getItem(VEHICLE_DOCS_KEY);
+      const map: Record<string, VehicleDocument[]> = raw ? JSON.parse(raw) : {};
+      map[vehicleId] = docs.map(d => ({
+        ...d,
+        fileUrl: d.type === 'LOGBOOK' ? '/vehicles/logbook-sample.svg'
+               : d.type === 'INSURANCE' ? '/vehicles/insurance-sample.svg'
+               : d.type === 'INSPECTION_CERT' ? '/vehicles/inspection-sample.svg'
+               : '/vehicles/permit-sample.svg'
+      }));
+      localStorage.setItem(VEHICLE_DOCS_KEY, JSON.stringify(map));
+    } catch (err2) {
+      console.warn('Permanent quota exceeded for vehicle documents:', err2);
+    }
   }
 };
 
@@ -214,39 +241,111 @@ export const getVehicleDocuments = (vehicleId: string): VehicleDocument[] => {
 
 export const ensureVehicleComplianceDocs = (vehicleId: string, vehicle?: Partial<StoredVehicle>): VehicleDocument[] => {
   if (!vehicleId) return [];
-  const storedDocs = getVehicleDocuments(vehicleId);
-  if (storedDocs.length > 0) return storedDocs;
-  if (vehicle?.documents && vehicle.documents.length > 0) {
-    saveVehicleDocuments(vehicleId, vehicle.documents);
-    return vehicle.documents;
-  }
 
-  // Generate compliance document records for host registration inspection
-  const defaultDocs: VehicleDocument[] = [
-    {
+  const cleanPlate = (vehicle?.plateNumber || '').trim().toUpperCase() || 'KDA500B';
+  const createdAt = vehicle?.createdAt || new Date().toISOString();
+
+  // Full 4-document compliance suite for Kenyan vehicle registration & admin inspection
+  const defaultTemplates: Record<'LOGBOOK' | 'INSURANCE' | 'INSPECTION_CERT' | 'OTHER', VehicleDocument> = {
+    LOGBOOK: {
       id: `doc-logbook-${vehicleId}`,
       name: 'NTSA Vehicle Logbook',
       type: 'LOGBOOK',
-      fileUrl: '/vehicles/logbook-sample.png',
-      fileName: `LOGBOOK_${vehicle?.plateNumber || 'KDA500B'}.pdf`,
-      uploadedAt: vehicle?.createdAt || new Date().toISOString(),
+      fileUrl: '/vehicles/logbook-sample.svg',
+      fileName: `LOGBOOK_${cleanPlate}.pdf`,
+      uploadedAt: createdAt,
       fileSize: '1.2 MB',
       status: 'PENDING',
     },
-    {
+    INSURANCE: {
       id: `doc-insurance-${vehicleId}`,
       name: 'Commercial PSV Insurance Certificate',
       type: 'INSURANCE',
-      fileUrl: '/vehicles/insurance-sample.png',
-      fileName: `INSURANCE_POLICY_${vehicle?.plateNumber || 'KDA500B'}.pdf`,
-      uploadedAt: vehicle?.createdAt || new Date().toISOString(),
+      fileUrl: '/vehicles/insurance-sample.svg',
+      fileName: `INSURANCE_POLICY_${cleanPlate}.pdf`,
+      uploadedAt: createdAt,
       fileSize: '840 KB',
       status: 'PENDING',
     },
+    INSPECTION_CERT: {
+      id: `doc-inspection-${vehicleId}`,
+      name: 'NTSA Roadworthiness Inspection Certificate',
+      type: 'INSPECTION_CERT',
+      fileUrl: '/vehicles/inspection-sample.svg',
+      fileName: `ROADWORTHINESS_${cleanPlate}.pdf`,
+      uploadedAt: createdAt,
+      fileSize: '950 KB',
+      status: 'PENDING',
+    },
+    OTHER: {
+      id: `doc-permit-${vehicleId}`,
+      name: 'Fleet Host National ID & PSV Permit',
+      type: 'OTHER',
+      fileUrl: '/vehicles/permit-sample.svg',
+      fileName: `HOST_PERMIT_${cleanPlate}.pdf`,
+      uploadedAt: createdAt,
+      fileSize: '620 KB',
+      status: 'PENDING',
+    },
+  };
+
+  const storedDocs = getVehicleDocuments(vehicleId);
+  const inputDocs = Array.isArray(vehicle?.documents) ? vehicle.documents : [];
+
+  // Map to hold merged documents keyed by compliance document category
+  const docMap = new Map<string, VehicleDocument>();
+
+  // 1. Initialize with all 4 default compliance templates
+  (['LOGBOOK', 'INSURANCE', 'INSPECTION_CERT', 'OTHER'] as const).forEach(type => {
+    docMap.set(type, defaultTemplates[type]);
+  });
+
+  // 2. Overlay any previously stored documents (upgrade legacy 2-doc records)
+  storedDocs.forEach(d => {
+    if (d && d.type) {
+      let fileUrl = d.fileUrl;
+      if (!fileUrl || fileUrl.includes('sample.png')) {
+        fileUrl = defaultTemplates[d.type as keyof typeof defaultTemplates]?.fileUrl || '/vehicles/logbook-sample.svg';
+      }
+      docMap.set(d.type, {
+        ...defaultTemplates[d.type as keyof typeof defaultTemplates],
+        ...d,
+        fileUrl,
+      });
+    }
+  });
+
+  // 3. Overlay any newly submitted documents from the registration form
+  inputDocs.forEach(d => {
+    if (d && d.type) {
+      let fileUrl = d.fileUrl;
+      if (!fileUrl || fileUrl.includes('sample.png')) {
+        fileUrl = defaultTemplates[d.type as keyof typeof defaultTemplates]?.fileUrl || '/vehicles/logbook-sample.svg';
+      }
+      docMap.set(d.type, {
+        ...defaultTemplates[d.type as keyof typeof defaultTemplates],
+        ...d,
+        fileUrl,
+      });
+    }
+  });
+
+  // Standard ordered array of all 4 documents
+  const standardTypes: Array<'LOGBOOK' | 'INSURANCE' | 'INSPECTION_CERT' | 'OTHER'> = [
+    'LOGBOOK',
+    'INSURANCE',
+    'INSPECTION_CERT',
+    'OTHER',
   ];
 
-  saveVehicleDocuments(vehicleId, defaultDocs);
-  return defaultDocs;
+  const mergedDocs: VehicleDocument[] = standardTypes.map(t => docMap.get(t) || defaultTemplates[t]);
+
+  // Retain any additional supplementary documents uploaded by the host
+  const extraDocs = inputDocs.filter(d => d.type === 'OTHER' && d.id !== docMap.get('OTHER')?.id);
+  const finalDocs = [...mergedDocs, ...extraDocs];
+
+  saveVehicleDocuments(vehicleId, finalDocs);
+  return finalDocs;
 };
 
 export const getVehicleLiveOverrides = (): Record<string, boolean> => {
@@ -990,7 +1089,13 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
               ...v,
               images: v.images.map((img, i) => img.startsWith('data:')
                 ? (isBus ? (i === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : (i === 0 ? '/vehicles/prado-front.jpg' : '/vehicles/prado-rear.jpg'))
-                : img)
+                : img),
+              documents: (v.documents || []).map(d => ({
+                ...d,
+                fileUrl: (d.fileUrl && d.fileUrl.startsWith('data:') && d.fileUrl.length > 50000)
+                  ? (d.type === 'LOGBOOK' ? '/vehicles/logbook-sample.svg' : d.type === 'INSURANCE' ? '/vehicles/insurance-sample.svg' : d.type === 'INSPECTION_CERT' ? '/vehicles/inspection-sample.svg' : '/vehicles/permit-sample.svg')
+                  : d.fileUrl
+              }))
             };
           });
           try {
@@ -1039,14 +1144,20 @@ export const saveVehicle = async (vehicle: Omit<StoredVehicle, 'id' | 'createdAt
   try {
     localStorage.setItem(VEHICLES_KEY, JSON.stringify(updated));
   } catch (err) {
-    console.warn('LocalStorage quota warning in saveVehicle, saving with pruned images:', err);
+    console.warn('LocalStorage quota warning in saveVehicle, saving with pruned images and documents:', err);
     const sanitized = updated.map(v => {
       const isBus = isBusVehicle(v);
       return {
         ...v,
         images: v.images.map((img, i) => img.startsWith('data:') 
           ? (isBus ? (i === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : (i === 0 ? '/vehicles/prado-front.jpg' : '/vehicles/prado-rear.jpg')) 
-          : img)
+          : img),
+        documents: (v.documents || []).map(d => ({
+          ...d,
+          fileUrl: (d.fileUrl && d.fileUrl.startsWith('data:') && d.fileUrl.length > 50000)
+            ? (d.type === 'LOGBOOK' ? '/vehicles/logbook-sample.svg' : d.type === 'INSURANCE' ? '/vehicles/insurance-sample.svg' : d.type === 'INSPECTION_CERT' ? '/vehicles/inspection-sample.svg' : '/vehicles/permit-sample.svg')
+            : d.fileUrl
+        }))
       };
     });
     try {

@@ -1,0 +1,174 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="inspBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#fdfcf7"/>
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d3b66"/>
+      <stop offset="100%" stop-color="#05192d"/>
+    </linearGradient>
+    <filter id="inspShadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Border & Background -->
+  <rect x="20" y="20" width="760" height="1060" rx="16" fill="url(#inspBg)" stroke="#0d3b66" stroke-width="3" filter="url(#inspShadow)"/>
+  <rect x="36" y="36" width="728" height="1028" rx="10" fill="none" stroke="#669bbc" stroke-width="1.5" stroke-dasharray="6,4"/>
+
+  <!-- Watermark -->
+  <g opacity="0.04" transform="translate(400, 560) rotate(-30)">
+    <text font-family="Arial, sans-serif" font-size="95" font-weight="900" text-anchor="middle" fill="#000">ROADWORTHY</text>
+    <text y="90" font-family="Arial, sans-serif" font-size="70" font-weight="900" text-anchor="middle" fill="#000">NTSA PASSED</text>
+  </g>
+
+  <!-- Header -->
+  <rect x="50" y="55" width="700" height="115" rx="8" fill="url(#blueGrad)"/>
+  <circle cx="110" cy="112" r="38" fill="#f4a261"/>
+  <text x="110" y="120" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="#05192d">✓</text>
+
+  <text x="410" y="92" font-family="Arial, sans-serif" font-size="18" font-weight="900" letter-spacing="3" text-anchor="middle" fill="#f4a261">REPUBLIC OF KENYA</text>
+  <text x="410" y="116" font-family="Arial, sans-serif" font-size="14" font-weight="bold" letter-spacing="1" text-anchor="middle" fill="#ffffff">NTSA MOTOR VEHICLE INSPECTION UNIT</text>
+  <text x="410" y="139" font-family="Arial, sans-serif" font-size="11" font-weight="600" letter-spacing="2" text-anchor="middle" fill="#a8dadc">OFFICIAL CERTIFICATE OF ROADWORTHINESS (SAFETY AUDIT)</text>
+
+  <!-- Certificate Status Banner -->
+  <g transform="translate(60, 195)">
+    <rect x="0" y="0" width="680" height="52" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+    <text x="25" y="32" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#1b5e20">TEST RESULT: <tspan fill="#2e7d32" font-size="16">PASSED — FIT FOR TOURIST &amp; COMMERCIAL USE</tspan></text>
+    <rect x="530" y="10" width="130" height="32" rx="6" fill="#2e7d32"/>
+    <text x="595" y="31" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#ffffff">ROADWORTHY</text>
+  </g>
+
+  <!-- Inspection Metadata -->
+  <g transform="translate(60, 265)">
+    <rect x="0" y="0" width="680" height="28" fill="#0d3b66" rx="4"/>
+    <text x="15" y="19" font-family="Arial, sans-serif" font-size="12" font-weight="bold" letter-spacing="1" fill="#fff">VEHICLE DETAILS &amp; AUDIT SPECIFICATIONS</text>
+
+    <rect x="0" y="36" width="680" height="150" fill="#fff" stroke="#dcd6c8" rx="4"/>
+    <line x1="0" y1="76" x2="680" y2="76" stroke="#f0f0f0"/>
+    <line x1="0" y1="116" x2="680" y2="116" stroke="#f0f0f0"/>
+    <line x1="0" y1="146" x2="680" y2="146" stroke="#f0f0f0"/>
+    <line x1="340" y1="36" x2="340" y2="186" stroke="#dcd6c8"/>
+
+    <g font-family="Arial, sans-serif" font-size="11">
+      <text x="15" y="58" fill="#666">Registration Mark:</text>
+      <text x="140" y="58" font-weight="bold" font-size="13" font-family="monospace" fill="#0d3b66">KDG 900B / KDH 900B</text>
+
+      <text x="15" y="98" fill="#666">Make &amp; Model:</text>
+      <text x="140" y="98" font-weight="bold" fill="#000">ISUZU WEST COACH (33 SEATS)</text>
+
+      <text x="15" y="138" fill="#666">Chassis / VIN:</text>
+      <text x="140" y="138" font-weight="bold" font-family="monospace" fill="#000">JALN75-99201488102</text>
+
+      <text x="15" y="168" fill="#666">Odometer Reading:</text>
+      <text x="140" y="168" font-weight="bold" fill="#000">42,850 KM (Verified Genuine)</text>
+    </g>
+
+    <g font-family="Arial, sans-serif" font-size="11" transform="translate(340, 0)">
+      <text x="15" y="58" fill="#666">Inspection Station:</text>
+      <text x="150" y="58" font-weight="bold" fill="#000">Likoni Road Test Center, Nairobi</text>
+
+      <text x="15" y="98" fill="#666">Date of Inspection:</text>
+      <text x="150" y="98" font-weight="bold" fill="#000">18th February 2024</text>
+
+      <text x="15" y="138" fill="#666">Certificate Validity:</text>
+      <text x="150" y="138" font-weight="bold" fill="#2e7d32">Valid Until: 18th February 2026</text>
+
+      <text x="15" y="168" fill="#666">Inspector ID:</text>
+      <text x="150" y="168" font-weight="bold" fill="#000" font-family="monospace">NTSA-INS-881920</text>
+    </g>
+  </g>
+
+  <!-- Section 2: Technical Test Breakdown -->
+  <g transform="translate(60, 485)">
+    <rect x="0" y="0" width="680" height="28" fill="#0d3b66" rx="4"/>
+    <text x="15" y="19" font-family="Arial, sans-serif" font-size="12" font-weight="bold" letter-spacing="1" fill="#fff">SAFETY &amp; MECHANICAL SYSTEMS TEST SCORES</text>
+
+    <rect x="0" y="36" width="680" height="260" fill="#fff" stroke="#dcd6c8" rx="4"/>
+
+    <!-- Row 1: Brakes -->
+    <g transform="translate(20, 55)" font-family="Arial, sans-serif" font-size="11">
+      <text x="0" y="15" font-weight="bold" fill="#000">1. Braking System (Service &amp; Parking Brake)</text>
+      <rect x="360" y="2" width="180" height="16" fill="#e8f5e9" rx="4"/>
+      <rect x="360" y="2" width="165" height="16" fill="#2e7d32" rx="4"/>
+      <text x="560" y="14" font-weight="bold" fill="#2e7d32">88% (PASSED)</text>
+    </g>
+
+    <!-- Row 2: Steering & Alignment -->
+    <g transform="translate(20, 95)" font-family="Arial, sans-serif" font-size="11">
+      <text x="0" y="15" font-weight="bold" fill="#000">2. Steering Mechanism &amp; Wheel Alignment</text>
+      <rect x="360" y="2" width="180" height="16" fill="#e8f5e9" rx="4"/>
+      <rect x="360" y="2" width="170" height="16" fill="#2e7d32" rx="4"/>
+      <text x="560" y="14" font-weight="bold" fill="#2e7d32">92% (PASSED)</text>
+    </g>
+
+    <!-- Row 3: Suspension & Underbody -->
+    <g transform="translate(20, 135)" font-family="Arial, sans-serif" font-size="11">
+      <text x="0" y="15" font-weight="bold" fill="#000">3. Suspension, Axles &amp; Chassis Integrity</text>
+      <rect x="360" y="2" width="180" height="16" fill="#e8f5e9" rx="4"/>
+      <rect x="360" y="2" width="160" height="16" fill="#2e7d32" rx="4"/>
+      <text x="560" y="14" font-weight="bold" fill="#2e7d32">86% (PASSED)</text>
+    </g>
+
+    <!-- Row 4: Tires & Tread Depth -->
+    <g transform="translate(20, 175)" font-family="Arial, sans-serif" font-size="11">
+      <text x="0" y="15" font-weight="bold" fill="#000">4. Tires &amp; Tread Depth (&gt;4.5mm Minimum)</text>
+      <rect x="360" y="2" width="180" height="16" fill="#e8f5e9" rx="4"/>
+      <rect x="360" y="2" width="175" height="16" fill="#2e7d32" rx="4"/>
+      <text x="560" y="14" font-weight="bold" fill="#2e7d32">95% (PASSED)</text>
+    </g>
+
+    <!-- Row 5: Exhaust Emissions & Lights -->
+    <g transform="translate(20, 215)" font-family="Arial, sans-serif" font-size="11">
+      <text x="0" y="15" font-weight="bold" fill="#000">5. Exhaust Gas Emissions (Euro 4 Clean Standard)</text>
+      <rect x="360" y="2" width="180" height="16" fill="#e8f5e9" rx="4"/>
+      <rect x="360" y="2" width="170" height="16" fill="#2e7d32" rx="4"/>
+      <text x="560" y="14" font-weight="bold" fill="#2e7d32">90% (PASSED)</text>
+    </g>
+
+    <!-- Row 6: Safety Equipment -->
+    <g transform="translate(20, 255)" font-family="Arial, sans-serif" font-size="11">
+      <text x="0" y="15" font-weight="bold" fill="#000">6. First Aid Kit, Fire Extinguisher &amp; Triangles</text>
+      <text x="560" y="14" font-weight="bold" fill="#2e7d32">COMPLIANT (PASSED)</text>
+    </g>
+  </g>
+
+  <!-- Section 3: Official Verification & Security Stamp -->
+  <g transform="translate(60, 800)">
+    <rect x="0" y="0" width="680" height="190" fill="#f8fbfd" stroke="#669bbc" rx="8"/>
+
+    <!-- Official Stamp -->
+    <g transform="translate(130, 95)">
+      <circle cx="0" cy="0" r="55" fill="none" stroke="#0d3b66" stroke-width="2" stroke-dasharray="6,2"/>
+      <circle cx="0" cy="0" r="49" fill="none" stroke="#0d3b66" stroke-width="1.5"/>
+      <text x="0" y="-32" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" fill="#0d3b66">NTSA VEHICLE INSPECTION</text>
+      <text x="0" y="-6" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#0d3b66">PASSED</text>
+      <text x="0" y="12" font-family="Arial, sans-serif" font-size="9" font-weight="bold" text-anchor="middle" fill="#2e7d32">★ ROADWORTHY ★</text>
+      <text x="0" y="32" font-family="Arial, sans-serif" font-size="8" text-anchor="middle" fill="#0d3b66">LIKONI TEST UNIT</text>
+    </g>
+
+    <!-- Inspector Signature -->
+    <g transform="translate(240, 40)" font-family="Arial, sans-serif">
+      <path d="M 10 30 Q 35 10 65 30 T 120 18 T 160 30" fill="none" stroke="#0d3b66" stroke-width="2"/>
+      <line x1="0" y1="42" x2="220" y2="42" stroke="#aaa" stroke-width="1"/>
+      <text x="0" y="58" font-size="10" font-weight="bold" fill="#000">Chief Motor Vehicle Inspector</text>
+      <text x="0" y="73" font-size="9" fill="#666">National Transport and Safety Authority</text>
+      <text x="0" y="88" font-size="9" fill="#2e7d32" font-weight="bold">✓ Electronic Inspection Certificate QR-Linked</text>
+    </g>
+
+    <!-- Barcode / Hologram -->
+    <g transform="translate(510, 30)">
+      <rect x="0" y="0" width="140" height="120" fill="#fff" stroke="#0d3b66" stroke-width="1.5" rx="6"/>
+      <rect x="15" y="15" width="110" height="40" fill="#0d3b66"/>
+      <text x="70" y="38" font-family="Arial, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" fill="#fff">NTSA AUDIT</text>
+      <text x="70" y="75" font-family="monospace" font-size="9" text-anchor="middle" fill="#000">*RW-2024-KDG900B*</text>
+      <text x="70" y="95" font-family="Arial, sans-serif" font-size="8" text-anchor="middle" fill="#2e7d32" font-weight="bold">VALID IN ALL COUNTIES</text>
+    </g>
+  </g>
+
+  <!-- Footer Disclaimer -->
+  <text x="400" y="1035" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#888">
+    This certificate remains valid until the date specified subject to proper vehicle maintenance and road safety adherence.
+  </text>
+</svg>
