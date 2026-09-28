@@ -1,7 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { ArrowRight, Lock, Mail, Eye, EyeOff, Crown, Sparkles, KeyRound, CheckCircle2, ShieldCheck, AlertCircle, Compass, Car } from 'lucide-react';
+import { ArrowRight, Lock, Mail, Eye, EyeOff, Crown, Sparkles, CheckCircle2, ShieldCheck, AlertCircle, Compass, Car } from 'lucide-react';
 import { login } from '@/lib/authService';
 import { setUser } from '@/store/slices/authSlice';
 import { AuthVideoBackground } from '@/components/auth/AuthVideoBackground';
@@ -122,16 +122,13 @@ export default function Login() {
 
           {/* VIP DEMONSTRATION QUICK-ACCESS PILLS */}
           <div className="py-4 border-b border-white/10">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400 flex items-center gap-1">
-                <KeyRound className="h-3 w-3" /> Quick VIP Demonstration Portals:
-              </span>
-              {selectedRole && (
+            {selectedRole && (
+              <div className="flex items-center justify-end mb-2">
                 <span className="text-[10px] text-emerald-400 font-mono font-medium flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" /> Autofilled
                 </span>
-              )}
-            </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -287,7 +284,7 @@ export default function Login() {
                   to={redirectUrl ? `/register?redirect=${encodeURIComponent(redirectUrl)}&reason=booking` : '/register'}
                   className="font-bold text-amber-400 hover:text-amber-300 hover:underline"
                 >
-                  Create Bespoke Explorer Account
+                  Sign Up
                 </Link>
               </p>
 
