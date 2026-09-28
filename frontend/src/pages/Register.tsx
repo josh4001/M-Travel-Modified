@@ -1,7 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { ArrowRight, Mail, Lock, Phone, User, Car, Shield, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { ArrowRight, Mail, Lock, Phone, User, Car, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { register } from '@/lib/authService';
 import { setUser } from '@/store/slices/authSlice';
 import { AuthVideoBackground } from '@/components/auth/AuthVideoBackground';
@@ -9,8 +9,8 @@ import { AuthVideoBackground } from '@/components/auth/AuthVideoBackground';
 const ROLES = [
   {
     value: 'TOURIST',
-    label: 'Tourist',
-    description: 'Book safaris & vehicle hire',
+    label: 'Traveler (Tourist)',
+    description: 'Book safari expeditions & luxury car hire',
     icon: User,
     color: 'teal',
   },
@@ -20,13 +20,6 @@ const ROLES = [
     description: 'List vehicles & earn rental income',
     icon: Car,
     color: 'marigold',
-  },
-  {
-    value: 'ADMIN',
-    label: 'System Admin',
-    description: 'Platform control & fleet monitoring',
-    icon: Shield,
-    color: 'purple',
   },
 ] as const;
 
@@ -241,9 +234,9 @@ export default function Register() {
             ) : (
               <div>
                 <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-300">
-                  Account Type
+                  Select Account Type
                 </label>
-                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   {ROLES.map((r) => {
                     const active = form.role === r.value;
                     return (

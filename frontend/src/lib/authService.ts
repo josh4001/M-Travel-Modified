@@ -631,11 +631,19 @@ export async function register(payload: {
     localStorage.setItem(DELETED_ACCOUNTS_KEY, JSON.stringify(deleted));
   } catch {}
 
+  // Strictly prevent public self-registration of ADMIN accounts
+  const requestedRole = (payload.role || '').toUpperCase();
+  if (requestedRole === 'ADMIN' || requestedRole === 'SUPER_ADMIN') {
+    throw new Error('System Admin accounts cannot be self-registered publicly. Admin accounts are provisioned exclusively by M-Travel Corporate Management.');
+  }
+
   const roleMap: Record<string, string> = {
     TOURIST: 'TOURIST',
     VEHICLE_OWNER: 'VEHICLE_OWNER',
-    ADMIN: 'ADMIN',
+    HOST: 'VEHICLE_OWNER',
+    FLEET_HOST: 'VEHICLE_OWNER',
     TRAVELER: 'TOURIST',
+    CUSTOMER: 'TOURIST',
   };
   const role = roleMap[payload.role ?? 'TOURIST'] ?? 'TOURIST';
 
@@ -673,6 +681,78 @@ export async function register(payload: {
   return {
     ...mockTokens,
     user: authUser,
+  };
+}
+
+/**
+ * Provisions a new Administrator / Management Staff Account.
+ * STRICTLY restricted to execution by authenticated M-Travel Management / Admin only.
+ */
+export async function createAdminAccountByManagement(
+  adminCreator: { id?: string; email?: string; role?: string; name?: string },
+  newAdmin: {
+    email: string;
+    password?: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+  }
+): Promise<{ success: boolean; user?: AuthUser; error?: string }> {
+  const creatorRole = adminCreator.role?.toUpperCase();
+  if (creatorRole !== 'ADMIN' && creatorRole !== 'SUPER_ADMIN') {
+    return {
+      success: false,
+      error: 'Permission Denied: Only M-Travel Management or Platform Administrators can provision Admin accounts.',
+    };
+  }
+
+  const cleanEmail = newAdmin.email.trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    return { success: false, error: 'A valid email address is required.' };
+  }
+
+  const existing = getLocalAccounts().find(a => a.email.toLowerCase() === cleanEmail);
+  if (existing) {
+    return { success: false, error: `An account with email "${cleanEmail}" already exists on the platform.` };
+  }
+
+  const adminId = generateUserUUID();
+  const defaultPw = newAdmin.password?.trim() || 'Admin@2026';
+
+  const newAccount: LocalAccount = {
+    id: adminId,
+    email: newAdmin.email.trim(),
+    password: defaultPw,
+    role: 'ADMIN',
+    firstName: newAdmin.firstName.trim() || 'Admin',
+    lastName: newAdmin.lastName.trim() || 'Staff',
+    phone: newAdmin.phone?.trim() || '+254 700 000 000',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  };
+
+  saveLocalAccount(newAccount);
+
+  logAuditEvent(
+    'ADMIN_ACCOUNT_PROVISIONED',
+    'User',
+    cleanEmail,
+    `New Administrator account (${newAccount.firstName} ${newAccount.lastName} - ${cleanEmail}) was officially provisioned by Management (${adminCreator.email || 'Admin'})`,
+    adminCreator.name || adminCreator.email || 'Management',
+    'ADMIN'
+  );
+
+  return {
+    success: true,
+    user: {
+      id: adminId,
+      email: newAccount.email,
+      role: 'ADMIN',
+      firstName: newAccount.firstName,
+      lastName: newAccount.lastName,
+      phone: newAccount.phone,
+      createdAt: newAccount.createdAt,
+    },
   };
 }
 

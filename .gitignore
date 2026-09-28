@@ -40,3 +40,4 @@ coverage/
 
 # Scratch & temporary workspace
 scratch/
+*.tsbuildinfo

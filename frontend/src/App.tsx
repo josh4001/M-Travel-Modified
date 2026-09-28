@@ -15,6 +15,7 @@ import Catalogue from '@/pages/Catalogue';
 import Team from '@/pages/Team';
 import Contact from '@/pages/Contact';
 import Login from '@/pages/Login';
+import AdminLogin from '@/pages/AdminLogin';
 import Register from '@/pages/Register';
 import Search from '@/pages/Search';
 import VehicleDetail from '@/pages/VehicleDetail';
@@ -144,6 +145,8 @@ export default function App() {
           <Route path="/team" element={<Team />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/staff/login" element={<AdminLogin />} />
           <Route path="/register" element={<Register />} />
           <Route path="/search" element={<NonHostRoute><Search /></NonHostRoute>} />
           <Route path="/vehicles/:id" element={<NonHostRoute><VehicleDetail /></NonHostRoute>} />

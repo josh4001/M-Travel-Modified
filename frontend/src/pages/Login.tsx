@@ -133,7 +133,7 @@ export default function Login() {
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => fillQuickCreds('sarah.ochieng@gmail.com', 'Tourist@2026', 'TOURIST')}
@@ -144,8 +144,8 @@ export default function Login() {
                 }`}
               >
                 <Compass className="h-4 w-4 text-amber-400 mb-1" />
-                <span className="text-[11px] font-bold">Traveler</span>
-                <span className="text-[9px] text-slate-400 font-mono">Sarah O.</span>
+                <span className="text-[11px] font-bold">Traveler (Tourist)</span>
+                <span className="text-[9px] text-slate-400 font-mono">sarah.ochieng@gmail.com</span>
               </button>
 
               <button
@@ -159,21 +159,7 @@ export default function Login() {
               >
                 <Car className="h-4 w-4 text-amber-400 mb-1" />
                 <span className="text-[11px] font-bold">Fleet Host</span>
-                <span className="text-[9px] text-slate-400 font-mono">James M.</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => fillQuickCreds('safari@jambo.africa', 'Admin@2026', 'ADMIN')}
-                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all duration-200 ${
-                  selectedRole === 'ADMIN'
-                    ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-sm shadow-amber-500/20 scale-[1.02]'
-                    : 'bg-white/[0.04] border-white/10 text-slate-300 hover:bg-white/[0.08] hover:text-white'
-                }`}
-              >
-                <Crown className="h-4 w-4 text-amber-400 mb-1" />
-                <span className="text-[11px] font-bold">Admin</span>
-                <span className="text-[9px] text-slate-400 font-mono">Safari Desk</span>
+                <span className="text-[9px] text-slate-400 font-mono">james.mwangi@mtravel.co.ke</span>
               </button>
             </div>
           </div>
@@ -302,6 +288,15 @@ export default function Login() {
                 <span>PCI-DSS Secured</span>
                 <span>•</span>
                 <span>24/7 VIP Concierge</span>
+              </div>
+
+              <div className="pt-2">
+                <Link
+                  to="/admin/login"
+                  className="text-[10px] text-slate-500 hover:text-slate-400 font-mono tracking-wider transition inline-flex items-center gap-1 opacity-60 hover:opacity-100"
+                >
+                  <ShieldCheck className="h-3 w-3" /> M-Travel Staff Portal
+                </Link>
               </div>
             </div>
           </form>

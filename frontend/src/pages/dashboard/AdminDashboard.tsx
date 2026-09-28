@@ -27,7 +27,9 @@ import {
   openHostRejectionWhatsApp,
   getHostRejectionWhatsAppUrl,
 } from '@/lib/communicationService';
-import { getLocalAccounts, updateUserStatus } from '@/lib/authService';
+import { getLocalAccounts, updateUserStatus, createAdminAccountByManagement } from '@/lib/authService';
+import { useSelector } from 'react-redux';
+import type { RootState } from '@/store';
 import { DestinationVoucherModal } from '@/components/ui/DestinationVoucherModal';
 import { VehicleInspectionModal } from '@/components/admin/VehicleInspectionModal';
 import { VehicleHandoverModal } from '@/components/handover/VehicleHandoverModal';
@@ -88,6 +90,53 @@ export default function AdminDashboard() {
   const [approvalMsg, setApprovalMsg] = useState<{ text: string; waUrl?: string } | string | null>(null);
   const [selectedDestVoucher, setSelectedDestVoucher] = useState<StoredBooking | null>(null);
   const [cancelConfirm, setCancelConfirm] = useState<string | null>(null);
+
+  // Authenticated Admin User
+  const currentUser = useSelector((s: RootState) => s.auth.user);
+
+  // Provision New Admin / Staff Modal
+  const [showCreateAdminModal, setShowCreateAdminModal] = useState(false);
+  const [newAdminForm, setNewAdminForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    password: 'Admin@2026',
+  });
+  const [createAdminLoading, setCreateAdminLoading] = useState(false);
+  const [createAdminError, setCreateAdminError] = useState<string | null>(null);
+  const [createAdminSuccess, setCreateAdminSuccess] = useState<string | null>(null);
+
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateAdminError(null);
+    setCreateAdminLoading(true);
+
+    try {
+      const res = await createAdminAccountByManagement(
+        currentUser || { role: 'ADMIN', email: 'safari@jambo.africa' },
+        newAdminForm
+      );
+
+      if (!res.success) {
+        setCreateAdminError(res.error || 'Failed to provision admin account.');
+        return;
+      }
+
+      setCreateAdminSuccess(`Administrator account for ${newAdminForm.firstName} ${newAdminForm.lastName} (${newAdminForm.email}) provisioned successfully!`);
+      setNewAdminForm({ firstName: '', lastName: '', email: '', phone: '', password: 'Admin@2026' });
+      setUsers(getAdminUserList());
+
+      setTimeout(() => {
+        setShowCreateAdminModal(false);
+        setCreateAdminSuccess(null);
+      }, 1800);
+    } catch (err: any) {
+      setCreateAdminError(err?.message || 'Failed to provision admin account.');
+    } finally {
+      setCreateAdminLoading(false);
+    }
+  };
 
   // Lifecycle & Exception management states (Admin)
   const [exceptionMetrics, setExceptionMetrics] = useState<ExceptionMetrics>(() => getExceptionMetrics());
@@ -1565,13 +1614,27 @@ export default function AdminDashboard() {
                 Central directory of platform users (Travelers, Fleet Hosts, and Administrators). Manage account status and role permissions.
               </p>
             </div>
-            <input
-              type="text"
-              placeholder="Search by name, email, or phone…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="input-field max-w-xs text-xs text-slate-900 placeholder:text-slate-400 border-slate-300"
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                placeholder="Search by name, email, or phone…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="input-field max-w-xs text-xs text-slate-900 placeholder:text-slate-400 border-slate-300"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setCreateAdminError(null);
+                  setCreateAdminSuccess(null);
+                  setShowCreateAdminModal(true);
+                }}
+                className="btn-primary !py-2 !px-3.5 text-xs font-bold text-white shadow-sm flex items-center gap-1.5 shrink-0 bg-purple-700 hover:bg-purple-600"
+                title="Management privilege: Provision a new administrator or staff account"
+              >
+                <ShieldCheck className="h-4 w-4" /> + Provision Admin Account
+              </button>
+            </div>
           </div>
           <div className="overflow-x-auto rounded-2xl bg-white border border-slate-200/90 shadow-sm">
             <table className="w-full text-xs text-left text-slate-800">
@@ -3177,6 +3240,143 @@ export default function AdminDashboard() {
                 Confirm Resolution
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── PROVISION NEW ADMIN / STAFF ACCOUNT MODAL (MANAGEMENT ONLY) ── */}
+      {showCreateAdminModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-xs overflow-y-auto">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-purple-200 space-y-4 my-auto animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="h-10 w-10 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center border border-purple-200">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 font-display">Provision Administrator Account</h3>
+                  <p className="text-xs text-slate-500 font-medium">M-Travel Management Privilege &amp; Governance</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateAdminModal(false)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="rounded-2xl bg-purple-50/80 border border-purple-200/80 p-3.5 text-xs text-purple-900 space-y-1">
+              <div className="font-bold flex items-center gap-1.5 text-purple-950">
+                <Lock className="h-3.5 w-3.5 text-purple-700" />
+                Management Security Policy:
+              </div>
+              <p className="text-[11px] text-purple-800 leading-relaxed">
+                Public self-registration for Admin roles is disabled platform-wide. New platform administrators, dispatchers, and finance managers can strictly only be created by authenticated M-Travel Management.
+              </p>
+            </div>
+
+            {createAdminError && (
+              <div className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-700 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
+                <span>{createAdminError}</span>
+              </div>
+            )}
+
+            {createAdminSuccess && (
+              <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800 flex items-start gap-2">
+                <CheckCircle className="h-4 w-4 shrink-0 text-emerald-600 mt-0.5" />
+                <span>{createAdminSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateAdmin} className="space-y-3.5 pt-1">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">First Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Samuel"
+                    value={newAdminForm.firstName}
+                    onChange={(e) => setNewAdminForm({ ...newAdminForm, firstName: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:border-purple-600 focus:outline-hidden text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Last Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Karanja"
+                    value={newAdminForm.lastName}
+                    onChange={(e) => setNewAdminForm({ ...newAdminForm, lastName: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:border-purple-600 focus:outline-hidden text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Official Management Email</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. samuel.karanja@mtravel.co.ke"
+                  value={newAdminForm.email}
+                  onChange={(e) => setNewAdminForm({ ...newAdminForm, email: e.target.value })}
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:border-purple-600 focus:outline-hidden text-slate-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. +254 712 345 678"
+                    value={newAdminForm.phone}
+                    onChange={(e) => setNewAdminForm({ ...newAdminForm, phone: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:border-purple-600 focus:outline-hidden text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Initial Password</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Admin@2026"
+                    value={newAdminForm.password}
+                    onChange={(e) => setNewAdminForm({ ...newAdminForm, password: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:border-purple-600 focus:outline-hidden text-slate-900 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateAdminModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-700 rounded-xl border border-slate-300 hover:bg-slate-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createAdminLoading}
+                  className="px-5 py-2 text-xs font-bold text-white rounded-xl bg-purple-700 hover:bg-purple-600 transition shadow-sm flex items-center gap-1.5"
+                >
+                  {createAdminLoading ? (
+                    <span>Provisioning…</span>
+                  ) : (
+                    <>
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>Provision Staff Account</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
