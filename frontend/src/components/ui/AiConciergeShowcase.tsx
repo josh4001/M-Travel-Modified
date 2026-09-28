@@ -65,7 +65,7 @@ export const AiConciergeShowcase: React.FC = () => {
           className="w-full h-full object-cover object-[center_40%]"
         />
         {/* Balanced scrim gradients ensuring the glowing sun, iconic dhow sail, ocean reflections and sandy shore glow through while keeping cards and text razor sharp */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/75 via-slate-950/45 to-slate-950/80" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/65 via-slate-950/35 to-slate-950/70" />
         <div className="absolute inset-0 bg-radial from-amber-500/10 via-transparent to-black/30 pointer-events-none" />
       </div>
 
@@ -94,51 +94,51 @@ export const AiConciergeShowcase: React.FC = () => {
           </p>
         </div>
 
-        {/* 4 FEATURE CAPABILITY CARDS */}
+        {/* 4 FEATURE CAPABILITY CARDS - TRANSLUCENT LUXURY GLASS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {AI_CAPABILITIES.map((cap) => (
             <div
               key={cap.title}
-              className="group relative rounded-2xl border border-amber-900/20 bg-white/95 backdrop-blur-md p-6 shadow-[0_10px_25px_rgba(0,0,0,0.25)] hover:border-amber-500 hover:shadow-[0_15px_35px_rgba(0,0,0,0.4)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
+              className="group relative rounded-2xl border border-white/20 bg-slate-950/45 hover:bg-slate-950/60 backdrop-blur-md p-6 shadow-[0_12px_32px_rgba(0,0,0,0.45)] hover:border-amber-400/80 hover:shadow-[0_18px_40px_rgba(0,0,0,0.6)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between ring-1 ring-white/10"
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="h-11 w-11 rounded-xl bg-amber-100/90 border border-amber-400 flex items-center justify-center text-amber-900 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all duration-300 shadow-2xs">
+                  <div className="h-11 w-11 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all duration-300 shadow-2xs">
                     <cap.icon className="h-5 w-5" />
                   </div>
-                  <span className="rounded-full bg-amber-100 border border-amber-300/80 px-2.5 py-0.5 text-[10px] font-bold text-amber-950 uppercase font-mono">
+                  <span className="rounded-full bg-black/40 border border-white/20 backdrop-blur-sm px-2.5 py-0.5 text-[10px] font-bold text-amber-200 uppercase font-mono">
                     {cap.tag}
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="font-serif font-bold text-base text-[#1A0D05] group-hover:text-amber-800 transition-colors">
+                  <h3 className="font-serif font-bold text-base text-white group-hover:text-amber-300 transition-colors drop-shadow-sm">
                     {cap.title}
                   </h3>
-                  <p className="mt-2 text-xs text-[#5C3D24] leading-relaxed font-medium">{cap.desc}</p>
+                  <p className="mt-2 text-xs text-slate-200 leading-relaxed font-medium drop-shadow-xs">{cap.desc}</p>
                 </div>
               </div>
 
-              <div className="mt-5 pt-3 border-t border-amber-200/60 flex items-center gap-1.5 text-[11px] font-bold text-amber-900">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700" />
+              <div className="mt-5 pt-3 border-t border-white/15 flex items-center gap-1.5 text-[11px] font-bold text-amber-300">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
                 <span>Instant AI Consultation</span>
               </div>
             </div>
           ))}
         </div>
 
-        {/* INTERACTIVE PREVIEW & LAUNCH BANNER */}
-        <div className="rounded-3xl border border-amber-900/20 bg-white/95 backdrop-blur-md p-6 md:p-8 shadow-[0_15px_40px_rgba(0,0,0,0.3)]">
+        {/* INTERACTIVE PREVIEW & LAUNCH BANNER - TRANSLUCENT LUXURY GLASS */}
+        <div className="rounded-3xl border border-white/20 bg-slate-950/40 backdrop-blur-md p-6 md:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             {/* LEFT: SAMPLE DIALOGUE PREVIEW */}
             <div className="lg:col-span-7 space-y-4">
-              <div className="flex items-center gap-2 text-xs font-bold text-amber-950 uppercase tracking-wider">
-                <Sparkles className="h-4 w-4 text-amber-800" />
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-300 uppercase tracking-wider">
+                <Sparkles className="h-4 w-4 text-amber-400" />
                 <span>Live Travel Intelligence Preview</span>
               </div>
 
               {/* MOCK CHAT MESSAGES */}
-              <div className="space-y-3 bg-[#FBF8F4] rounded-2xl border border-amber-900/15 p-4 shadow-2xs">
+              <div className="space-y-3 bg-black/35 rounded-2xl border border-white/15 p-4 shadow-inner backdrop-blur-sm">
                 {/* USER QUERY */}
                 <div className="flex justify-end">
                   <div className="max-w-md rounded-2xl rounded-tr-none bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold p-3 text-xs md:text-sm shadow-sm">
@@ -151,11 +151,11 @@ export const AiConciergeShowcase: React.FC = () => {
                   <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 font-bold flex items-center justify-center shrink-0 shadow-xs">
                     <Bot className="h-4 w-4" />
                   </div>
-                  <div className="max-w-xl rounded-2xl rounded-tl-none border border-amber-900/15 bg-white p-3 text-xs md:text-sm text-[#1A0D05] space-y-1.5 shadow-2xs">
-                    <p className="font-bold text-[#1A0D05]">
+                  <div className="max-w-xl rounded-2xl rounded-tl-none border border-white/15 bg-white/10 backdrop-blur-md p-3 text-xs md:text-sm text-white space-y-1.5 shadow-2xs">
+                    <p className="font-bold text-amber-300">
                       Recommendation: 4x4 Toyota Land Cruiser Safari Edition
                     </p>
-                    <p className="text-[#452C1A] leading-relaxed text-xs font-medium">
+                    <p className="text-slate-200 leading-relaxed text-xs font-medium">
                       July is peak Great Migration season. A 4x4 Land Cruiser with a pop-up roof is ideal: high clearance
                       navigates rough terrain during Mara river crossings, and 360° roof visibility ensures premier wildlife viewing for 4 passengers.
                     </p>
@@ -165,7 +165,7 @@ export const AiConciergeShowcase: React.FC = () => {
 
               {/* QUICK PROMPT CHIPS */}
               <div className="space-y-2">
-                <span className="text-[11px] font-bold text-[#664933] uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-amber-200/80 uppercase tracking-wider">
                   Try asking the concierge:
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -173,9 +173,9 @@ export const AiConciergeShowcase: React.FC = () => {
                     <button
                       key={question}
                       onClick={() => handleLaunch(question)}
-                      className="rounded-full border border-amber-900/20 bg-white px-3.5 py-1.5 text-xs text-[#1A0D05] font-bold hover:border-amber-700 hover:bg-amber-50 hover:text-amber-950 transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                      className="rounded-full border border-white/20 bg-white/10 hover:bg-white/20 backdrop-blur-sm px-3.5 py-1.5 text-xs text-white font-bold hover:border-amber-400 hover:text-amber-300 transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
                     >
-                      <MessageSquare className="h-3 w-3 text-amber-800" />
+                      <MessageSquare className="h-3 w-3 text-amber-400" />
                       <span>{question}</span>
                     </button>
                   ))}
@@ -184,17 +184,17 @@ export const AiConciergeShowcase: React.FC = () => {
             </div>
 
             {/* RIGHT: CTA & FLOATING CONCIERGE CALLOUT */}
-            <div className="lg:col-span-5 flex flex-col justify-center items-center text-center p-6 bg-gradient-to-br from-[#24150c] via-[#1a0f07] to-[#140b05] border border-amber-600/30 rounded-2xl text-white shadow-xl space-y-4">
+            <div className="lg:col-span-5 flex flex-col justify-center items-center text-center p-6 bg-gradient-to-br from-slate-950/80 via-black/85 to-slate-950/90 border border-amber-500/40 rounded-2xl text-white shadow-xl space-y-4 backdrop-blur-md">
               <div className="relative">
                 <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-600 text-slate-950 flex items-center justify-center shadow-lg">
                   <Bot className="h-8 w-8" />
                 </div>
-                <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-emerald-400 border-2 border-[#1a0f07] animate-pulse" />
+                <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-emerald-400 border-2 border-slate-950 animate-pulse" />
               </div>
 
               <div>
                 <h3 className="font-serif font-bold text-xl text-amber-100">Ask the AI Concierge Now</h3>
-                <p className="mt-1 text-xs text-amber-100/75 max-w-xs leading-relaxed font-medium">
+                <p className="mt-1 text-xs text-slate-200/80 max-w-xs leading-relaxed font-medium">
                   Open an interactive session for instant trip planning, cost breakdowns, and live fleet advice.
                 </p>
               </div>
@@ -208,7 +208,7 @@ export const AiConciergeShowcase: React.FC = () => {
                 <ArrowRight className="h-4 w-4 ml-1" />
               </button>
 
-              <div className="pt-2 border-t border-[#3b2516] w-full flex items-center justify-center gap-2 text-[11px] text-amber-200/60 font-medium">
+              <div className="pt-2 border-t border-white/10 w-full flex items-center justify-center gap-2 text-[11px] text-amber-200/70 font-medium">
                 <Clock className="h-3.5 w-3.5 text-amber-400" />
                 <span>Always available via the floating button at bottom right</span>
               </div>
