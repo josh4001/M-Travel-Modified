@@ -85,7 +85,7 @@ export default function Register() {
 
   return (
     <AuthVideoBackground
-      title="Create Explorer Account"
+      title="Create Account"
       subtitle="Join East Africa's premier luxury transport & safari platform."
     >
       <div className="relative group w-full">

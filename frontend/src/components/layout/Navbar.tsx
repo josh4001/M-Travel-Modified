@@ -20,7 +20,18 @@ export function Navbar() {
   const user = useSelector((s: RootState) => s.auth.user);
   const dispatch = useDispatch();
   const location = useLocation();
-  const darkNavRoutes = ['/', '/catalogue', '/search', '/holidays-and-tours', '/services', '/contact'];
+  const darkNavRoutes = [
+    '/',
+    '/catalogue',
+    '/search',
+    '/holidays-and-tours',
+    '/services',
+    '/contact',
+    '/login',
+    '/register',
+    '/admin/login',
+    '/staff/login',
+  ];
   const isHome = darkNavRoutes.includes(location.pathname) || location.pathname.startsWith('/vehicles');
   const [open, setOpen] = useState(false);
   const { currency, setCurrency } = useCurrency();
