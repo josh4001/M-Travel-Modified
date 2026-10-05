@@ -1,10 +1,12 @@
 import { FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { ArrowRight, Lock, Mail, Eye, EyeOff, ShieldCheck, Sparkles, KeyRound, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  ArrowRight, Lock, Mail, Eye, EyeOff, ShieldCheck,
+  Sparkles, KeyRound, CheckCircle2, AlertCircle
+} from 'lucide-react';
 import { login, logout } from '@/lib/authService';
 import { setUser } from '@/store/slices/authSlice';
-import { AuthVideoBackground } from '@/components/auth/AuthVideoBackground';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -47,42 +49,37 @@ export default function AdminLogin() {
   };
 
   return (
-    <AuthVideoBackground>
-      <div className="relative group w-full max-w-md mx-auto">
-        {/* AMBIENT BACKLIGHT AURA */}
-        <div className="absolute -inset-1.5 rounded-[32px] bg-gradient-to-tr from-purple-600/30 via-amber-500/20 to-indigo-600/30 blur-2xl opacity-90 transition duration-700 -z-10" />
-
-        {/* LUXURY SMOKED GLASS CONSOLE */}
-        <div className="relative rounded-[28px] bg-slate-950/90 backdrop-blur-2xl border border-purple-500/30 p-6 sm:p-8 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)] ring-1 ring-purple-400/30">
-          {/* HEADER */}
-          <div className="text-center pb-5 border-b border-white/10">
-            <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-700 shadow-xl shadow-purple-600/30 mb-3 border border-purple-400/40">
-              <ShieldCheck className="h-7 w-7 text-white stroke-[2.2]" />
+    <div className="min-h-[calc(100vh-80px)] bg-neutral-100/70 text-slate-900 font-sans flex items-center justify-center px-4 py-8 relative">
+      <div className="w-full max-w-md mx-auto">
+        <div className="rounded-2xl bg-white border border-slate-200/90 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] p-6 sm:p-7 text-slate-900">
+          
+          {/* CARD HEADER */}
+          <div className="text-center pb-4 border-b border-slate-100">
+            <div className="inline-flex items-center justify-center h-11 w-11 rounded-xl bg-slate-950 text-white shadow-xs mb-2.5">
+              <ShieldCheck className="h-5 w-5 stroke-[2]" />
             </div>
             <div>
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-purple-400/30 bg-purple-500/15 px-3 py-0.5 backdrop-blur-md mb-2">
-                <Sparkles className="h-3 w-3 text-purple-300" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-purple-200">
-                  Authorized Personnel Only
-                </span>
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-slate-700 mb-1">
+                <Sparkles className="h-3 w-3 text-slate-900" />
+                <span>Authorized Personnel Only</span>
               </div>
             </div>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            <h1 className="font-serif text-2xl font-extrabold text-slate-950 tracking-tight">
               Management Portal
-            </h2>
-            <p className="mt-1 text-xs text-slate-400 font-medium max-w-xs mx-auto">
-              Corporate Governance, Fleet Oversight & Platform Financial Settlement Desk.
+            </h1>
+            <p className="mt-0.5 text-xs text-slate-500 font-medium">
+              Corporate Governance, Fleet Oversight &amp; Clearing
             </p>
           </div>
 
           {/* INTERNAL STAFF DEMONSTRATION ACCREDITATION */}
-          <div className="py-4 border-b border-white/10">
+          <div className="py-3.5 border-b border-slate-100">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-purple-300 flex items-center gap-1 font-mono">
-                <KeyRound className="h-3 w-3" /> Management Credentials:
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono flex items-center gap-1">
+                <KeyRound className="h-3 w-3 text-slate-900" /> Management Credentials
               </span>
               {autofilled && (
-                <span className="text-[10px] text-emerald-400 font-mono font-medium flex items-center gap-1">
+                <span className="text-[10px] text-slate-900 font-mono font-bold flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" /> Autofilled
                 </span>
               )}
@@ -92,39 +89,39 @@ export default function AdminLogin() {
               <button
                 type="button"
                 onClick={() => fillManagementCreds('safari@jambo.africa', 'Admin@2026')}
-                className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-purple-400/20 bg-purple-950/30 text-center hover:bg-purple-900/30 hover:border-purple-400/40 transition"
+                className="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-center transition cursor-pointer"
               >
-                <span className="text-[11px] font-bold text-white">Chief Admin</span>
-                <span className="text-[9px] text-purple-300 font-mono">safari@jambo.africa</span>
+                <span className="text-[11px] font-bold text-slate-900">Chief Admin</span>
+                <span className="text-[9px] text-slate-500 font-mono">safari@jambo.africa</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => fillManagementCreds('admin@mtravel.co.ke', 'Admin@2026')}
-                className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-purple-400/20 bg-purple-950/30 text-center hover:bg-purple-900/30 hover:border-purple-400/40 transition"
+                className="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-center transition cursor-pointer"
               >
-                <span className="text-[11px] font-bold text-white">Operations Desk</span>
-                <span className="text-[9px] text-purple-300 font-mono">admin@mtravel.co.ke</span>
+                <span className="text-[11px] font-bold text-slate-900">Operations Desk</span>
+                <span className="text-[9px] text-slate-500 font-mono">admin@mtravel.co.ke</span>
               </button>
             </div>
           </div>
 
           {/* MAIN LOGIN FORM */}
-          <form onSubmit={onSubmit} className="pt-4 space-y-4">
+          <form onSubmit={onSubmit} className="pt-3.5 space-y-3.5">
             {error && (
-              <div className="rounded-xl bg-rose-500/15 border border-rose-400/30 px-4 py-3 text-xs text-rose-200 flex items-start gap-2.5">
-                <AlertCircle className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
-                <span className="leading-relaxed">{error}</span>
+              <div className="rounded-xl bg-slate-50 border border-slate-300 px-3.5 py-2.5 text-xs text-slate-900 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-slate-900 shrink-0 mt-0.5" />
+                <span className="leading-relaxed font-medium">{error}</span>
               </div>
             )}
 
             {/* Email Field */}
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300" htmlFor="admin-email">
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-700" htmlFor="admin-email">
                 Management Email
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-purple-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                   <Mail className="h-4 w-4" />
                 </div>
                 <input
@@ -133,7 +130,7 @@ export default function AdminLogin() {
                   required
                   autoComplete="email"
                   placeholder="admin@mtravel.co.ke"
-                  className="w-full rounded-xl bg-white/[0.06] hover:bg-white/[0.09] focus:bg-white/[0.12] border border-purple-500/30 focus:border-purple-400 text-white placeholder:text-slate-500 pl-10 pr-4 py-3 text-sm transition outline-none focus:ring-2 focus:ring-purple-400/20 shadow-inner"
+                  className="w-full rounded-xl bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-300 focus:border-slate-950 text-slate-950 placeholder:text-slate-400 pl-9 pr-3.5 py-2.5 text-sm transition outline-hidden focus:ring-1 focus:ring-slate-950 font-medium"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -142,11 +139,11 @@ export default function AdminLogin() {
 
             {/* Password Field */}
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300" htmlFor="admin-password">
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-700" htmlFor="admin-password">
                 Security Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-purple-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                   <Lock className="h-4 w-4" />
                 </div>
                 <input
@@ -155,15 +152,16 @@ export default function AdminLogin() {
                   required
                   autoComplete="current-password"
                   placeholder="••••••••••••"
-                  className="w-full rounded-xl bg-white/[0.06] hover:bg-white/[0.09] focus:bg-white/[0.12] border border-purple-500/30 focus:border-purple-400 text-white placeholder:text-slate-500 pl-10 pr-11 py-3 text-sm transition outline-none focus:ring-2 focus:ring-purple-400/20 shadow-inner font-mono"
+                  className="w-full rounded-xl bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-300 focus:border-slate-950 text-slate-950 placeholder:text-slate-400 pl-9 pr-10 py-2.5 text-sm transition outline-hidden focus:ring-1 focus:ring-slate-950 font-medium font-mono"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw((v) => !v)}
-                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-white transition p-0.5"
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-950 transition p-0.5 cursor-pointer"
                   tabIndex={-1}
+                  aria-label={showPw ? "Hide password" : "Show password"}
                 >
                   {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -175,35 +173,36 @@ export default function AdminLogin() {
               id="admin-login-submit-btn"
               type="submit"
               disabled={loading}
-              className="relative group/btn w-full mt-2 overflow-hidden rounded-xl bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3.5 px-6 shadow-[0_10px_25px_-5px_rgba(147,51,234,0.4)] transition-all duration-300 flex items-center justify-center gap-2 active:scale-[0.99] text-xs uppercase tracking-widest"
+              className="w-full mt-1.5 rounded-xl bg-slate-950 hover:bg-black text-white font-bold py-3 px-4 shadow-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.99] text-xs uppercase tracking-widest cursor-pointer border border-slate-900"
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2 font-display">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Verifying Management Access…
+                <span className="flex items-center justify-center gap-2">
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Verifying Access…
                 </span>
               ) : (
-                <span className="flex items-center justify-center gap-2 font-display font-extrabold">
-                  Access Mission Control <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                <span className="flex items-center justify-center gap-2 font-extrabold">
+                  Access Mission Control <ArrowRight className="h-3.5 w-3.5" />
                 </span>
               )}
             </button>
 
             {/* Footer */}
-            <div className="border-t border-white/10 pt-4 text-center space-y-2">
+            <div className="border-t border-slate-100 pt-3.5 text-center space-y-1.5">
               <Link
                 to="/"
-                className="text-xs text-slate-400 hover:text-white transition underline"
+                className="text-xs text-slate-500 hover:text-slate-950 transition underline font-medium"
               >
                 ← Return to Public Website
               </Link>
-              <div className="text-[10px] text-slate-500 font-mono">
+              <div className="text-[10px] text-slate-400 font-mono">
                 M-TRAVEL Platform Corporate Security • Session Monitored
               </div>
             </div>
           </form>
+
         </div>
       </div>
-    </AuthVideoBackground>
+    </div>
   );
 }

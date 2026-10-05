@@ -1,25 +1,25 @@
 import { FormEvent, useState } from 'react';
 import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { ArrowRight, Mail, Lock, Phone, User, Car, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import {
+  ArrowRight, Mail, Lock, Phone, User, Car, Eye, EyeOff,
+  AlertCircle, Crown, Sparkles, Compass
+} from 'lucide-react';
 import { register } from '@/lib/authService';
 import { setUser } from '@/store/slices/authSlice';
-import { AuthVideoBackground } from '@/components/auth/AuthVideoBackground';
 
 const ROLES = [
   {
     value: 'TOURIST',
     label: 'Traveler (Tourist)',
     description: 'Book safari expeditions & luxury car hire',
-    icon: User,
-    color: 'teal',
+    icon: Compass,
   },
   {
     value: 'VEHICLE_OWNER',
     label: 'Fleet Host',
     description: 'List vehicles & earn rental income',
     icon: Car,
-    color: 'marigold',
   },
 ] as const;
 
@@ -84,59 +84,125 @@ export default function Register() {
   }
 
   return (
-    <AuthVideoBackground
-      title="Create Account"
-      subtitle="Join East Africa's premier luxury transport & safari platform."
-    >
-      <div className="relative group w-full">
-        {/* AMBIENT BACKLIGHT AURA */}
-        <div className="absolute -inset-1.5 rounded-[32px] bg-gradient-to-tr from-amber-500/25 via-amber-400/15 to-rose-500/20 blur-2xl opacity-80 group-hover:opacity-100 transition duration-700 -z-10" />
+    <div className="min-h-[calc(100vh-80px)] bg-neutral-100/70 text-slate-900 font-sans flex items-center justify-center px-4 py-6 relative">
+      <div className="w-full max-w-lg mx-auto">
+        <div className="rounded-2xl bg-white border border-slate-200/90 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] p-5 sm:p-7 text-slate-900">
+          
+          {/* CARD HEADER */}
+          <div className="text-center pb-3.5 border-b border-slate-100">
+            <div className="inline-flex items-center justify-center h-10 w-10 rounded-xl bg-slate-950 text-white shadow-xs mb-2">
+              <Crown className="h-5 w-5 stroke-[2]" />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-slate-700 mb-1">
+                <Sparkles className="h-3 w-3 text-slate-900" />
+                <span>M-Travel VIP Membership</span>
+              </div>
+            </div>
+            <h1 className="font-serif text-2xl font-extrabold text-slate-950 tracking-tight">
+              Create Your Account
+            </h1>
+            <p className="mt-0.5 text-xs text-slate-500 font-medium">
+              Join East Africa's premier luxury transport &amp; safari network
+            </p>
+          </div>
 
-        <div className="relative rounded-[28px] bg-slate-950/85 backdrop-blur-2xl border border-white/20 p-6 sm:p-8 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] ring-1 ring-amber-400/30">
-          <form onSubmit={onSubmit} className="space-y-4">
-            {isBookingNotice && (
-              <div className="rounded-2xl bg-amber-500/15 border border-amber-400/40 p-4 text-xs text-amber-200 flex items-start gap-3 shadow-lg">
-                <Lock className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="font-bold text-amber-300 text-sm">Register as Traveler to Complete Booking</h4>
-                  <p className="text-xs text-slate-200 mt-1 leading-relaxed">
-                    {bannerMessage}
-                  </p>
+          {/* BOOKING INTENT NOTICE BANNER */}
+          {isBookingNotice && (
+            <div className="my-3 rounded-xl bg-slate-50 border border-slate-900 p-3 text-xs text-slate-900 flex items-start gap-2.5">
+              <Lock className="h-4 w-4 text-slate-900 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-slate-950 text-xs">Register to Complete Booking</h4>
+                <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                  {bannerMessage}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* MAIN FORM */}
+          <form onSubmit={onSubmit} className="pt-3 space-y-3">
+            {error && (
+              <div className="rounded-xl bg-slate-50 border border-slate-300 px-3.5 py-2.5 text-xs text-slate-900 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-slate-900 shrink-0 mt-0.5" />
+                <span className="leading-relaxed font-medium">{error}</span>
+              </div>
+            )}
+
+            {/* Role selector */}
+            {isBookingNotice ? (
+              <div className="rounded-xl border border-slate-900 bg-slate-50 p-2.5 flex items-center justify-between text-xs text-slate-900">
+                <div className="flex items-center gap-2">
+                  <div className="h-7 w-7 rounded-lg bg-slate-950 text-white flex items-center justify-center shrink-0">
+                    <User className="h-3.5 w-3.5" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-slate-950 block text-xs">Explorer / Traveler Account</span>
+                    <span className="text-[10px] text-slate-500">Required to complete reservation</span>
+                  </div>
+                </div>
+                <span className="text-[10px] text-slate-900 font-mono font-bold bg-slate-200 px-2 py-0.5 rounded-full border border-slate-300">
+                  Pre-selected
+                </span>
+              </div>
+            ) : (
+              <div>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Select Account Type
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {ROLES.map((r) => {
+                    const active = form.role === r.value;
+                    return (
+                      <button
+                        key={r.value}
+                        type="button"
+                        id={`role-${r.value.toLowerCase()}`}
+                        onClick={() => update('role', r.value)}
+                        className={`rounded-xl border p-2 text-center transition-all duration-200 flex flex-col items-center gap-0.5 text-xs font-semibold cursor-pointer ${
+                          active
+                            ? 'bg-slate-950 border-slate-950 text-white shadow-xs'
+                            : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-800'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1 font-bold">
+                          <r.icon className={`h-3.5 w-3.5 ${active ? 'text-white' : 'text-slate-900'}`} />
+                          <span>{r.label}</span>
+                        </div>
+                        <span className={`text-[10px] font-normal leading-tight hidden sm:block ${active ? 'text-slate-300' : 'text-slate-500'}`}>
+                          {r.description}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {error && (
-              <div className="rounded-xl bg-red-500/15 border border-red-400/30 px-4 py-3 text-xs text-red-200 flex items-start gap-2.5">
-                <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
-                <span className="leading-relaxed">{error}</span>
-              </div>
-            )}
-
             {/* Name row */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+                <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-700" htmlFor="reg-first-name">
                   First Name
                 </label>
                 <input
                   id="reg-first-name"
                   required
                   placeholder="Juma"
-                  className="w-full rounded-xl bg-white/[0.06] hover:bg-white/[0.09] focus:bg-white/[0.12] border border-white/20 focus:border-amber-400 text-white placeholder:text-slate-400 px-4 py-2.5 text-sm transition outline-none focus:ring-2 focus:ring-amber-400/20 shadow-inner"
+                  className="w-full rounded-xl bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-300 focus:border-slate-950 text-slate-950 placeholder:text-slate-400 px-3 py-2 text-sm transition outline-hidden focus:ring-1 focus:ring-slate-950 font-medium"
                   value={form.firstName}
                   onChange={(e) => update('firstName', e.target.value)}
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+                <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-700" htmlFor="reg-last-name">
                   Last Name
                 </label>
                 <input
                   id="reg-last-name"
                   required
                   placeholder="Mwangi"
-                  className="w-full rounded-xl bg-white/[0.06] hover:bg-white/[0.09] focus:bg-white/[0.12] border border-white/20 focus:border-amber-400 text-white placeholder:text-slate-400 px-4 py-2.5 text-sm transition outline-none focus:ring-2 focus:ring-amber-400/20 shadow-inner"
+                  className="w-full rounded-xl bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-300 focus:border-slate-950 text-slate-950 placeholder:text-slate-400 px-3 py-2 text-sm transition outline-hidden focus:ring-1 focus:ring-slate-950 font-medium"
                   value={form.lastName}
                   onChange={(e) => update('lastName', e.target.value)}
                 />
@@ -145,11 +211,11 @@ export default function Register() {
 
             {/* Email */}
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-700" htmlFor="reg-email">
                 Email Address
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-amber-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                   <Mail className="h-4 w-4" />
                 </div>
                 <input
@@ -158,7 +224,7 @@ export default function Register() {
                   required
                   autoComplete="email"
                   placeholder="user@example.com"
-                  className="w-full rounded-xl bg-white/[0.06] hover:bg-white/[0.09] focus:bg-white/[0.12] border border-white/20 focus:border-amber-400 text-white placeholder:text-slate-400 pl-10 pr-4 py-2.5 text-sm transition outline-none focus:ring-2 focus:ring-amber-400/20 shadow-inner"
+                  className="w-full rounded-xl bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-300 focus:border-slate-950 text-slate-950 placeholder:text-slate-400 pl-9 pr-3 py-2 text-sm transition outline-hidden focus:ring-1 focus:ring-slate-950 font-medium"
                   value={form.email}
                   onChange={(e) => update('email', e.target.value)}
                 />
@@ -167,17 +233,17 @@ export default function Register() {
 
             {/* Phone */}
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-700" htmlFor="reg-phone">
                 Phone Number (M-Pesa)
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                   <Phone className="h-4 w-4" />
                 </div>
                 <input
                   id="reg-phone"
                   placeholder="+254 7xx xxx xxx"
-                  className="w-full rounded-xl bg-white/[0.06] hover:bg-white/[0.09] focus:bg-white/[0.12] border border-white/20 focus:border-amber-400 text-white placeholder:text-slate-400 pl-10 pr-4 py-2.5 text-sm transition outline-none focus:ring-2 focus:ring-amber-400/20 shadow-inner"
+                  className="w-full rounded-xl bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-300 focus:border-slate-950 text-slate-950 placeholder:text-slate-400 pl-9 pr-3 py-2 text-sm transition outline-hidden focus:ring-1 focus:ring-slate-950 font-medium"
                   value={form.phone}
                   onChange={(e) => update('phone', e.target.value)}
                 />
@@ -186,11 +252,11 @@ export default function Register() {
 
             {/* Password */}
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-700" htmlFor="reg-password">
                 Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-amber-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                   <Lock className="h-4 w-4" />
                 </div>
                 <input
@@ -200,99 +266,65 @@ export default function Register() {
                   required
                   autoComplete="new-password"
                   placeholder="At least 6 characters"
-                  className="w-full rounded-xl bg-white/[0.06] hover:bg-white/[0.09] focus:bg-white/[0.12] border border-white/20 focus:border-amber-400 text-white placeholder:text-slate-400 pl-10 pr-11 py-2.5 text-sm transition outline-none focus:ring-2 focus:ring-amber-400/20 shadow-inner"
+                  className="w-full rounded-xl bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-300 focus:border-slate-950 text-slate-950 placeholder:text-slate-400 pl-9 pr-10 py-2 text-sm transition outline-hidden focus:ring-1 focus:ring-slate-950 font-medium font-mono"
                   value={form.password}
                   onChange={(e) => update('password', e.target.value)}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw((v) => !v)}
-                  className="absolute right-3.5 top-2.5 text-slate-400 hover:text-white transition p-0.5"
+                  className="absolute right-3 top-2 text-slate-400 hover:text-slate-950 transition p-0.5 cursor-pointer"
                   tabIndex={-1}
+                  aria-label={showPw ? "Hide password" : "Show password"}
                 >
                   {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            {/* Role selector */}
-            {isBookingNotice ? (
-              <div className="rounded-xl border border-amber-400/40 bg-amber-500/15 p-3 flex items-center justify-between text-xs text-amber-200">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-7 w-7 rounded-lg bg-amber-400/20 text-amber-400 flex items-center justify-center">
-                    <User className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <span className="font-bold text-white block text-xs">Explorer / Traveler Account</span>
-                    <span className="text-[10px] text-slate-300">Required to reserve your destination</span>
-                  </div>
-                </div>
-                <span className="text-[10px] text-amber-300 font-mono font-bold bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-400/30">
-                  Pre-selected
-                </span>
-              </div>
-            ) : (
-              <div>
-                <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-300">
-                  Select Account Type
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {ROLES.map((r) => {
-                    const active = form.role === r.value;
-                    return (
-                      <button
-                        key={r.value}
-                        type="button"
-                        id={`role-${r.value.toLowerCase()}`}
-                        onClick={() => update('role', r.value)}
-                        className={`rounded-xl border p-2.5 text-center transition flex flex-col items-center gap-1 text-xs font-semibold ${
-                          active
-                            ? 'border-amber-400 bg-amber-500/20 text-amber-300 shadow-sm shadow-amber-500/20 scale-[1.02]'
-                            : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08] hover:text-white'
-                        }`}
-                      >
-                        <r.icon className="h-5 w-5" />
-                        <span className="leading-tight">{r.label}</span>
-                        <span className="text-[10px] font-normal text-slate-400 leading-tight hidden sm:block">{r.description}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
+            {/* Submit button */}
             <button
               id="register-submit-btn"
               type="submit"
               disabled={loading}
-              className="relative group/btn w-full mt-2 overflow-hidden rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold py-3.5 px-6 shadow-[0_10px_25px_-5px_rgba(245,158,11,0.4)] transition-all duration-300 flex items-center justify-center gap-2 active:scale-[0.99] text-xs uppercase tracking-widest"
+              className="w-full mt-1.5 rounded-xl bg-slate-950 hover:bg-black text-white font-bold py-2.5 sm:py-3 px-4 shadow-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.99] text-xs uppercase tracking-widest cursor-pointer border border-slate-900"
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2 font-display">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-950 border-t-transparent" />
+                <span className="flex items-center justify-center gap-2">
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   Creating Account…
                 </span>
               ) : (
-                <span className="flex items-center justify-center gap-2 font-display font-extrabold">
-                  Create Account <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                <span className="flex items-center justify-center gap-2 font-extrabold">
+                  Create Account <ArrowRight className="h-3.5 w-3.5" />
                 </span>
               )}
             </button>
 
-            <div className="border-t border-white/10 pt-4 text-center">
-              <p className="text-xs text-slate-300">
+            {/* Footer Links & Trust Badges */}
+            <div className="border-t border-slate-100 pt-3 text-center space-y-2">
+              <p className="text-xs text-slate-600 font-medium">
                 Already have an account?{' '}
                 <Link
                   to={redirectUrl ? `/login?redirect=${encodeURIComponent(redirectUrl)}&reason=booking` : '/login'}
-                  className="font-bold text-amber-400 hover:text-amber-300 hover:underline"
+                  className="font-bold text-slate-950 hover:underline"
                 >
                   Sign in
                 </Link>
               </p>
+
+              <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 font-medium">
+                <span>Daraja M-Pesa</span>
+                <span>•</span>
+                <span>PCI-DSS</span>
+                <span>•</span>
+                <span>24/7 Concierge</span>
+              </div>
             </div>
           </form>
+
         </div>
       </div>
-    </AuthVideoBackground>
+    </div>
   );
 }

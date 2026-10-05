@@ -85,6 +85,36 @@ export interface LocalWalletData {
   }[];
 }
 
+export function extractBookingRef(text: string): string | null {
+  if (!text) return null;
+  const match = text.match(/(?:MT-\d+-[A-Z0-9]+|BK-[A-Z0-9-]+|b-\d+)/i);
+  return match ? match[0].toUpperCase() : null;
+}
+
+export function getTransactionDedupeKey(t: { id?: string; reference?: string; description?: string; type?: string }): string {
+  if (!t) return '';
+  const text = `${t.reference || ''} ${t.description || ''} ${t.id || ''}`;
+  const bkRef = extractBookingRef(text);
+  if (bkRef && (t.type === 'BOOKING_PAYOUT' || t.type === 'COMMISSION')) {
+    return `${t.type}:${bkRef}`;
+  }
+  return t.reference || t.id || '';
+}
+
+export function deduplicateTransactions<T extends { id?: string; reference?: string; description?: string; type?: string }>(txs: T[]): T[] {
+  if (!Array.isArray(txs)) return [];
+  const map = new Map<string, T>();
+  for (const t of txs) {
+    if (!t) continue;
+    const key = getTransactionDedupeKey(t);
+    if (!key) continue;
+    if (!map.has(key)) {
+      map.set(key, t);
+    }
+  }
+  return Array.from(map.values());
+}
+
 export function getLocalWallet(
   userId: string,
   isHost = false,
@@ -98,6 +128,8 @@ export function getLocalWallet(
       : { id: `w-${userId}`, balance: 0, pendingBalance: 0, currency: 'KES', transactions: [] };
 
     if (w.pendingBalance === undefined) w.pendingBalance = 0;
+    if (!Array.isArray(w.transactions)) w.transactions = [];
+    w.transactions = deduplicateTransactions(w.transactions);
 
     let checkIsHost = isHost;
     let checkIsAdmin = isAdmin;
@@ -156,8 +188,8 @@ export function getLocalWallet(
               const aliasData = JSON.parse(rawAlias);
               if (Array.isArray(aliasData?.transactions)) {
                 for (const at of aliasData.transactions) {
-                  const refKey = at.reference || at.id;
-                  const already = (w.transactions || []).some(t => (t.reference && t.reference === refKey) || t.id === at.id);
+                  const key = getTransactionDedupeKey(at);
+                  const already = (w.transactions || []).some(t => getTransactionDedupeKey(t) === key);
                   if (!already) {
                     w.transactions.unshift(at);
                   }
@@ -167,6 +199,7 @@ export function getLocalWallet(
           } catch {}
         }
       }
+      w.transactions = deduplicateTransactions(w.transactions);
     }
 
     if (checkIsAdmin) {
@@ -185,12 +218,6 @@ export function getLocalWallet(
       const verifiedVehicleBookings = vehicleBookings.filter(b => isHandoverVerified(b));
       const pendingVehicleBookings = vehicleBookings.filter(b => !isHandoverVerified(b));
 
-      // Unlocked admin revenue: 25% of verified vehicle bookings + 25% of tour/package bookings
-      const unlockedAdminRevenue = (
-        verifiedVehicleBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0) +
-        tripBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0)
-      ) * ADMIN_COMMISSION_RATE;
-
       // Pending escrow: 25% of unverified vehicle rentals
       const pendingAdminRevenue = pendingVehicleBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0) * ADMIN_COMMISSION_RATE;
 
@@ -198,21 +225,26 @@ export function getLocalWallet(
       const earnBookings = [...verifiedVehicleBookings, ...tripBookings];
       for (const b of earnBookings) {
         const ref = b.bookingRef || b.id;
-        const exists = (w.transactions || []).some(
-          t => (t.reference && t.reference.includes(ref)) || (t.description && t.description.includes(ref))
-        );
+        const cleanRef = String(ref).replace(/^(PAYOUT-|COMM-)/, '');
+        const exists = (w.transactions || []).some(t => {
+          const bk = extractBookingRef(`${t.reference || ''} ${t.description || ''} ${t.id || ''}`);
+          return (bk && bk === cleanRef.toUpperCase()) ||
+            (t.reference && t.reference.includes(cleanRef)) ||
+            (t.description && t.description.includes(cleanRef));
+        });
         if (!exists) {
           w.transactions.unshift({
-            id: `tx-comm-${ref}`,
+            id: `tx-comm-${cleanRef}`,
             type: 'COMMISSION',
             amount: Number(b.totalAmount || 0) * ADMIN_COMMISSION_RATE,
             status: 'COMPLETED',
-            reference: `COMM-${ref}`,
-            description: `Platform commission (25%) unlocked for trip ${ref} (${isTripBooking(b) ? 'Package Confirmed' : 'Handover Verified'})`,
+            reference: `COMM-${cleanRef}`,
+            description: `Platform commission (25%) unlocked for trip ${cleanRef} (${isTripBooking(b) ? 'Package Confirmed' : 'Handover Verified'})`,
             created_at: b.createdAt || new Date().toISOString(),
           });
         }
       }
+      w.transactions = deduplicateTransactions(w.transactions);
 
       const totalIn = (w.transactions || [])
         .filter(t => ['TOPUP', 'MPESA_TOPUP', 'BOOKING_PAYOUT', 'COMMISSION', 'REFUND'].includes(t.type) && t.status === 'COMPLETED')
@@ -222,7 +254,7 @@ export function getLocalWallet(
         .filter(t => t.type === 'WITHDRAWAL' && t.status === 'COMPLETED')
         .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
-      w.balance = Math.max(0, Math.max(totalIn - totalWithdrawn, unlockedAdminRevenue - totalWithdrawn, Number(w.balance || 0) - totalWithdrawn));
+      w.balance = Math.max(0, totalIn - totalWithdrawn);
       w.pendingBalance = Math.max(0, pendingAdminRevenue);
     } else if (checkIsHost) {
       const allVehicles = getStoredVehicles();
@@ -273,41 +305,61 @@ export function getLocalWallet(
       const verifiedBookings = ownerBookings.filter(b => isHandoverVerified(b));
       const pendingBookings = ownerBookings.filter(b => !isHandoverVerified(b));
 
-      const unlockedHostEarnings = verifiedBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0) * HOST_SHARE_RATE;
       const pendingHostEarnings = pendingBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0) * HOST_SHARE_RATE;
 
       // Ensure transaction history has entries for verified bookings
       for (const b of verifiedBookings) {
         const ref = b.bookingRef || b.id;
-        const exists = (w.transactions || []).some(
-          t => (t.reference && t.reference.includes(ref)) || (t.description && t.description.includes(ref))
-        );
+        const cleanRef = String(ref).replace(/^(PAYOUT-|COMM-)/, '');
+        const exists = (w.transactions || []).some(t => {
+          const bk = extractBookingRef(`${t.reference || ''} ${t.description || ''} ${t.id || ''}`);
+          return (bk && bk === cleanRef.toUpperCase()) ||
+            (t.reference && t.reference.includes(cleanRef)) ||
+            (t.description && t.description.includes(cleanRef));
+        });
         if (!exists) {
           w.transactions.unshift({
-            id: `tx-payout-${ref}`,
+            id: `tx-payout-${cleanRef}`,
             type: 'BOOKING_PAYOUT',
             amount: Number(b.totalAmount || 0) * HOST_SHARE_RATE,
             status: 'COMPLETED',
-            reference: `PAYOUT-${ref}`,
-            description: `Host earnings (75%) unlocked for trip ${ref} (Handover Verified)`,
+            reference: `PAYOUT-${cleanRef}`,
+            description: `Host earnings (75%) unlocked for trip ${cleanRef} (Handover Verified)`,
             created_at: b.createdAt || new Date().toISOString(),
           });
         }
       }
+      w.transactions = deduplicateTransactions(w.transactions);
 
       const totalIn = (w.transactions || [])
         .filter(t => ['TOPUP', 'MPESA_TOPUP', 'BOOKING_PAYOUT', 'COMMISSION', 'REFUND'].includes(t.type) && t.status === 'COMPLETED')
         .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
       const totalWithdrawn = (w.transactions || [])
-        .filter(t => t.type === 'WITHDRAWAL' && t.status === 'COMPLETED')
+        .filter(t => ['WITHDRAWAL', 'BOOKING_PAYMENT'].includes(t.type) && t.status === 'COMPLETED')
         .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
-      // Available balance is the maximum of the transaction ledger balance, unlocked bookings earnings, or existing balance minus withdrawals
-      w.balance = Math.max(0, Math.max(totalIn - totalWithdrawn, unlockedHostEarnings - totalWithdrawn, Number(w.balance || 0) - totalWithdrawn));
+      // Available balance is the exact ledger sum of inflows minus withdrawals
+      w.balance = Math.max(0, totalIn - totalWithdrawn);
       w.pendingBalance = Math.max(0, pendingHostEarnings);
+    } else {
+      // Regular traveler / tourist account:
+      // Ledger balance = sum of top-ups / refunds minus withdrawals / booking payments
+      const totalIn = (w.transactions || [])
+        .filter(t => ['TOPUP', 'MPESA_TOPUP', 'REFUND'].includes(t.type) && t.status === 'COMPLETED')
+        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+      const totalOut = (w.transactions || [])
+        .filter(t => ['WITHDRAWAL', 'BOOKING_PAYMENT'].includes(t.type) && t.status === 'COMPLETED')
+        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+      if (w.transactions && w.transactions.length > 0) {
+        w.balance = Math.max(0, totalIn - totalOut);
+      }
+      w.pendingBalance = 0;
     }
 
+    w.transactions = deduplicateTransactions(w.transactions);
     localStorage.setItem(`mt_local_wallet_${userId}`, JSON.stringify(w));
     return w;
   } catch {
@@ -320,6 +372,95 @@ export function saveLocalWallet(userId: string, data: LocalWalletData) {
     localStorage.setItem(`mt_local_wallet_${userId}`, JSON.stringify(data));
     window.dispatchEvent(new CustomEvent('mt_wallet_updated', { detail: data }));
   } catch {}
+}
+
+/**
+ * Pay for a trip or vehicle reservation using the traveler's M-Travel Wallet balance.
+ */
+export async function payWithWallet(
+  userId: string,
+  amount: number,
+  bookingRef: string,
+  description?: string
+): Promise<PaymentResult> {
+  const localW = getLocalWallet(userId);
+  const currentBalance = Number(localW.balance || 0);
+
+  if (currentBalance < amount) {
+    return {
+      success: false,
+      message: `Insufficient wallet balance. You have KES ${currentBalance.toLocaleString()} available, but this booking requires KES ${amount.toLocaleString()}. Please top up your wallet or pay directly via M-Pesa.`,
+    };
+  }
+
+  const cleanBookingRef = String(bookingRef).replace(/^(PAYOUT-|COMM-|WAL-)/, '');
+  const receipt = `WAL-${Date.now().toString().slice(-6)}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  const desc = description || `Payment for booking ${cleanBookingRef} funded from M-Travel Wallet`;
+
+  // 1. Supabase Sync for valid UUID user
+  if (isValidUUID(userId)) {
+    try {
+      let { data: wallet } = await supabase
+        .from('wallets')
+        .select('id, balance')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (wallet) {
+        const newBalance = Math.max(0, Number(wallet.balance || 0) - amount);
+        await supabase.from('wallets').update({ balance: newBalance }).eq('id', wallet.id);
+        await supabase.from('transactions').insert({
+          wallet_id: wallet.id,
+          type: 'WITHDRAWAL',
+          amount,
+          status: 'COMPLETED',
+          reference: receipt,
+          description: desc,
+        });
+      }
+    } catch (err) {
+      console.warn('Supabase wallet deduction notice:', err);
+    }
+  }
+
+  // 2. Local Wallet Update
+  localW.balance = Math.max(0, currentBalance - amount);
+  localW.transactions.unshift({
+    id: `tx-wallet-pay-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    type: 'BOOKING_PAYMENT',
+    amount,
+    status: 'COMPLETED',
+    reference: receipt,
+    description: desc,
+    created_at: new Date().toISOString(),
+  });
+  localW.transactions = deduplicateTransactions(localW.transactions);
+  saveLocalWallet(userId, localW);
+
+  // 3. Log Audit Event
+  try {
+    let actorName = 'Traveler';
+    const rawUser = localStorage.getItem('mt_user');
+    if (rawUser) {
+      const u = JSON.parse(rawUser);
+      actorName = `${u.firstName || u.first_name || ''} ${u.lastName || u.last_name || ''}`.trim() || 'Traveler';
+    }
+    logAuditEvent(
+      'WALLET_BOOKING_PAYMENT',
+      'Wallet',
+      receipt,
+      `${actorName} paid KES ${amount.toLocaleString()} for booking ${cleanBookingRef} using M-Travel Wallet balance (Receipt: ${receipt})`,
+      actorName,
+      'USER'
+    );
+  } catch {}
+
+  return {
+    success: true,
+    message: `Payment of KES ${amount.toLocaleString()} completed successfully using your M-Travel Wallet balance.`,
+    reference: receipt,
+    checkoutRequestId: receipt,
+  };
 }
 
 async function directWalletTopUp(userId: string, amount: number): Promise<PaymentResult> {
@@ -419,24 +560,85 @@ export async function creditHostPayout(
   bookingRef: string,
   description?: string
 ): Promise<PaymentResult> {
-  const ref = `PAYOUT-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-  const desc = description || `Host net earnings (75%) released for trip ${bookingRef}`;
+  const cleanBookingRef = String(bookingRef).replace(/^(PAYOUT-|COMM-)/, '');
+  const ref = `PAYOUT-${cleanBookingRef}`;
+  const desc = description || `Host net earnings (75%) released for trip ${cleanBookingRef}`;
 
   const JAMES_HOST_UUID = 'a0000000-0000-0000-0000-000000000002';
+  const primaryHostUuid = isValidUUID(userId) ? userId : JAMES_HOST_UUID;
+
+  // 1. Supabase Sync: Credit only one primary host wallet
+  try {
+    await supabase.from('users').upsert({
+      id: primaryHostUuid,
+      email: primaryHostUuid === JAMES_HOST_UUID ? 'james.mwangi@mtravel.co.ke' : `user_${primaryHostUuid.slice(0, 6)}@mtravel.co.ke`,
+      first_name: primaryHostUuid === JAMES_HOST_UUID ? 'James' : 'Fleet',
+      last_name: primaryHostUuid === JAMES_HOST_UUID ? 'Mwangi' : 'Host',
+      role: 'VEHICLE_OWNER',
+      is_active: true,
+    }, { onConflict: 'id' });
+
+    let { data: wallet } = await supabase
+      .from('wallets')
+      .select('id, balance')
+      .eq('user_id', primaryHostUuid)
+      .maybeSingle();
+
+    if (!wallet) {
+      const { data: newWallet } = await supabase
+        .from('wallets')
+        .insert({ user_id: primaryHostUuid, balance: 0, currency: 'KES' })
+        .select()
+        .single();
+      wallet = newWallet;
+    }
+
+    if (wallet) {
+      const { data: existingTx } = await supabase
+        .from('transactions')
+        .select('id')
+        .eq('wallet_id', wallet.id)
+        .or(`reference.ilike.%${cleanBookingRef}%,description.ilike.%${cleanBookingRef}%`)
+        .maybeSingle();
+
+      if (!existingTx) {
+        await supabase.from('transactions').insert({
+          wallet_id: wallet.id,
+          type: 'BOOKING_PAYOUT',
+          amount,
+          status: 'COMPLETED',
+          reference: ref,
+          description: desc,
+        });
+      }
+
+      const { data: allTxs } = await supabase
+        .from('transactions')
+        .select('type, amount, status')
+        .eq('wallet_id', wallet.id)
+        .eq('status', 'COMPLETED');
+
+      if (Array.isArray(allTxs)) {
+        const inflows = allTxs
+          .filter(t => ['TOPUP', 'MPESA_TOPUP', 'BOOKING_PAYOUT', 'COMMISSION', 'REFUND'].includes(t.type))
+          .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+        const outflows = allTxs
+          .filter(t => t.type === 'WITHDRAWAL')
+          .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+        const computedLedgerBalance = Math.max(0, inflows - outflows);
+        await supabase.from('wallets').update({ balance: computedLedgerBalance }).eq('id', wallet.id);
+      }
+    }
+  } catch (err) {
+    console.warn('Supabase host payout notice:', err);
+  }
+
+  // 2. Local Wallet Sync for all host aliases (keeping host accounts synchronized)
   const hostIds = new Set<string>();
   if (userId) hostIds.add(userId);
-
-  const isJames = !userId ||
-                  userId === 'owner-safari-1' ||
-                  userId === 'user-host-1' ||
-                  userId === JAMES_HOST_UUID ||
-                  (typeof userId === 'string' && userId.toLowerCase().includes('james'));
-
-  if (isJames) {
-    hostIds.add(JAMES_HOST_UUID);
-    hostIds.add('owner-safari-1');
-    hostIds.add('user-host-1');
-  }
+  hostIds.add(JAMES_HOST_UUID);
+  hostIds.add('owner-safari-1');
+  hostIds.add('user-host-1');
 
   if (typeof window !== 'undefined') {
     try {
@@ -455,86 +657,18 @@ export async function creditHostPayout(
     } catch {}
   }
 
-  // 1. Supabase Sync for valid UUID hosts
-  for (const hId of hostIds) {
-    if (isValidUUID(hId)) {
-      try {
-        await supabase.from('users').upsert({
-          id: hId,
-          email: hId === JAMES_HOST_UUID ? 'james.mwangi@mtravel.co.ke' : `user_${hId.slice(0, 6)}@mtravel.co.ke`,
-          first_name: hId === JAMES_HOST_UUID ? 'James' : 'Fleet',
-          last_name: hId === JAMES_HOST_UUID ? 'Mwangi' : 'Host',
-          role: 'VEHICLE_OWNER',
-          is_active: true,
-        }, { onConflict: 'id' });
-
-        let { data: wallet } = await supabase
-          .from('wallets')
-          .select('id, balance')
-          .eq('user_id', hId)
-          .maybeSingle();
-
-        if (!wallet) {
-          const { data: newWallet } = await supabase
-            .from('wallets')
-            .insert({ user_id: hId, balance: 0, currency: 'KES' })
-            .select()
-            .single();
-          wallet = newWallet;
-        }
-
-        if (wallet) {
-          const { data: existingTx } = await supabase
-            .from('transactions')
-            .select('id')
-            .eq('wallet_id', wallet.id)
-            .ilike('reference', `%${bookingRef}%`)
-            .maybeSingle();
-
-          if (!existingTx) {
-            await supabase.from('transactions').insert({
-              wallet_id: wallet.id,
-              type: 'BOOKING_PAYOUT',
-              amount,
-              status: 'COMPLETED',
-              reference: ref,
-              description: desc,
-            });
-          }
-
-          const { data: allTxs } = await supabase
-            .from('transactions')
-            .select('type, amount, status')
-            .eq('wallet_id', wallet.id)
-            .eq('status', 'COMPLETED');
-
-          if (Array.isArray(allTxs)) {
-            const inflows = allTxs
-              .filter(t => ['TOPUP', 'MPESA_TOPUP', 'BOOKING_PAYOUT', 'COMMISSION', 'REFUND'].includes(t.type))
-              .reduce((sum, t) => sum + Number(t.amount || 0), 0);
-            const outflows = allTxs
-              .filter(t => t.type === 'WITHDRAWAL')
-              .reduce((sum, t) => sum + Number(t.amount || 0), 0);
-            const computedLedgerBalance = Math.max(0, inflows - outflows);
-            await supabase.from('wallets').update({ balance: computedLedgerBalance }).eq('id', wallet.id);
-          }
-        }
-      } catch (err) {
-        console.warn('Supabase host payout notice:', err);
-      }
-    }
-  }
-
-  // 2. Local Wallet Sync for all host aliases
   for (const hId of hostIds) {
     const localW = getLocalWallet(hId, true);
-    const alreadyCredited = (localW.transactions || []).some(
-      t => (t.reference && t.reference.includes(bookingRef)) || (t.description && t.description.includes(bookingRef))
-    );
+    const alreadyCredited = (localW.transactions || []).some(t => {
+      const bk = extractBookingRef(`${t.reference || ''} ${t.description || ''} ${t.id || ''}`);
+      return (bk && bk === cleanBookingRef.toUpperCase()) ||
+        (t.reference && t.reference.includes(cleanBookingRef)) ||
+        (t.description && t.description.includes(cleanBookingRef));
+    });
 
     if (!alreadyCredited) {
       localW.transactions.unshift({
-        id: `tx-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        id: `tx-payout-${cleanBookingRef}`,
         type: 'BOOKING_PAYOUT',
         amount,
         status: 'COMPLETED',
@@ -544,6 +678,8 @@ export async function creditHostPayout(
       });
     }
 
+    localW.transactions = deduplicateTransactions(localW.transactions);
+
     const totalIn = (localW.transactions || [])
       .filter(t => ['TOPUP', 'MPESA_TOPUP', 'BOOKING_PAYOUT', 'COMMISSION', 'REFUND'].includes(t.type) && t.status === 'COMPLETED')
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
@@ -551,7 +687,7 @@ export async function creditHostPayout(
       .filter(t => t.type === 'WITHDRAWAL' && t.status === 'COMPLETED')
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
-    localW.balance = Math.max(0, Math.max(totalIn - totalWithdrawn, Number(localW.balance || 0)));
+    localW.balance = Math.max(0, totalIn - totalWithdrawn);
     saveLocalWallet(hId, localW);
   }
 
@@ -567,11 +703,81 @@ export async function creditAdminCommission(
   bookingRef: string,
   description?: string
 ): Promise<PaymentResult> {
-  const ref = `COMM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-  const desc = description || `Platform commission (25%) released for trip ${bookingRef}`;
+  const cleanBookingRef = String(bookingRef).replace(/^(PAYOUT-|COMM-)/, '');
+  const ref = `COMM-${cleanBookingRef}`;
+  const desc = description || `Platform commission (25%) released for trip ${cleanBookingRef}`;
 
+  const ADMIN_UUID = 'a0000000-0000-0000-0000-000000000001';
+
+  // 1. Supabase Sync: Credit only one primary admin wallet
+  try {
+    await supabase.from('users').upsert({
+      id: ADMIN_UUID,
+      email: 'safari@jambo.africa',
+      first_name: 'Safari',
+      last_name: 'Desk',
+      role: 'ADMIN',
+      is_active: true,
+    }, { onConflict: 'id' });
+
+    let { data: wallet } = await supabase
+      .from('wallets')
+      .select('id, balance')
+      .eq('user_id', ADMIN_UUID)
+      .maybeSingle();
+
+    if (!wallet) {
+      const { data: newWallet } = await supabase
+        .from('wallets')
+        .insert({ user_id: ADMIN_UUID, balance: 0, currency: 'KES' })
+        .select()
+        .single();
+      wallet = newWallet;
+    }
+
+    if (wallet) {
+      const { data: existingTx } = await supabase
+        .from('transactions')
+        .select('id')
+        .eq('wallet_id', wallet.id)
+        .or(`reference.ilike.%${cleanBookingRef}%,description.ilike.%${cleanBookingRef}%`)
+        .maybeSingle();
+
+      if (!existingTx) {
+        await supabase.from('transactions').insert({
+          wallet_id: wallet.id,
+          type: 'COMMISSION',
+          amount,
+          status: 'COMPLETED',
+          reference: ref,
+          description: desc,
+        });
+      }
+
+      const { data: allTxs } = await supabase
+        .from('transactions')
+        .select('type, amount, status')
+        .eq('wallet_id', wallet.id)
+        .eq('status', 'COMPLETED');
+
+      if (Array.isArray(allTxs)) {
+        const inflows = allTxs
+          .filter(t => ['TOPUP', 'MPESA_TOPUP', 'BOOKING_PAYOUT', 'COMMISSION', 'REFUND'].includes(t.type))
+          .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+        const outflows = allTxs
+          .filter(t => t.type === 'WITHDRAWAL')
+          .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+        const computedLedgerBalance = Math.max(0, inflows - outflows);
+        await supabase.from('wallets').update({ balance: computedLedgerBalance }).eq('id', wallet.id);
+      }
+    }
+  } catch (err) {
+    console.warn('Supabase commission notice:', err);
+  }
+
+  // 2. Local Wallet Sync for all admin aliases
   const adminIds = new Set<string>([
-    'a0000000-0000-0000-0000-000000000001',
+    ADMIN_UUID,
     'admin-safari-1',
     'admin-mtravel-1',
   ]);
@@ -593,84 +799,18 @@ export async function creditAdminCommission(
     } catch {}
   }
 
-  // 1. Supabase Sync for valid UUID admins
   for (const adminId of adminIds) {
-    if (isValidUUID(adminId)) {
-      try {
-        await supabase.from('users').upsert({
-          id: adminId,
-          email: adminId === 'a0000000-0000-0000-0000-000000000001' ? 'safari@jambo.africa' : `admin_${adminId.slice(0, 6)}@mtravel.co.ke`,
-          first_name: 'Safari',
-          last_name: 'Desk',
-          role: 'ADMIN',
-          is_active: true,
-        }, { onConflict: 'id' });
-
-        let { data: wallet } = await supabase
-          .from('wallets')
-          .select('id, balance')
-          .eq('user_id', adminId)
-          .maybeSingle();
-
-        if (!wallet) {
-          const { data: newWallet } = await supabase
-            .from('wallets')
-            .insert({ user_id: adminId, balance: 0, currency: 'KES' })
-            .select()
-            .single();
-          wallet = newWallet;
-        }
-
-        if (wallet) {
-          const { data: existingTx } = await supabase
-            .from('transactions')
-            .select('id')
-            .eq('wallet_id', wallet.id)
-            .ilike('reference', `%${bookingRef}%`)
-            .maybeSingle();
-
-          if (!existingTx) {
-            await supabase.from('transactions').insert({
-              wallet_id: wallet.id,
-              type: 'COMMISSION',
-              amount,
-              status: 'COMPLETED',
-              reference: ref,
-              description: desc,
-            });
-          }
-
-          const { data: allTxs } = await supabase
-            .from('transactions')
-            .select('type, amount, status')
-            .eq('wallet_id', wallet.id)
-            .eq('status', 'COMPLETED');
-
-          if (Array.isArray(allTxs)) {
-            const inflows = allTxs
-              .filter(t => ['TOPUP', 'MPESA_TOPUP', 'BOOKING_PAYOUT', 'COMMISSION', 'REFUND'].includes(t.type))
-              .reduce((sum, t) => sum + Number(t.amount || 0), 0);
-            const outflows = allTxs
-              .filter(t => t.type === 'WITHDRAWAL')
-              .reduce((sum, t) => sum + Number(t.amount || 0), 0);
-            const computedLedgerBalance = Math.max(0, inflows - outflows);
-            await supabase.from('wallets').update({ balance: computedLedgerBalance }).eq('id', wallet.id);
-          }
-        }
-      } catch (err) {
-        console.warn('Supabase commission notice:', err);
-      }
-    }
-
-    // 2. Local Wallet Sync for admin accounts
     const localW = getLocalWallet(adminId, false, undefined, true);
-    const alreadyCredited = (localW.transactions || []).some(
-      t => (t.reference && t.reference.includes(bookingRef)) || (t.description && t.description.includes(bookingRef))
-    );
+    const alreadyCredited = (localW.transactions || []).some(t => {
+      const bk = extractBookingRef(`${t.reference || ''} ${t.description || ''} ${t.id || ''}`);
+      return (bk && bk === cleanBookingRef.toUpperCase()) ||
+        (t.reference && t.reference.includes(cleanBookingRef)) ||
+        (t.description && t.description.includes(cleanBookingRef));
+    });
 
     if (!alreadyCredited) {
       localW.transactions.unshift({
-        id: `tx-comm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        id: `tx-comm-${cleanBookingRef}`,
         type: 'COMMISSION',
         amount,
         status: 'COMPLETED',
@@ -680,6 +820,8 @@ export async function creditAdminCommission(
       });
     }
 
+    localW.transactions = deduplicateTransactions(localW.transactions);
+
     const totalIn = (localW.transactions || [])
       .filter(t => ['TOPUP', 'MPESA_TOPUP', 'BOOKING_PAYOUT', 'COMMISSION', 'REFUND'].includes(t.type) && t.status === 'COMPLETED')
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
@@ -687,7 +829,7 @@ export async function creditAdminCommission(
       .filter(t => t.type === 'WITHDRAWAL' && t.status === 'COMPLETED')
       .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
-    localW.balance = Math.max(0, Math.max(totalIn - totalWithdrawn, Number(localW.balance || 0)));
+    localW.balance = Math.max(0, totalIn - totalWithdrawn);
     saveLocalWallet(adminId, localW);
   }
 

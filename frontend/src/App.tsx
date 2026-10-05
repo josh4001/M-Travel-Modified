@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Navbar } from '@/components/layout/Navbar';
@@ -10,28 +10,39 @@ import { api } from '@/lib/api';
 import type { RootState } from '@/store';
 
 import Landing from '@/pages/Landing';
-import Services from '@/pages/Services';
 import Catalogue from '@/pages/Catalogue';
-import Team from '@/pages/Team';
-import Contact from '@/pages/Contact';
 import Login from '@/pages/Login';
 import AdminLogin from '@/pages/AdminLogin';
 import Register from '@/pages/Register';
-import Search from '@/pages/Search';
-import VehicleDetail from '@/pages/VehicleDetail';
-import MyBookings from '@/pages/dashboard/MyBookings';
-import TouristDashboard from '@/pages/dashboard/TouristDashboard';
-import OwnerDashboard from '@/pages/dashboard/OwnerDashboard';
-import AdminDashboard from '@/pages/dashboard/AdminDashboard';
-import WalletPage from '@/pages/dashboard/WalletPage';
-import MyProfilePage from '@/pages/dashboard/MyProfilePage';
-import HolidaysAndTours from '@/pages/HolidaysAndTours';
 import NotFound from '@/pages/NotFound';
 import UberLocationPrompt from '@/components/common/UberLocationPrompt';
 
 import { setupGlobalRealtimeSubscription } from '@/lib/supabaseClient';
 import { syncVehiclesFromSupabase, syncBookingsFromSupabase } from '@/lib/bookingStore';
 import { syncUsersFromSupabase } from '@/lib/authService';
+
+// Lazy-loaded heavy pages and dashboards to keep initial landing bundle ultralight & fast
+const Services = lazy(() => import('@/pages/Services'));
+const Team = lazy(() => import('@/pages/Team'));
+const Contact = lazy(() => import('@/pages/Contact'));
+const Search = lazy(() => import('@/pages/Search'));
+const VehicleDetail = lazy(() => import('@/pages/VehicleDetail'));
+const HolidaysAndTours = lazy(() => import('@/pages/HolidaysAndTours'));
+const MyBookings = lazy(() => import('@/pages/dashboard/MyBookings'));
+const TouristDashboard = lazy(() => import('@/pages/dashboard/TouristDashboard'));
+const OwnerDashboard = lazy(() => import('@/pages/dashboard/OwnerDashboard'));
+const AdminDashboard = lazy(() => import('@/pages/dashboard/AdminDashboard'));
+const WalletPage = lazy(() => import('@/pages/dashboard/WalletPage'));
+const MyProfilePage = lazy(() => import('@/pages/dashboard/MyProfilePage'));
+
+function PageLoadingFallback() {
+  return (
+    <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-3 bg-white text-slate-900">
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-900 border-t-transparent" />
+      <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-slate-600">Loading M-TRAVEL…</span>
+    </div>
+  );
+}
 
 /** Ensures every route transition and refresh starts at the very top (0, 0) */
 function ScrollToTop() {
@@ -132,85 +143,87 @@ export default function App() {
   }, [dispatch]);
 
   return (
-    <div className="flex min-h-screen flex-col relative">
+    <div className="flex min-h-screen flex-col relative bg-white text-slate-900 font-sans">
       <ScrollToTop />
       <Navbar />
       <main className="flex-1">
-        <Routes>
-          {/* PUBLIC ROUTES (Authenticated users redirected from root) */}
-          <Route path="/" element={<RootRoute />} />
-          <Route path="/catalogue" element={<NonHostRoute><Catalogue /></NonHostRoute>} />
-          <Route path="/holidays-and-tours" element={<NonHostRoute><HolidaysAndTours /></NonHostRoute>} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/team" element={<Team />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/staff/login" element={<AdminLogin />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/search" element={<NonHostRoute><Search /></NonHostRoute>} />
-          <Route path="/vehicles/:id" element={<NonHostRoute><VehicleDetail /></NonHostRoute>} />
+        <Suspense fallback={<PageLoadingFallback />}>
+          <Routes>
+            {/* PUBLIC ROUTES (Authenticated users redirected from root) */}
+            <Route path="/" element={<RootRoute />} />
+            <Route path="/catalogue" element={<NonHostRoute><Catalogue /></NonHostRoute>} />
+            <Route path="/holidays-and-tours" element={<NonHostRoute><HolidaysAndTours /></NonHostRoute>} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/team" element={<Team />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/staff/login" element={<AdminLogin />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/search" element={<NonHostRoute><Search /></NonHostRoute>} />
+            <Route path="/vehicles/:id" element={<NonHostRoute><VehicleDetail /></NonHostRoute>} />
 
-          {/* SMART ROLE REDIRECT */}
-          <Route path="/dashboard" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-          <Route path="/dashboard/holidays-and-tours" element={<NonHostRoute><HolidaysAndTours /></NonHostRoute>} />
+            {/* SMART ROLE REDIRECT */}
+            <Route path="/dashboard" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
+            <Route path="/dashboard/holidays-and-tours" element={<NonHostRoute><HolidaysAndTours /></NonHostRoute>} />
 
-          {/* RBAC-PROTECTED ROLE DASHBOARDS */}
-          <Route
-            path="/dashboard/tourist"
-            element={
-              <ProtectedRoute allowedRoles={['TOURIST', 'CUSTOMER', 'ADMIN']}>
-                <TouristDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard/owner"
-            element={
-              <ProtectedRoute allowedRoles={['VEHICLE_OWNER', 'OWNER', 'HOST', 'FLEET_HOST', 'ADMIN']}>
-                <OwnerDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard/admin"
-            element={
-              <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}>
-                <AdminDashboard />
-              </ProtectedRoute>
-            }
-          />
+            {/* RBAC-PROTECTED ROLE DASHBOARDS */}
+            <Route
+              path="/dashboard/tourist"
+              element={
+                <ProtectedRoute allowedRoles={['TOURIST', 'CUSTOMER', 'ADMIN']}>
+                  <TouristDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/owner"
+              element={
+                <ProtectedRoute allowedRoles={['VEHICLE_OWNER', 'OWNER', 'HOST', 'FLEET_HOST', 'ADMIN']}>
+                  <OwnerDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* SHARED PROTECTED DASHBOARD PAGES */}
-          <Route path="/dashboard/bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
-          <Route path="/dashboard/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
-          <Route
-            path="/dashboard/wallet"
-            element={
-              <ProtectedRoute allowedRoles={['TOURIST', 'CUSTOMER', 'VEHICLE_OWNER', 'ADMIN', 'SUPER_ADMIN']}>
-                <WalletPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <MyProfilePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard/profile"
-            element={
-              <ProtectedRoute>
-                <MyProfilePage />
-              </ProtectedRoute>
-            }
-          />
+            {/* SHARED PROTECTED DASHBOARD PAGES */}
+            <Route path="/dashboard/bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+            <Route path="/dashboard/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+            <Route
+              path="/dashboard/wallet"
+              element={
+                <ProtectedRoute allowedRoles={['TOURIST', 'CUSTOMER', 'VEHICLE_OWNER', 'ADMIN', 'SUPER_ADMIN']}>
+                  <WalletPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <MyProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/profile"
+              element={
+                <ProtectedRoute>
+                  <MyProfilePage />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </main>
       <Footer />
       {/* GLOBAL UBER-STYLE LOCATION PERMISSION PROMPT */}

@@ -11,6 +11,7 @@ export interface StoredBooking {
   vehicleModel: string;
   /** Convenience shorthand: `${vehicleMake} ${vehicleModel}` */
   vehicleName: string;
+  vehiclePlate?: string;
   vehicleImage: string;
   ownerId?: string;
   driverId?: string;
@@ -153,6 +154,8 @@ const DEFAULT_DELETED_VEHICLE_IDS = [
   'a5ddaf53-f49a-488b-87f1-e46f4fc1e6e4',
   '9beb7a95-89a5-4475-99fe-56b66ac65f8c',
   '2d6614f3-9e8f-43af-826f-c89228c935c0', // duplicate vehicle submission
+  '33333333-3333-4333-8333-333333333333',
+  '88888888-8888-4888-8888-888888888888',
 ];
 
 export const getDeletedVehicleIds = (): Set<string> => {
@@ -257,6 +260,43 @@ export const getDocumentFromVault = async (key: string): Promise<string | null> 
       resolve(null);
     }
   });
+};
+
+// In-Memory & Session Vault for heavy vehicle verification photos (prevents localStorage quota errors)
+if (typeof window !== 'undefined') {
+  (window as any).__MT_IMAGE_VAULT__ = (window as any).__MT_IMAGE_VAULT__ || new Map<string, string[]>();
+}
+
+export const putVehicleImagesInVault = (vehicleId: string, images: string[]): void => {
+  if (!vehicleId || !Array.isArray(images) || images.length === 0) return;
+  if (typeof window !== 'undefined') {
+    (window as any).__MT_IMAGE_VAULT__ = (window as any).__MT_IMAGE_VAULT__ || new Map<string, string[]>();
+    (window as any).__MT_IMAGE_VAULT__.set(vehicleId, images);
+    try {
+      sessionStorage.setItem(`mt_img_vault_${vehicleId}`, JSON.stringify(images));
+    } catch {}
+  }
+};
+
+export const getVehicleImagesFromVault = (vehicleId: string): string[] | null => {
+  if (!vehicleId) return null;
+  if (typeof window !== 'undefined') {
+    const memory = (window as any).__MT_IMAGE_VAULT__;
+    if (memory && memory.has(vehicleId)) {
+      return memory.get(vehicleId);
+    }
+    try {
+      const raw = sessionStorage.getItem(`mt_img_vault_${vehicleId}`);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr) && arr.length > 0) {
+          if (memory) memory.set(vehicleId, arr);
+          return arr;
+        }
+      }
+    } catch {}
+  }
+  return null;
 };
 
 /**
@@ -521,9 +561,10 @@ export const isVehicleLive = (vehicleId: string): boolean => {
  */
 export const isBusVehicle = (v: any): boolean => {
   if (!v) return false;
-  const typeStr = (v.type || '').toUpperCase().trim();
+  if (v.bookingType === 'BUS_SEAT' || v.bookingType === 'BUS') return true;
+  const typeStr = (v.type || v.vehicleType || '').toUpperCase().trim();
   const makeStr = (v.make || '').toLowerCase().trim();
-  const modelStr = (v.model || '').toLowerCase().trim();
+  const modelStr = (v.model || v.vehicleName || '').toLowerCase().trim();
   const nameStr = `${makeStr} ${modelStr}`;
   if (typeStr === 'BUS' || typeStr === 'MINIBUS' || typeStr === 'COASTER') return true;
   if (
@@ -533,6 +574,7 @@ export const isBusVehicle = (v: any): boolean => {
     nameStr.includes(' bus') ||
     nameStr.startsWith('bus ') ||
     (v.id === '48d4aa37-a383-40cf-9b17-19548457dd95') ||
+    (v.vehicleId === '48d4aa37-a383-40cf-9b17-19548457dd95') ||
     Number(v.seats) >= 20
   ) return true;
   return false;
@@ -544,6 +586,9 @@ export const APPROVED_HOST_VEHICLE_IDS = new Set<string>();
 export const REGISTERED_HOST_VEHICLES: StoredVehicle[] = [];
 
 const DEMO_VEHICLE_IDS = new Set([
+  '48d4aa37-a383-40cf-9b17-19548457dd95',
+  '33333333-3333-4333-8333-333333333333',
+  '88888888-8888-4888-8888-888888888888',
   '00000000-0000-0000-0000-000000000001',
   '00000000-0000-0000-0000-000000000002',
   '00000000-0000-0000-0000-000000000003',
@@ -559,7 +604,9 @@ const DEMO_VEHICLE_IDS = new Set([
   '35d3ca61-971e-434c-ae2f-cb6601fd7376',
   'c53e7096-a526-4101-8c8c-10838d828545',
   'e3aedb74-5c0a-4932-b33b-94430fe5edf1',
-  '2d6614f3-9e8f-43af-826f-c89228c935c0', // duplicate vehicle submission
+  '2d6614f3-9e8f-43af-826f-c89228c935c0',
+  '9beb7a95-89a5-4475-99fe-56b66ac65f8c',
+  'a5ddaf53-f49a-488b-87f1-e46f4fc1e6e4',
   'v-safari-1',
   'v-alphard-2',
   'v-rav4-1',
@@ -587,31 +634,303 @@ export const ensureUUID = (str?: string): string => {
   return `${hex()}${hex()}-${hex()}-4${hex().substring(1)}-a${hex().substring(1)}-${hex()}${hex()}${hex()}`;
 };
 
+export const DEFAULT_BUS_VEHICLE: StoredVehicle = {
+  id: '48d4aa37-a383-40cf-9b17-19548457dd95',
+  make: 'Isuzu',
+  model: 'Luxury Tour Coach',
+  year: 2024,
+  type: 'BUS',
+  pricePerDay: 25000,
+  seats: 33,
+  fuelType: 'Diesel',
+  transmission: 'Manual',
+  address: 'Nairobi & National Parks',
+  ownerId: 'system-bus-owner',
+  ownerName: 'M-TRAVEL Fleet System',
+  ownerEmail: 'admin@mtravel.co.ke',
+  images: ['/vehicles/isuzu-coach-front.jpg', '/vehicles/isuzu-coach-rear.jpg'],
+  status: 'APPROVED',
+  isLive: true,
+  ratingAverage: 4.9,
+  ratingCount: 24,
+  hasInsurance: true,
+  plateNumber: 'KDA 789B',
+  createdAt: '2025-01-01T00:00:00.000Z',
+};
+
 export const isDemoVehicle = (v: any): boolean => {
   if (!v) return true;
   const id = String(v.id || '');
 
-  // Explicitly purge legacy demo mock vehicle IDs
-  if (
-    id === '9beb7a95-89a5-4475-99fe-56b66ac65f8c' || 
-    id === 'a5ddaf53-f49a-488b-87f1-e46f4fc1e6e4' || 
-    DEMO_VEHICLE_IDS.has(id)
-  ) {
+  if (DEMO_VEHICLE_IDS.has(id)) {
     return true;
   }
 
-  // Prado and approved host vehicles are real registered fleet vehicles
-  if (id === '33333333-3333-4333-8333-333333333333' || APPROVED_HOST_VEHICLE_IDS.has(id)) {
-    return false;
-  }
-
-  // Only mock seed IDs with demo prefixes are demo vehicles
   if (id.startsWith('v-') || id.startsWith('mv-') || id.startsWith('00000000-') || id.startsWith('b0000000-')) {
     return true;
   }
 
   return false;
 };
+
+export const FACTORY_RESET_VERSION_KEY = 'mt_factory_reset_2026_clean_v2';
+export const FACTORY_RESET_PASSWORD_KEY = 'mt_factory_reset_security_password';
+export const DEFAULT_FACTORY_RESET_PASSWORD = 'Admin@2026';
+
+export const getFactoryResetPassword = (): string => {
+  if (typeof window === 'undefined') return DEFAULT_FACTORY_RESET_PASSWORD;
+  try {
+    const val = localStorage.getItem(FACTORY_RESET_PASSWORD_KEY);
+    return val && val.trim() ? val.trim() : DEFAULT_FACTORY_RESET_PASSWORD;
+  } catch {
+    return DEFAULT_FACTORY_RESET_PASSWORD;
+  }
+};
+
+export const setFactoryResetPassword = (newPass: string): boolean => {
+  if (typeof window === 'undefined') return false;
+  if (!newPass || newPass.trim().length < 4) return false;
+  try {
+    localStorage.setItem(FACTORY_RESET_PASSWORD_KEY, newPass.trim());
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const verifyFactoryResetPassword = (attempt: string): boolean => {
+  if (!attempt) return false;
+  const current = getFactoryResetPassword();
+  return attempt.trim() === current.trim();
+};
+
+export type FactoryResetScope = 'SYSTEM_ALL' | 'OPERATIONS_DESK' | 'CHIEF_ADMIN';
+
+export const performScopedFactoryReset = async (
+  scope: FactoryResetScope,
+  _actorEmail?: string
+): Promise<{ success: boolean; message: string }> => {
+  if (typeof window === 'undefined') return { success: false, message: 'Window undefined' };
+
+  try {
+    if (scope === 'SYSTEM_ALL') {
+      performSystemFactoryReset(true);
+      if (supabase) {
+        await Promise.allSettled([
+          supabase.from('vehicle_images').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+          supabase.from('transactions').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+          supabase.from('bookings').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+          supabase.from('vehicles').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+          supabase.from('audit_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+          supabase.from('tours').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+          supabase.from('wallets').update({ balance: 0 }).neq('id', '00000000-0000-0000-0000-000000000000'),
+        ]);
+      }
+      return { success: true, message: 'Entire platform and all accounts have been successfully reset to factory settings.' };
+    }
+
+    if (scope === 'OPERATIONS_DESK') {
+      const opsIds = ['admin-mtravel-1', 'admin-ops-1'];
+      for (const id of opsIds) {
+        localStorage.setItem(`mt_local_wallet_${id}`, JSON.stringify({
+          id: `w-${id}`,
+          balance: 0,
+          pendingBalance: 0,
+          currency: 'KES',
+          transactions: []
+        }));
+      }
+
+      if (supabase) {
+        try {
+          const { data: users } = await supabase.from('users').select('id').eq('email', 'admin@mtravel.co.ke');
+          if (users && users.length > 0) {
+            for (const u of users) {
+              const { data: w } = await supabase.from('wallets').select('id').eq('user_id', u.id);
+              if (w && w.length > 0) {
+                const wIds = w.map(x => x.id);
+                await supabase.from('transactions').delete().in('wallet_id', wIds);
+                await supabase.from('wallets').update({ balance: 0 }).in('id', wIds);
+              }
+            }
+          }
+        } catch {}
+      }
+
+      window.dispatchEvent(new CustomEvent('mt_wallet_updated', { detail: null }));
+      return { success: true, message: 'Operations Desk admin account has been reset to factory zero.' };
+    }
+
+    if (scope === 'CHIEF_ADMIN') {
+      const chiefIds = ['admin-safari-1', 'a0000000-0000-0000-0000-000000000001'];
+      for (const id of chiefIds) {
+        localStorage.setItem(`mt_local_wallet_${id}`, JSON.stringify({
+          id: `w-${id}`,
+          balance: 0,
+          pendingBalance: 0,
+          currency: 'KES',
+          transactions: []
+        }));
+      }
+
+      if (supabase) {
+        try {
+          const { data: users } = await supabase.from('users').select('id').in('email', ['safari@jambo.africa']);
+          if (users && users.length > 0) {
+            for (const u of users) {
+              const { data: w } = await supabase.from('wallets').select('id').eq('user_id', u.id);
+              if (w && w.length > 0) {
+                const wIds = w.map(x => x.id);
+                await supabase.from('transactions').delete().in('wallet_id', wIds);
+                await supabase.from('wallets').update({ balance: 0 }).in('id', wIds);
+              }
+            }
+          }
+        } catch {}
+      }
+
+      window.dispatchEvent(new CustomEvent('mt_wallet_updated', { detail: null }));
+      return { success: true, message: 'Chief Admin account has been reset to factory zero.' };
+    }
+
+    return { success: false, message: 'Invalid reset scope specified' };
+  } catch (err: any) {
+    return { success: false, message: err?.message || 'Factory reset execution error' };
+  }
+};
+
+export const eraseAllTransactionHistoriesAndWallets = (): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    const walletKeys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (
+        k &&
+        (k.startsWith('mt_local_wallet_') ||
+         k.startsWith('mt_wallet_') ||
+         k.includes('wallet') ||
+         k.includes('transaction') ||
+         k.includes('payout'))
+      ) {
+        walletKeys.push(k);
+      }
+    }
+    walletKeys.forEach(k => localStorage.removeItem(k));
+
+    const systemUserIds = [
+      'a0000000-0000-0000-0000-000000000001',
+      'a0000000-0000-0000-0000-000000000002',
+      'owner-safari-1',
+      'user-host-1',
+      'admin-safari-1',
+      'admin-mtravel-1',
+      'tourist-demo-1',
+      'user-tourist-1'
+    ];
+    for (const uid of systemUserIds) {
+      localStorage.setItem(`mt_local_wallet_${uid}`, JSON.stringify({
+        id: `w-${uid}`,
+        balance: 0,
+        pendingBalance: 0,
+        currency: 'KES',
+        transactions: []
+      }));
+    }
+
+    if (supabase) {
+      Promise.allSettled([
+        supabase.from('transactions').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        supabase.from('wallets').update({ balance: 0 }).neq('id', '00000000-0000-0000-0000-000000000000'),
+      ]).catch(() => {});
+    }
+
+    window.dispatchEvent(new CustomEvent('mt_wallet_updated', { detail: null }));
+  } catch (err) {
+    console.warn('eraseAllTransactionHistoriesAndWallets warning:', err);
+  }
+};
+
+export const performSystemFactoryReset = (force = false): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (!force && localStorage.getItem(FACTORY_RESET_VERSION_KEY) === 'true') {
+      return;
+    }
+
+    // 1. Erase all fleet vehicles (including buses) - Start with 0 vehicles
+    localStorage.setItem(VEHICLES_KEY, JSON.stringify([]));
+    localStorage.removeItem(LIVE_OVERRIDES_KEY);
+    localStorage.removeItem(DELETED_VEHICLES_KEY);
+    localStorage.removeItem('mt_vehicle_documents_v1');
+
+    // 2. Erase all bookings across all users - Start with 0 bookings
+    localStorage.setItem(BOOKINGS_KEY, JSON.stringify([]));
+
+    // 3. Erase all travel destinations & holiday homes - Start with 0 tours
+    localStorage.setItem('mt_shared_destinations_v1', JSON.stringify([]));
+
+    // 4. Erase all lifecycle records, handovers, returns, checkins, incidents, audit logs
+    localStorage.setItem('mt_audit_logs_v1', JSON.stringify([]));
+    localStorage.setItem('mt_handovers_v1', JSON.stringify([]));
+    localStorage.setItem('mt_inspections_v1', JSON.stringify([]));
+    localStorage.setItem('mt_trip_checkins_v1', JSON.stringify([]));
+    localStorage.setItem('mt_incidents_v1', JSON.stringify([]));
+
+    // 5. Erase all wallet balances and transaction histories across all accounts (travelers, fleet hosts, and admins)
+    eraseAllTransactionHistoriesAndWallets();
+
+    // 6. Reset traveler credit scoring intelligence
+    localStorage.setItem('mt_traveler_credit_profiles_v1', JSON.stringify([]));
+
+    // 7. Clear in-memory caches
+    if ((window as any).__MT_IMAGE_VAULT__) (window as any).__MT_IMAGE_VAULT__ = new Map();
+    if ((window as any).__MT_DOC_VAULT__) (window as any).__MT_DOC_VAULT__ = new Map();
+
+    localStorage.setItem(FACTORY_RESET_VERSION_KEY, 'true');
+
+    // Emit live reactive events so all components immediately update
+    window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: [] }));
+    window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: [] }));
+    window.dispatchEvent(new CustomEvent('mt_destinations_updated', { detail: [] }));
+    window.dispatchEvent(new CustomEvent('mt_audit_logged', { detail: null }));
+    window.dispatchEvent(new CustomEvent('mt_wallet_updated', { detail: null }));
+    window.dispatchEvent(new CustomEvent('mt_credit_scores_updated', { detail: [] }));
+  } catch (err) {
+    console.warn('performSystemFactoryReset notice:', err);
+  }
+};
+
+export const clearAllVehicles = (): void => {
+  try {
+    localStorage.setItem(VEHICLES_KEY, JSON.stringify([]));
+    localStorage.removeItem(LIVE_OVERRIDES_KEY);
+    if (typeof window !== 'undefined') {
+      (window as any).__MT_IMAGE_VAULT__ = new Map();
+      try {
+        sessionStorage.clear();
+      } catch {}
+    }
+  } catch {}
+  window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: [] }));
+};
+
+// Auto-purge any legacy demo/sample vehicles from localStorage on script load
+if (typeof window !== 'undefined') {
+  performSystemFactoryReset(false);
+  try {
+    const raw = localStorage.getItem(VEHICLES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed.filter(v => v && v.id && !isDemoVehicle(v) && v.id !== '48d4aa37-a383-40cf-9b17-19548457dd95');
+        localStorage.setItem(VEHICLES_KEY, JSON.stringify(cleaned));
+      }
+    } else {
+      localStorage.setItem(VEHICLES_KEY, JSON.stringify([]));
+    }
+  } catch {}
+}
 
 /**
  * Seeds core fleet vehicles to Supabase if empty (No-op: strictly only host-registered vehicles allowed).
@@ -918,9 +1237,12 @@ export const getStoredVehicles = (): StoredVehicle[] => {
         p.ownerId &&
         p.createdAt
       ) {
-        const isBus = isBusVehicle(p) || p.model?.toLowerCase().includes('coach') || p.model?.toLowerCase().includes('bus') || p.id === '48d4aa37-a383-40cf-9b17-19548457dd95';
+        const isBus = isBusVehicle(p) || p.model?.toLowerCase().includes('coach') || p.model?.toLowerCase().includes('bus');
         let images = Array.isArray(p.images) ? p.images : [];
-        if (isBus) {
+        const vaultImages = getVehicleImagesFromVault(p.id);
+        if (vaultImages && vaultImages.length > 0) {
+          images = vaultImages;
+        } else if (isBus) {
           images = images.map((img: string, idx: number) =>
             (!img || img.includes('prado')) ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : img
           );
@@ -931,7 +1253,7 @@ export const getStoredVehicles = (): StoredVehicle[] => {
         valid.push({
           ...p,
           type: (isBus ? 'BUS' : p.type).toUpperCase(),
-          images,
+          images: images.length > 0 ? images : (isBus ? ['/vehicles/isuzu-coach-front.jpg', '/vehicles/isuzu-coach-rear.jpg'] : ['/vehicles/prado-front.jpg', '/vehicles/prado-rear.jpg']),
           documents: ensureVehicleComplianceDocs(p.id, p),
           isLive: overrides[p.id] !== undefined ? overrides[p.id] : p.isLive !== false,
         });
@@ -969,7 +1291,7 @@ export const syncBookingsFromSupabase = async (): Promise<StoredBooking[]> => {
         .order('created_at', { ascending: false });
 
       const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) =>
-        setTimeout(() => resolve({ data: null, error: new Error('Supabase sync timeout') }), 6000)
+        setTimeout(() => resolve({ data: null, error: new Error('Supabase sync timeout') }), 1200)
       );
 
       const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
@@ -1109,27 +1431,14 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
         .order('created_at', { ascending: false });
 
       const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) =>
-        setTimeout(() => resolve({ data: null, error: new Error('Supabase sync timeout') }), 6000)
+        setTimeout(() => resolve({ data: null, error: new Error('Supabase sync timeout') }), 1200)
       );
 
       const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
-      if (error) {
-        console.warn('syncVehiclesFromSupabase notice/error:', error.message || error);
+      if (error || !data || data.length === 0) {
+        if (error) console.warn('syncVehiclesFromSupabase notice/error:', error?.message || error);
         return getStoredVehicles();
-      }
-
-      if (!data || data.length === 0) {
-        const currentLocal = getStoredVehicles().filter(v => !isDemoVehicle(v));
-        const prevRaw = localStorage.getItem(VEHICLES_KEY);
-        const nextRaw = JSON.stringify(currentLocal);
-        if (prevRaw !== nextRaw) {
-          try {
-            localStorage.setItem(VEHICLES_KEY, nextRaw);
-          } catch {}
-          window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: currentLocal }));
-        }
-        return currentLocal;
       }
 
       const currentLocal = getStoredVehicles();
@@ -1147,15 +1456,18 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
         .map((v: any) => {
           const existing = localMap.get(v.id);
           const owner = v.users || {};
-          const ownerName = [owner.first_name, owner.last_name].filter(Boolean).join(' ') || existing?.ownerName || 'Fleet Host';
-          const ownerEmail = owner.email || existing?.ownerEmail || (ownerName.toLowerCase().includes('james') ? 'james.mwangi@mtravel.co.ke' : undefined);
+          const isJamesOwner = (v.owner_id === 'a0000000-0000-0000-0000-000000000002' || v.owner_id === 'owner-safari-1' || v.owner_id === 'user-host-1' || (v.make && v.make.toLowerCase().includes('mitsubishi')));
+          const ownerName = [owner.first_name, owner.last_name].filter(Boolean).join(' ') || existing?.ownerName || (isJamesOwner ? 'James Mwangi' : 'Fleet Host');
+          const ownerEmail = owner.email || existing?.ownerEmail || (isJamesOwner ? 'james.mwangi@mtravel.co.ke' : undefined);
           const ownerId = existing?.ownerId || v.owner_id || 'a0000000-0000-0000-0000-000000000002';
 
-          const isBus = isBusVehicle(v) || (v.model?.toLowerCase().includes('bus') || v.model?.toLowerCase().includes('coach') || v.make?.toLowerCase().includes('bus') || Number(v.seats) >= 20 || v.id === '48d4aa37-a383-40cf-9b17-19548457dd95');
+          const isBus = isBusVehicle(v) || (v.model?.toLowerCase().includes('bus') || v.model?.toLowerCase().includes('coach') || v.make?.toLowerCase().includes('bus') || Number(v.seats) >= 20);
 
-          let images: string[] = (Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0)
-            ? v.vehicle_images.map((img: any) => img.url).filter(Boolean)
-            : (existing?.images && existing.images.length > 0 ? existing.images : [getVehicleFallbackImage(v.make, v.model, isBus ? 'BUS' : v.type, v.id)]);
+          let images: string[] = (existing?.images && existing.images.length > 0)
+            ? existing.images
+            : ((Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0)
+                ? v.vehicle_images.map((img: any) => img.url).filter(Boolean)
+                : [getVehicleFallbackImage(v.make, v.model, isBus ? 'BUS' : v.type, v.id)]);
 
           if (isBus) {
             images = images.map((img: string, idx: number) =>
@@ -1220,24 +1532,6 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
           localStorage.setItem(VEHICLES_KEY, nextRaw);
         } catch (e) {
           console.warn('LocalStorage quota warning in syncVehiclesFromSupabase:', e);
-          const sanitized = merged.map(v => {
-            const isBus = isBusVehicle(v);
-            return {
-              ...v,
-              images: v.images.map((img, i) => img.startsWith('data:')
-                ? (isBus ? (i === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : (i === 0 ? '/vehicles/prado-front.jpg' : '/vehicles/prado-rear.jpg'))
-                : img),
-              documents: (v.documents || []).map(d => ({
-                ...d,
-                fileUrl: (d.fileUrl && d.fileUrl.startsWith('data:') && d.fileUrl.length > 50000)
-                  ? resolveRealDocumentUrl(d.fileName, d.type, '')
-                  : d.fileUrl
-              }))
-            };
-          });
-          try {
-            localStorage.setItem(VEHICLES_KEY, JSON.stringify(sanitized));
-          } catch {}
         }
         window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: merged }));
       }
@@ -1266,123 +1560,140 @@ export const saveVehicle = async (vehicle: Omit<StoredVehicle, 'id' | 'createdAt
   const existing = getStoredVehicles();
   const vehicleId = ensureUUID();
   const docs = ensureVehicleComplianceDocs(vehicleId, vehicle);
+
+  const isBus = isBusVehicle(vehicle);
+  const rawImages = (vehicle.images && vehicle.images.length > 0)
+    ? vehicle.images.filter(Boolean)
+    : (isBus ? ['/vehicles/isuzu-coach-front.jpg', '/vehicles/isuzu-coach-rear.jpg'] : ['/vehicles/prado-front.jpg', '/vehicles/prado-rear.jpg']);
+
+  putVehicleImagesInVault(vehicleId, rawImages);
+
+  const storageImages = rawImages.map((img, i) =>
+    (img.startsWith('data:') && img.length > 1000)
+      ? (isBus ? (i === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : (i === 0 ? '/vehicles/prado-front.jpg' : '/vehicles/prado-rear.jpg'))
+      : img
+  );
+
+  const sanitizedDocs = docs.map(d => ({
+    ...d,
+    fileUrl: (d.fileUrl && d.fileUrl.startsWith('data:') && d.fileUrl.length > 5000)
+      ? resolveRealDocumentUrl(d.fileName, d.type, '')
+      : d.fileUrl
+  }));
+
   const newVehicle: StoredVehicle = {
     ...vehicle,
     id: vehicleId,
-    documents: docs,
+    ownerId: vehicle.ownerId || 'a0000000-0000-0000-0000-000000000002',
+    ownerEmail: vehicle.ownerEmail || 'james.mwangi@mtravel.co.ke',
+    ownerName: vehicle.ownerName || 'James Mwangi',
+    images: rawImages,
+    documents: sanitizedDocs,
     status: 'PENDING_APPROVAL',
     isLive: false,
     ratingAverage: 5.0,
     ratingCount: 0,
     createdAt: new Date().toISOString(),
   };
+
   saveVehicleDocuments(vehicleId, docs);
-  const updated = [newVehicle, ...existing];
+
+  const storageVehicle: StoredVehicle = {
+    ...newVehicle,
+    images: storageImages,
+  };
+
+  const updated = [storageVehicle, ...existing];
   try {
     localStorage.setItem(VEHICLES_KEY, JSON.stringify(updated));
   } catch (err) {
-    console.warn('LocalStorage quota warning in saveVehicle, saving with pruned images and documents:', err);
-    const sanitized = updated.map(v => {
-      const isBus = isBusVehicle(v);
-      return {
-        ...v,
-        images: v.images.map((img, i) => img.startsWith('data:') 
-          ? (isBus ? (i === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : (i === 0 ? '/vehicles/prado-front.jpg' : '/vehicles/prado-rear.jpg')) 
-          : img),
-        documents: (v.documents || []).map(d => ({
-          ...d,
-          fileUrl: (d.fileUrl && d.fileUrl.startsWith('data:') && d.fileUrl.length > 50000)
-            ? resolveRealDocumentUrl(d.fileName, d.type, '')
-            : d.fileUrl
-        }))
-      };
-    });
-    try {
-      localStorage.setItem(VEHICLES_KEY, JSON.stringify(sanitized));
-    } catch {}
+    console.warn('LocalStorage quota warning in saveVehicle:', err);
   }
   window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: newVehicle }));
 
-  // Real-time Supabase push (awaited)
-  try {
-    let validOwnerId = isValidUUID(vehicle.ownerId) ? vehicle.ownerId : null;
+  // Non-blocking background push to Supabase
+  (async () => {
+    try {
+      let validOwnerId = isValidUUID(vehicle.ownerId) ? vehicle.ownerId : null;
 
-    if (vehicle.ownerEmail) {
-      const { data: dbUser } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', vehicle.ownerEmail.trim().toLowerCase())
-        .maybeSingle();
-      if (dbUser?.id) {
-        validOwnerId = dbUser.id;
+      if (vehicle.ownerEmail) {
+        const { data: dbUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', vehicle.ownerEmail.trim().toLowerCase())
+          .maybeSingle();
+        if (dbUser?.id) {
+          validOwnerId = dbUser.id;
+        }
       }
-    }
 
-    if (!validOwnerId) {
-      validOwnerId = 'a0000000-0000-0000-0000-000000000002';
-      await supabase.from('users').upsert({
-        id: validOwnerId,
-        email: vehicle.ownerEmail || 'james.mwangi@mtravel.co.ke',
-        first_name: (vehicle.ownerName || 'James').split(' ')[0],
-        last_name: (vehicle.ownerName || 'Mwangi').split(' ').slice(1).join(' ') || 'Mwangi',
-        role: 'VEHICLE_OWNER',
-        is_active: true,
+      if (!validOwnerId) {
+        validOwnerId = 'a0000000-0000-0000-0000-000000000002';
+        await supabase.from('users').upsert({
+          id: validOwnerId,
+          email: vehicle.ownerEmail || 'james.mwangi@mtravel.co.ke',
+          first_name: (vehicle.ownerName || 'James').split(' ')[0],
+          last_name: (vehicle.ownerName || 'Mwangi').split(' ').slice(1).join(' ') || 'Mwangi',
+          role: 'VEHICLE_OWNER',
+          is_active: true,
+        }, { onConflict: 'id' });
+      }
+
+      const dbType = (vehicle.type || 'VAN').toUpperCase();
+      const safeDbType = ['SUV', 'VAN', 'SEDAN', 'LUXURY'].includes(dbType) ? dbType : 'VAN';
+
+      const { error: vErr } = await supabase.from('vehicles').upsert({
+        id: vehicleId,
+        owner_id: validOwnerId,
+        type: safeDbType,
+        make: vehicle.make,
+        model: vehicle.model,
+        year: Number(vehicle.year || 2024),
+        seats: Number(vehicle.seats || 7),
+        fuel_type: (vehicle.fuelType || 'DIESEL').toUpperCase(),
+        transmission: (vehicle.transmission || 'AUTOMATIC').toUpperCase(),
+        price_per_day: Number(vehicle.pricePerDay || 15000),
+        plate_number: vehicle.plateNumber || null,
+        has_insurance: vehicle.hasInsurance !== false,
+        latitude: vehicle.latitude ?? -1.2921,
+        longitude: vehicle.longitude ?? 36.8219,
+        address: vehicle.address || 'Nairobi, Kenya',
+        is_available: false,
+        is_approved: false,
+        rating_average: 5.0,
+        rating_count: 0,
+        created_at: newVehicle.createdAt,
       }, { onConflict: 'id' });
+
+      if (vErr) {
+        console.warn('Supabase vehicle upsert warning:', vErr);
+      }
+
+      if (Array.isArray(vehicle.images) && vehicle.images.length > 0) {
+        await supabase.from('vehicle_images').delete().eq('vehicle_id', vehicleId);
+        const isBus = isBusVehicle(vehicle);
+        const imgRows = vehicle.images.slice(0, 5).map((url, idx) => ({
+          vehicle_id: vehicleId,
+          url: url.startsWith('data:') ? (isBus ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : (idx === 0 ? '/vehicles/prado-front.jpg' : '/vehicles/prado-rear.jpg')) : url,
+          is_primary: idx === 0,
+        }));
+        await supabase.from('vehicle_images').insert(imgRows);
+      }
+
+      logAuditEvent(
+        'VEHICLE_REGISTERED',
+        'Vehicle',
+        vehicleId,
+        `Host ${newVehicle.ownerName || 'Host'} submitted ${newVehicle.year} ${newVehicle.make} ${newVehicle.model} for fleet inspection`,
+        newVehicle.ownerName || 'Fleet Host',
+        'VEHICLE_OWNER'
+      );
+      window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'vehicles' } }));
+      await syncVehiclesFromSupabase();
+    } catch (err) {
+      console.warn('Supabase real-time vehicle insert notice:', err);
     }
-
-    const dbType = (vehicle.type || 'VAN').toUpperCase();
-    const safeDbType = ['SUV', 'VAN', 'SEDAN', 'LUXURY'].includes(dbType) ? dbType : 'VAN';
-
-    const { error: vErr } = await supabase.from('vehicles').upsert({
-      id: vehicleId,
-      owner_id: validOwnerId,
-      type: safeDbType,
-      make: vehicle.make,
-      model: vehicle.model,
-      year: Number(vehicle.year || 2024),
-      seats: Number(vehicle.seats || 7),
-      fuel_type: (vehicle.fuelType || 'DIESEL').toUpperCase(),
-      transmission: (vehicle.transmission || 'AUTOMATIC').toUpperCase(),
-      price_per_day: Number(vehicle.pricePerDay || 15000),
-      plate_number: vehicle.plateNumber || null,
-      has_insurance: vehicle.hasInsurance !== false,
-      latitude: vehicle.latitude ?? -1.2921,
-      longitude: vehicle.longitude ?? 36.8219,
-      address: vehicle.address || 'Nairobi, Kenya',
-      is_available: false,
-      is_approved: false,
-      rating_average: 5.0,
-      rating_count: 0,
-      created_at: newVehicle.createdAt,
-    }, { onConflict: 'id' });
-
-    if (vErr) {
-      console.warn('Supabase vehicle upsert warning:', vErr);
-    }
-
-    if (Array.isArray(vehicle.images) && vehicle.images.length > 0) {
-      await supabase.from('vehicle_images').delete().eq('vehicle_id', vehicleId);
-      const imgRows = vehicle.images.slice(0, 5).map((url, idx) => ({
-        vehicle_id: vehicleId,
-        url: url,
-        is_primary: idx === 0,
-      }));
-      await supabase.from('vehicle_images').insert(imgRows);
-    }
-
-    logAuditEvent(
-      'VEHICLE_REGISTERED',
-      'Vehicle',
-      vehicleId,
-      `Host ${newVehicle.ownerName || 'Host'} submitted ${newVehicle.year} ${newVehicle.make} ${newVehicle.model} for fleet inspection`,
-      newVehicle.ownerName || 'Fleet Host',
-      'VEHICLE_OWNER'
-    );
-    window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'vehicles' } }));
-    await syncVehiclesFromSupabase();
-  } catch (err) {
-    console.warn('Supabase real-time vehicle insert notice:', err);
-  }
+  })();
 
   return newVehicle;
 };
@@ -1581,21 +1892,78 @@ export interface VehicleHireStatus {
  * - isHired: true when booked or on trip (so overlapping reservations are blocked).
  */
 export const getVehicleHireStatus = (vehicleId: string): VehicleHireStatus => {
-  const bookings = getStoredBookings();
-  const activeBooking = bookings.find(
-    (b) => b.vehicleId === vehicleId && ['CONFIRMED', 'ACCEPTED', 'PAID', 'RESERVED', 'IN_PROGRESS', 'ACTIVE'].includes((b.status || '').toUpperCase())
-  );
+  if (!vehicleId) {
+    return { isHired: false, isOnTrip: false, isAwaitingHandover: false };
+  }
 
-  if (activeBooking) {
-    const s = (activeBooking.status || '').toUpperCase();
-    const isOnTrip = ['IN_PROGRESS', 'ACTIVE'].includes(s);
+  const bookings = getStoredBookings();
+  const allVehicles = getStoredVehicles();
+  const targetVehicle = allVehicles.find(v => v.id === vehicleId);
+
+  // Filter all active/in-progress bookings associated with this vehicle
+  const vehicleBookings = bookings.filter((b) => {
+    const status = (b.status || '').toUpperCase();
+    if (['CANCELLED', 'REJECTED', 'COMPLETED'].includes(status)) return false;
+    const isActiveStatus = ['IN_PROGRESS', 'ACTIVE', 'CONFIRMED', 'ACCEPTED', 'PAID', 'RESERVED'].includes(status);
+    if (!isActiveStatus) return false;
+
+    // Match 1: direct ID match
+    if (b.vehicleId && b.vehicleId === vehicleId) return true;
+    if (b.id && b.id === vehicleId) return true;
+
+    // Match 2: target vehicle matching
+    if (targetVehicle) {
+      if (b.vehicleId && b.vehicleId === targetVehicle.id) return true;
+      if (targetVehicle.plateNumber && b.vehiclePlate) {
+        const p1 = targetVehicle.plateNumber.replace(/\s+/g, '').toUpperCase();
+        const p2 = b.vehiclePlate.replace(/\s+/g, '').toUpperCase();
+        if (p1 && p2 && p1 === p2) return true;
+      }
+      const vMake = (targetVehicle.make || '').trim().toLowerCase();
+      const vModel = (targetVehicle.model || '').trim().toLowerCase();
+      const bMake = (b.vehicleMake || '').trim().toLowerCase();
+      const bModel = (b.vehicleModel || '').trim().toLowerCase();
+      if (vMake && vModel && bMake && bModel && vMake === bMake && vModel === bModel) {
+        return true;
+      }
+      const vFullName = `${vMake} ${vModel}`.trim();
+      const bFullName = (b.vehicleName || `${b.vehicleMake || ''} ${b.vehicleModel || ''}`).trim().toLowerCase();
+      if (vFullName && bFullName && (vFullName === bFullName || bFullName.includes(vFullName) || vFullName.includes(bFullName))) {
+        return true;
+      }
+    } else {
+      const cleanInput = vehicleId.trim().toLowerCase();
+      const bFullName = (b.vehicleName || `${b.vehicleMake || ''} ${b.vehicleModel || ''}`).trim().toLowerCase();
+      if (bFullName && (bFullName === cleanInput || bFullName.includes(cleanInput) || cleanInput.includes(bFullName))) {
+        return true;
+      }
+    }
+
+    return false;
+  });
+
+  // Prioritize active on-trip booking over awaiting handover
+  const onTripBooking = vehicleBookings.find(b => ['IN_PROGRESS', 'ACTIVE'].includes((b.status || '').toUpperCase()));
+  if (onTripBooking) {
     return {
       isHired: true,
-      isOnTrip,
-      isAwaitingHandover: !isOnTrip,
-      activeBooking,
-      returnDate: activeBooking.endDate,
-      touristName: activeBooking.touristName,
+      isOnTrip: true,
+      isAwaitingHandover: false,
+      activeBooking: onTripBooking,
+      returnDate: onTripBooking.endDate,
+      touristName: onTripBooking.touristName,
+    };
+  }
+
+  const awaitingBooking = vehicleBookings.find(b => ['CONFIRMED', 'ACCEPTED', 'PAID', 'RESERVED'].includes((b.status || '').toUpperCase()));
+  if (awaitingBooking) {
+    return {
+      isHired: true,
+      isOnTrip: false,
+      isAwaitingHandover: true,
+      activeBooking: awaitingBooking,
+      returnDate: awaitingBooking.endDate,
+      touristName: awaitingBooking.touristName,
     };
   }
 

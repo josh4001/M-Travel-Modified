@@ -5,7 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
-import type { StoredBooking, StoredVehicle } from './bookingStore';
+import { isBusVehicle, type StoredBooking, type StoredVehicle } from './bookingStore';
 
 export interface DispatchedEmail {
   id: string;
@@ -14,7 +14,7 @@ export interface DispatchedEmail {
   subject: string;
   previewText: string;
   htmlContent: string;
-  category: 'VEHICLE_APPROVED' | 'DESTINATION_BOOKING' | 'VEHICLE_BOOKING' | 'ADMIN_ALERT';
+  category: 'VEHICLE_APPROVED' | 'DESTINATION_BOOKING' | 'VEHICLE_BOOKING' | 'ADMIN_ALERT' | 'PASSWORD_RESET';
   reference?: string;
   sentAt: string;
   deliveryStatus?: 'DELIVERED_RESEND' | 'GMAIL_READY' | 'DISPATCHED_LOCAL' | 'FAILED';
@@ -29,6 +29,9 @@ const GATEWAY_CONFIG_KEY = 'mt_email_gateway_config';
 export interface OutboundGatewayConfig {
   resendApiKey?: string;
   customSender?: string;
+  smtpUser?: string;
+  smtpPass?: string;
+  smtpProvider?: 'gmail_smtp' | 'resend';
 }
 
 export function getOutboundGatewayConfig(): OutboundGatewayConfig {
@@ -37,12 +40,18 @@ export function getOutboundGatewayConfig(): OutboundGatewayConfig {
     const parsed = raw ? JSON.parse(raw) : {};
     return {
       resendApiKey: parsed.resendApiKey || (import.meta as any).env?.VITE_RESEND_API_KEY || '',
-      customSender: parsed.customSender || 'M-TRAVEL Concierge <onboarding@resend.dev>',
+      customSender: parsed.customSender || 'M-TRAVEL Concierge <jamalkarisa96@gmail.com>',
+      smtpUser: parsed.smtpUser || 'jamalkarisa96@gmail.com',
+      smtpPass: parsed.smtpPass || 'shrlkouyuajvddsa',
+      smtpProvider: parsed.smtpProvider || 'gmail_smtp',
     };
   } catch {
     return {
       resendApiKey: (import.meta as any).env?.VITE_RESEND_API_KEY || '',
-      customSender: 'M-TRAVEL Concierge <onboarding@resend.dev>',
+      customSender: 'M-TRAVEL Concierge <jamalkarisa96@gmail.com>',
+      smtpUser: 'jamalkarisa96@gmail.com',
+      smtpPass: 'shrlkouyuajvddsa',
+      smtpProvider: 'gmail_smtp',
     };
   }
 }
@@ -72,14 +81,14 @@ export function openInGmail(to: string, subject: string, body: string): void {
 }
 
 /**
- * Dispatches real outbound email via the server-side Vite middleware (/api/send-email) using Resend.
+ * Dispatches real outbound email via the server-side Vite middleware (/api/send-email) using Gmail SMTP or Resend.
  */
 export async function dispatchLiveEmail(params: {
   to: string;
   subject: string;
   html: string;
   text?: string;
-}): Promise<{ success: boolean; id?: string; provider?: string; reason?: string; message?: string }> {
+}): Promise<{ success: boolean; id?: string; provider?: string; reason?: string; message?: string; error?: any }> {
   try {
     const config = getOutboundGatewayConfig();
     const res = await fetch('/api/send-email', {
@@ -92,6 +101,8 @@ export async function dispatchLiveEmail(params: {
         text: params.text,
         apiKey: config.resendApiKey,
         from: config.customSender,
+        smtpUser: config.smtpUser,
+        smtpPass: config.smtpPass,
       }),
     });
 
@@ -345,6 +356,7 @@ export async function sendTravelerBookingEmail(params: {
   isDestination: boolean;
 }): Promise<DispatchedEmail> {
   const { booking, isDestination } = params;
+  const isBus = !isDestination && isBusVehicle(booking);
   const travelerName = booking.touristName || 'Valued Guest';
   const travelerEmail = booking.touristEmail || 'traveler@mtravel.co.ke';
   const ref = booking.bookingRef;
@@ -354,10 +366,14 @@ export async function sendTravelerBookingEmail(params: {
 
   const subject = isDestination
     ? `🌴 Booking Placed & Confirmed: ${booking.vehicleName} (Ref: ${ref})`
+    : isBus
+    ? `🚌 Executive Bus Charter Confirmed: ${booking.vehicleName} (Ref: ${ref})`
     : `🚗 Luxury Car Hire Confirmed: ${booking.vehicleName} (Ref: ${ref})`;
 
   const previewText = isDestination
     ? `Dear ${travelerName}, your reservation for ${booking.vehicleName} is placed and confirmed. Our concierge is facilitating all arrangements.`
+    : isBus
+    ? `Dear ${travelerName}, your luxury bus charter for ${booking.vehicleName} is confirmed with assigned coach driver. Present ID only at pickup.`
     : `Dear ${travelerName}, your vehicle hire for ${booking.vehicleName} is confirmed and ready for pickup at our station hub.`;
 
   const htmlContent = `
@@ -397,8 +413,8 @@ export async function sendTravelerBookingEmail(params: {
 <body>
   <div class="container">
     <div class="header">
-      <div class="gold-pill">${isDestination ? 'HOLIDAY & SAFARI DESTINATION' : 'LUXURY MOBILITY & FLEET'}</div>
-      <h1 class="h1">${isDestination ? 'Destination Booking Placed & Confirmed' : 'Vehicle Hire Booking Confirmed'}</h1>
+      <div class="gold-pill">${isDestination ? 'HOLIDAY & SAFARI DESTINATION' : isBus ? 'EXECUTIVE BUS CHARTER' : 'LUXURY MOBILITY & FLEET'}</div>
+      <h1 class="h1">${isDestination ? 'Destination Booking Placed & Confirmed' : isBus ? 'Executive Bus Charter Confirmed' : 'Vehicle Hire Booking Confirmed'}</h1>
       <div class="ref-badge">Reservation Reference: ${ref}</div>
     </div>
 
@@ -409,6 +425,8 @@ export async function sendTravelerBookingEmail(params: {
       <p style="font-size: 14px; line-height: 1.6; color: #CBD5E1;">
         ${isDestination
           ? 'Thank you for choosing M-TRAVEL East Africa for your upcoming holiday. Your destination booking has been officially recorded and confirmed. Our dedicated travel company operations desk is currently facilitating all necessary ground arrangements, lodge coordination, and itinerary details.'
+          : isBus
+          ? 'Thank you for choosing M-TRAVEL East Africa. Your executive bus charter reservation is confirmed. Your bus is scheduled with an assigned company coach driver and verified for handover.'
           : 'Thank you for choosing M-TRAVEL East Africa. Your luxury vehicle hire reservation is confirmed. Your vehicle is scheduled, inspected, and verified for handover.'}
       </p>
 
@@ -416,11 +434,11 @@ export async function sendTravelerBookingEmail(params: {
         ${booking.vehicleImage ? `<img src="${booking.vehicleImage}" alt="${booking.vehicleName}" class="card-img" />` : ''}
         <div class="card-body">
           <div class="card-title">${booking.vehicleName}</div>
-          <p style="font-size: 12px; color: #94A3B8; margin: 0;">${isDestination ? 'Curated Kenyan Destination Experience' : 'Premium Vehicle Hire'}</p>
+          <p style="font-size: 12px; color: #94A3B8; margin: 0;">${isDestination ? 'Curated Kenyan Destination Experience' : isBus ? 'Executive Bus Charter' : 'Premium Vehicle Hire'}</p>
 
           <table class="info-grid">
             <tr>
-              <td class="label-col">${isDestination ? 'Destination / Lodge' : 'Vehicle Model'}</td>
+              <td class="label-col">${isDestination ? 'Destination / Lodge' : isBus ? 'Bus / Coach' : 'Vehicle Model'}</td>
               <td class="val-col">${booking.vehicleName}</td>
             </tr>
             <tr>
@@ -434,7 +452,7 @@ export async function sendTravelerBookingEmail(params: {
             ${!isDestination ? `
             <tr>
               <td class="label-col">Service Preference</td>
-              <td class="val-col">${booking.hasDriver ? 'With Certified Station Chauffeur' : 'Self-Drive (Client Collection)'}</td>
+              <td class="val-col">${isBus ? 'Assigned M-TRAVEL Coach Captain Included (No Self-Drive)' : (booking.hasDriver ? 'With Certified Station Chauffeur' : 'Self-Drive (Client Collection)')}</td>
             </tr>
             ` : ''}
             <tr>
@@ -458,6 +476,8 @@ export async function sendTravelerBookingEmail(params: {
         <p class="notice-text">
           ${isDestination
             ? 'Our travel concierge team has received your destination reservation and is coordinating your accommodations, lodge vouchers, and local logistics. For special dietary needs, private safari guide requests, or arrival transfers, click below to chat directly on WhatsApp.'
+            : isBus
+            ? 'This bus charter reservation includes an assigned, certified M-TRAVEL coach captain/driver. No driving license is required from the traveler. Please present your original National ID or Passport at pickup for traveler identity verification.'
             : 'Please bring your valid driving license (for self-drive) or meet your assigned chauffeur at the pickup hub. Comprehensive insurance is fully included.'}
         </p>
       </div>
@@ -659,22 +679,25 @@ export function getTravelerBookingWhatsAppUrl(params: {
       `Need custom safari requests or transfer updates? Reply to this message!\n` +
       `24/7 Operations Desk: +254 722 374 535 · M-TRAVEL East Africa Ltd.`;
   } else {
+    const isBus = isBusVehicle(booking);
     message =
-      `🚗 *M-TRAVEL LUXURY MOBILITY — VEHICLE HIRE CONFIRMATION* 🚗\n` +
+      `🚗 *M-TRAVEL LUXURY MOBILITY — ${isBus ? 'BUS CHARTER' : 'VEHICLE HIRE'} CONFIRMATION* 🚗\n` +
       `*OFFICIAL RENTAL VOUCHER & HANDOVER PASS*\n\n` +
       `Dear *${name}*,\n\n` +
-      `Your luxury vehicle booking has been *CONFIRMED & PREPARED* for your upcoming journey!\n\n` +
+      `Your ${isBus ? 'luxury coach charter' : 'luxury vehicle booking'} has been *CONFIRMED & PREPARED* for your upcoming journey!\n\n` +
       `📋 *Hire Details:*\n` +
-      `• *Vehicle:* ${place}\n` +
+      `• *${isBus ? 'Coach / Bus' : 'Vehicle'}:* ${place}\n` +
       `• *Booking Reference:* ${ref}\n` +
       `• *Rental Period:* ${dates}\n` +
-      `• *Service Mode:* ${booking.hasDriver ? 'Chauffeur Driven (Station Chauffeur Included)' : 'Self-Drive'}\n` +
+      `• *Service Mode:* ${isBus ? 'Charter Coach (Assigned Company Driver Included — No Self-Drive)' : (booking.hasDriver ? 'Chauffeur Driven (Station Chauffeur Included)' : 'Self-Drive')}\n` +
       `• *Pickup Point:* ${booking.pickupLocation || 'M-TRAVEL Station Hub, Nairobi'}\n` +
       `• *Total Paid:* ${amount}\n` +
       `• *M-Pesa Receipt:* ${receipt}\n` +
       `• *Insurance:* Comprehensive Cover Included\n\n` +
       `🔑 *Handover Instructions:*\n` +
-      `Present your National ID or Passport and driving license (for self-drive) at vehicle handover.\n\n` +
+      (isBus
+        ? `Present your original National ID or Passport only at pickup for traveler verification. (No driver's license required — Company-designated coach driver included).\n\n`
+        : `Present your National ID or Passport and driving license (for self-drive) at vehicle handover.\n\n`) +
       `📱 Access rental details, security check-in & receipt:\n` +
       `https://m-travel.co.ke/dashboard/my-bookings\n\n` +
       `24/7 Roadside Concierge: +254 722 374 535 · M-TRAVEL East Africa Ltd.`;
@@ -747,5 +770,128 @@ export function openHostRejectionWhatsApp(params: {
 }): void {
   const url = getHostRejectionWhatsAppUrl(params);
   window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+/**
+ * 7. PASSWORD RESET OTP EMAIL TEMPLATE
+ * High-end executive authentication security email with 6-digit verification code.
+ */
+export function generatePasswordResetOtpEmail(params: {
+  email: string;
+  recipientName?: string;
+  otpCode: string;
+  expiresInMinutes?: number;
+}): { subject: string; html: string; text: string } {
+  const { email, recipientName, otpCode, expiresInMinutes = 10 } = params;
+  const name = recipientName?.trim() || 'Valued Member';
+  const subject = `M-TRAVEL Security Code: ${otpCode} (Password Reset)`;
+
+  const text = `M-TRAVEL TOURS — ACCOUNT SECURITY DESK\n\n` +
+    `Hello ${name},\n\n` +
+    `We received a request to reset the password for your M-TRAVEL account (${email}).\n\n` +
+    `YOUR ONE-TIME VERIFICATION CODE IS:\n` +
+    `${otpCode}\n\n` +
+    `This code expires in ${expiresInMinutes} minutes and can only be used once.\n\n` +
+    `If you did not initiate this request, please ignore this email. Your current password remains safe and unchanged.\n\n` +
+    `M-TRAVEL Concierge Security Desk · Nairobi, Kenya`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #0f172a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f1f5f9; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table role="presentation" width="100%" style="max-width: 540px; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0;" cellspacing="0" cellpadding="0" border="0">
+          
+          <!-- Executive Luxury Header -->
+          <tr>
+            <td style="background-color: #090d16; padding: 32px 36px 28px 36px; text-align: left; border-bottom: 2px solid #1e293b;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td>
+                    <div style="display: inline-block; font-size: 22px; font-weight: 900; letter-spacing: 2px; color: #ffffff;">
+                      M-TRAVEL<span style="color: #f59e0b;">.</span>
+                    </div>
+                    <div style="font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #94a3b8; margin-top: 4px;">
+                      Authentication & Security Desk
+                    </div>
+                  </td>
+                  <td align="right">
+                    <span style="display: inline-block; background-color: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); color: #fbbf24; padding: 6px 12px; border-radius: 9999px; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">
+                      OTP Code
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Body Content -->
+          <tr>
+            <td style="padding: 36px 36px 28px 36px;">
+              <h1 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.02em;">
+                Password Reset Verification
+              </h1>
+              <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #475569;">
+                Hello <strong>${name}</strong>,<br>
+                We received a request to securely reset the password for your M-TRAVEL account registered under <strong style="color: #0f172a;">${email}</strong>.
+              </p>
+
+              <!-- OTP Verification Box -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 24px 0;">
+                <tr>
+                  <td align="center" style="background-color: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 16px; padding: 24px 16px;">
+                    <div style="font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #64748b; margin-bottom: 10px;">
+                      Your Single-Use Verification Code
+                    </div>
+                    <div style="font-family: 'Courier New', Courier, monospace, monospace; font-size: 38px; font-weight: 900; letter-spacing: 10px; color: #0f172a; text-indent: 10px;">
+                      ${otpCode}
+                    </div>
+                    <div style="font-size: 12px; font-weight: 600; color: #d97706; margin-top: 10px;">
+                      ⏱️ Expires in ${expiresInMinutes} minutes
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Security Warning -->
+              <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 14px 16px; margin: 24px 0;">
+                <p style="margin: 0; font-size: 12.5px; line-height: 1.5; color: #92400e;">
+                  <strong>Security Advisory:</strong> Never disclose this code to anyone. M-TRAVEL personnel will never request your one-time code by phone, chat, or email.
+                </p>
+              </div>
+
+              <p style="margin: 20px 0 0 0; font-size: 13px; line-height: 1.5; color: #64748b;">
+                If you did not request this password change, you can safely disregard this message. Your account remains completely secure and your existing credentials are unchanged.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; padding: 20px 36px; border-top: 1px solid #e2e8f0; text-align: center;">
+              <p style="margin: 0 0 6px 0; font-size: 11.5px; font-weight: 600; color: #64748b;">
+                M-TRAVEL TOURS & SAFARIS · LUXURY MARKETPLACE CONCIERGE
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+                Nairobi, Kenya · Questions? Contact <a href="mailto:support@mtravel.co.ke" style="color: #64748b; text-decoration: underline;">support@mtravel.co.ke</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return { subject, html, text };
 }
 

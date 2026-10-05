@@ -5,7 +5,7 @@ import type { RootState } from '@/store';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Car, Bus, Palmtree, MapPin, ArrowRight, Search, Sparkles,
-  CheckCircle, Calendar, ShieldCheck, X, Ticket, Power, Lock, AlertTriangle, Navigation
+  CheckCircle, Calendar, ShieldCheck, X, Power, Lock, AlertTriangle
 } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import { MpesaStkPushModal } from '@/components/ui/MpesaStkPushModal';
@@ -15,7 +15,6 @@ import {
 } from '@/lib/bookingStore';
 import { sendNotification } from '@/lib/notificationService';
 import { sendTravelerBookingEmail } from '@/lib/communicationService';
-import { VehicleStatusBadge } from '@/components/ui/LuxuryVehicleBadges';
 
 type TabType = 'vehicles' | 'buses';
 
@@ -82,7 +81,6 @@ export default function Catalogue() {
 
   const [selectedItem, setSelectedItem] = useState<CatalogueItem | null>(null);
   const [showMpesaModal, setShowMpesaModal] = useState(false);
-  const [selectedSeat, setSelectedSeat] = useState<number | null>(12);
 
   useEffect(() => {
     const cat = searchParams.get('category');
@@ -103,7 +101,7 @@ export default function Catalogue() {
   // Dynamic approved vehicles from registered hosts (only approved & live vehicles)
   const rawVehicles = storedVehicles && storedVehicles.length > 0 ? storedVehicles : getStoredVehicles();
   const approvedHostVehicles: CatalogueItem[] = rawVehicles
-    .filter((v) => v.status === 'APPROVED' && isVehicleLive(v.id))
+    .filter((v) => v.status === 'APPROVED' && (isVehicleLive(v.id) || getVehicleHireStatus(v.id).isHired))
     .map((v) => {
       const isBus = isBusVehicle(v);
       return {
@@ -114,7 +112,7 @@ export default function Catalogue() {
         badge: isBus ? 'BUS VEHICLE' : `${v.type} Vehicle`,
         priceKES: v.pricePerDay,
         priceUnit: '/ day',
-        imageUrl: (v.images[0] && !v.images[0].includes('prado')) ? v.images[0] : (isBus ? '/vehicles/isuzu-coach-front.jpg' : (v.images[0] || '/vehicles/prado-front.jpg')),
+        imageUrl: v.images[0] || (isBus ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/prado-front.jpg'),
         location: v.address || 'Nairobi & National Parks',
         specs: [`${v.seats} Seats`, v.fuelType, v.transmission, v.hasInsurance ? 'Verified & Insured' : 'Standard Insurance'],
         rating: v.ratingAverage || 4.9,
@@ -151,22 +149,16 @@ export default function Catalogue() {
   });
 
   return (
-    <div className="min-h-screen bg-[#060302] text-slate-100 relative overflow-hidden font-display">
-      {/* ATMOSPHERIC GLOWING BROWN AMBIENT RADIANCE */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[650px] bg-gradient-to-b from-amber-900/20 via-[#22140b]/35 to-transparent blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-1/4 -right-40 w-96 h-96 bg-amber-800/10 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute bottom-1/3 -left-40 w-96 h-96 bg-[#22140b]/25 rounded-full blur-3xl pointer-events-none -z-10" />
-
-      <div className="mx-auto max-w-7xl px-4 py-12 space-y-12 relative z-10">
+    <div className="min-h-screen bg-white text-slate-900 relative overflow-hidden font-sans">
+      <div className="mx-auto max-w-7xl px-4 py-12 space-y-10 relative z-10">
         {/* HEADER HERO BANNER */}
-        <div className="relative rounded-3xl overflow-hidden border border-amber-500/25 bg-gradient-to-br from-[#1c1008]/90 via-[#100905]/95 to-black/95 p-8 md:p-12 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-xl">
-          <div className="absolute -top-24 -right-24 w-80 h-80 bg-amber-600/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative rounded-3xl overflow-hidden border border-slate-800 bg-slate-950 p-8 md:p-12 shadow-2xl text-white">
           <div className="relative z-10 max-w-3xl space-y-4">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/15 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-300">
-              <Sparkles className="h-3.5 w-3.5 text-amber-400" /> M-TRAVEL Verified Marketplace
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-slate-200">
+              <Sparkles className="h-3.5 w-3.5 text-white" /> M-TRAVEL Verified Marketplace
             </span>
             <div className="flex items-center gap-3.5">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 shadow-sm">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 border border-white/20 text-white shadow-sm">
                 {activeTab === 'vehicles' && <Car className="h-6 w-6 stroke-[2]" />}
                 {activeTab === 'buses' && <Bus className="h-6 w-6 stroke-[2]" />}
               </div>
@@ -175,23 +167,23 @@ export default function Catalogue() {
                 {activeTab === 'vehicles' && 'Live Fleet Vehicles & Safari Hire'}
               </h1>
             </div>
-            <p className="text-sm md:text-base text-amber-100/70 leading-relaxed">
+            <p className="text-sm md:text-base text-slate-300 leading-relaxed font-normal">
               {activeTab === 'buses' && 'Book luxury highway coaches & intercity express shuttles with seat selection, onboard WiFi, and instant QR tickets.'}
               {activeTab === 'vehicles' && 'Explore live certified 4x4 safari cruisers, executive SUVs, and passenger vehicles registered by approved fleet hosts.'}
             </p>
 
             {/* HOLIDAYS AND TOURS PROMPT BANNER */}
             <div className="pt-2">
-              <div className="rounded-2xl bg-black/40 border border-amber-500/30 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
+              <div className="rounded-2xl bg-white/5 border border-white/10 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <Palmtree className="h-5 w-5 text-amber-400 shrink-0" />
-                  <span className="text-xs text-amber-200/80 font-medium">
+                  <Palmtree className="h-5 w-5 text-slate-300 shrink-0" />
+                  <span className="text-xs text-slate-300 font-medium">
                     Looking for Guided Safaris, Mara Packages, or Holiday Homes?
                   </span>
                 </div>
                 <Link
                   to="/holidays-and-tours"
-                  className="inline-flex items-center gap-1 text-xs font-bold text-amber-400 hover:text-amber-300 hover:underline"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-white hover:text-slate-300 hover:underline"
                 >
                   <span>Visit Holidays and Tours</span>
                   <ArrowRight className="h-3 w-3" />
@@ -202,11 +194,11 @@ export default function Catalogue() {
             {/* SEARCH BAR */}
             <div className="pt-2 max-w-xl">
               <div className="relative">
-                <Search className="absolute left-4 top-3.5 h-5 w-5 text-amber-400" />
+                <Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
                 <input
                   type="text"
                   placeholder={`Search ${TABS.find(t => t.id === activeTab)?.label} by name, location...`}
-                  className="input-field pl-12 bg-black/60 border-amber-900/50 text-white placeholder:text-amber-100/40 text-xs md:text-sm focus:border-amber-400 shadow-inner"
+                  className="input-field pl-12 bg-slate-900 border-slate-700 text-white placeholder:text-slate-400 text-xs md:text-sm focus:border-white shadow-inner"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -226,14 +218,14 @@ export default function Catalogue() {
                 onClick={() => handleTabChange(tab.id)}
                 className={`flex items-center gap-3 p-4 rounded-2xl border transition-all duration-200 ${
                   isActive
-                    ? 'bg-gradient-to-r from-amber-600 to-amber-500 text-white border-amber-400/60 shadow-[0_4px_20px_rgba(217,119,6,0.3)] scale-[1.02]'
-                    : 'bg-[#150d08]/80 text-amber-100/75 border-amber-900/40 hover:border-amber-500/50 hover:bg-[#20130b] hover:text-white backdrop-blur-md shadow-sm'
+                    ? 'bg-slate-950 text-white border-slate-950 shadow-md scale-[1.01]'
+                    : 'bg-white text-slate-700 border-slate-200 hover:border-slate-900 hover:text-slate-950 hover:bg-slate-50 shadow-xs'
                 }`}
               >
-                <Icon className="h-5 w-5 shrink-0" />
+                <Icon className={`h-5 w-5 shrink-0 ${isActive ? 'text-white' : 'text-slate-600'}`} />
                 <div className="text-left">
                   <span className="block font-bold text-sm leading-none">{tab.label}</span>
-                  <span className="text-[10px] font-medium opacity-80 mt-0.5 block">{tab.desc}</span>
+                  <span className="text-[10px] font-medium opacity-75 mt-0.5 block">{tab.desc}</span>
                 </div>
               </button>
             );
@@ -263,15 +255,15 @@ export default function Catalogue() {
         >
           {filteredItems.length === 0 ? (
             activeTab === 'vehicles' ? (
-              <div className="col-span-full rounded-3xl bg-[#120a05]/90 border border-amber-900/40 p-12 md:p-16 text-center space-y-4 shadow-xl backdrop-blur-md">
-                <div className="h-16 w-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
+              <div className="col-span-full rounded-3xl bg-white border border-slate-200 p-12 md:p-16 text-center space-y-4 shadow-sm">
+                <div className="h-16 w-16 rounded-2xl bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center mx-auto">
                   <Car className="h-8 w-8 stroke-[1.75]" />
                 </div>
                 <div className="space-y-1.5 max-w-md mx-auto">
-                  <h3 className="font-serif text-2xl font-bold text-white">
+                  <h3 className="font-serif text-2xl font-bold text-slate-950">
                     No vehicles available at the moment
                   </h3>
-                  <p className="text-xs md:text-sm text-amber-100/65 font-medium leading-relaxed">
+                  <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed">
                     {searchTerm
                       ? `No approved vehicles match "${searchTerm}". Try searching for another keyword or location.`
                       : 'There are currently no approved fleet vehicles listed for hire. Check back soon or register as a fleet host to list your vehicle.'}
@@ -281,7 +273,7 @@ export default function Catalogue() {
                   {searchTerm && (
                     <button
                       onClick={() => setSearchTerm('')}
-                      className="btn-secondary !bg-[#1c1008] !border-amber-900/50 !text-amber-200 hover:!bg-[#28170d] !py-2 !px-4 text-xs font-bold"
+                      className="btn-secondary !bg-slate-100 !border-slate-300 !text-slate-800 hover:!bg-slate-200 !py-2 !px-4 text-xs font-bold"
                     >
                       Clear Search
                     </button>
@@ -295,15 +287,15 @@ export default function Catalogue() {
                 </div>
               </div>
             ) : (
-              <div className="col-span-full rounded-3xl bg-[#120a05]/90 border border-amber-900/40 p-12 md:p-16 text-center space-y-4 shadow-xl backdrop-blur-md">
-                <div className="h-16 w-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
+              <div className="col-span-full rounded-3xl bg-white border border-slate-200 p-12 md:p-16 text-center space-y-4 shadow-sm">
+                <div className="h-16 w-16 rounded-2xl bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center mx-auto">
                   <Bus className="h-8 w-8 stroke-[1.75]" />
                 </div>
                 <div className="space-y-1.5 max-w-md mx-auto">
-                  <h3 className="font-serif text-2xl font-bold text-white">
+                  <h3 className="font-serif text-2xl font-bold text-slate-950">
                     No buses at the moment
                   </h3>
-                  <p className="text-xs md:text-sm text-amber-100/65 font-medium leading-relaxed">
+                  <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed">
                     {searchTerm
                       ? `No buses match "${searchTerm}". Try searching for another route or keyword.`
                       : 'There are currently no buses registered into the system. Admin and hosts can register buses under live fleet.'}
@@ -313,7 +305,7 @@ export default function Catalogue() {
                   <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
                     <button
                       onClick={() => setSearchTerm('')}
-                      className="btn-secondary !bg-[#1c1008] !border-amber-900/50 !text-amber-200 hover:!bg-[#28170d] !py-2 !px-4 text-xs font-bold"
+                      className="btn-secondary !bg-slate-100 !border-slate-300 !text-slate-800 hover:!bg-slate-200 !py-2 !px-4 text-xs font-bold"
                     >
                       Clear Search
                     </button>
@@ -323,15 +315,15 @@ export default function Catalogue() {
             )
           ) : (
             filteredItems.map((item) => {
-              const isVehicle = item.category === 'vehicles';
-              const hireStatus: VehicleHireStatus = isVehicle ? getVehicleHireStatus(item.id) : { isHired: false, isOnTrip: false, isAwaitingHandover: false };
+              const isVehicle = item.category === 'vehicles' || item.category === 'buses';
               const isLive = isVehicle ? isVehicleLive(item.id) : true;
+              const hireStatus = isVehicle ? getVehicleHireStatus(item.id) : { isHired: false, isOnTrip: false, isAwaitingHandover: false };
               const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 
               return (
                 <div
                   key={item.id}
-                  className="overflow-hidden rounded-3xl border border-amber-900/40 bg-gradient-to-b from-[#140c07]/90 to-[#0c0704]/95 backdrop-blur-md shadow-xl hover:shadow-[0_12px_36px_rgba(217,119,6,0.15)] hover:border-amber-500/40 transition-all duration-300 group flex flex-col sm:flex-row hover:-translate-y-1 h-full"
+                  className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm hover:shadow-xl hover:border-slate-900 transition-all duration-300 group flex flex-col sm:flex-row hover:-translate-y-1 h-full"
                 >
                   {/* IMAGE */}
                   <div className="relative h-60 sm:h-auto sm:w-1/2 overflow-hidden bg-slate-950 shrink-0">
@@ -340,57 +332,76 @@ export default function Catalogue() {
                       alt={item.title}
                       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
-                    <span className="absolute top-3 left-3 rounded-full bg-black/85 backdrop-blur-md border border-amber-400/40 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-300 shadow-sm">
+                    <span className="absolute top-3 left-3 rounded-full bg-slate-950/85 backdrop-blur-md border border-white/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-200 shadow-sm">
                       {item.badge}
                     </span>
-
-                    {/* OPERATIONAL STATUS BADGE */}
-                    {isVehicle && (
-                      <div className="absolute top-3 right-3">
-                        <VehicleStatusBadge
-                          isHired={hireStatus.isOnTrip}
-                          isOnTrip={hireStatus.isOnTrip}
-                          isAwaitingHandover={hireStatus.isAwaitingHandover}
-                          isLive={isLive}
-                          variant="overlay"
-                          labelOverride={
-                            hireStatus.isOnTrip
-                              ? 'On Trip'
-                              : hireStatus.isAwaitingHandover
-                              ? 'Booked & Reserved'
-                              : undefined
-                          }
-                        />
-                      </div>
+                    {hireStatus.isOnTrip && (
+                      <span className="absolute top-3 right-3 rounded-full bg-black/90 backdrop-blur-md border border-slate-700 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-md flex items-center gap-1">
+                        <Lock className="h-3 w-3 text-slate-300" /> Active On Trip
+                      </span>
+                    )}
+                    {!hireStatus.isOnTrip && hireStatus.isAwaitingHandover && (
+                      <span className="absolute top-3 right-3 rounded-full bg-slate-900/90 backdrop-blur-md border border-slate-700 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-300 shadow-md flex items-center gap-1">
+                        <Lock className="h-3 w-3 text-slate-400" /> Booked &amp; Reserved
+                      </span>
+                    )}
+                    {!isLive && isVehicle && !hireStatus.isHired && (
+                      <span className="absolute top-3 right-3 rounded-full bg-slate-800/90 backdrop-blur-md border border-slate-700 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 shadow-md flex items-center gap-1">
+                        Offline
+                      </span>
                     )}
                   </div>
 
                   {/* DETAILS */}
                   <div className="p-6 flex flex-col justify-between flex-1 space-y-4">
                     <div>
-                      <div className="flex items-center text-xs text-amber-400 font-semibold mb-1">
+                      <div className="flex items-center text-xs text-slate-600 font-semibold mb-1">
                         <span className="flex items-center gap-1">
-                          <MapPin className="h-3.5 w-3.5 text-amber-400" /> {item.location}
+                          <MapPin className="h-3.5 w-3.5 text-slate-700" /> {item.location}
                         </span>
                       </div>
-                      <h3 className="font-serif text-xl font-bold text-white group-hover:text-amber-400 transition-colors">
+                      <h3 className="font-serif text-xl font-bold text-slate-950 group-hover:text-slate-700 transition-colors">
                         {item.title}
                       </h3>
-                      <p className="mt-1.5 text-xs text-amber-100/70 leading-relaxed">
+                      <p className="mt-1.5 text-xs text-slate-600 leading-relaxed font-normal">
                         {item.subtitle}
                       </p>
 
+                      {/* TRIP / UNAVAILABILITY NOTICE BANNER */}
+                      {isVehicle && hireStatus.isOnTrip && (
+                        <div className="mt-3 p-2.5 rounded-xl bg-slate-100 border border-slate-300 flex items-start gap-2 text-xs">
+                          <AlertTriangle className="h-4 w-4 text-slate-900 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-bold text-slate-950 block text-[11px]">Currently Unavailable &bull; On Active Trip</span>
+                            <p className="text-[10px] text-slate-700 mt-0.5 leading-snug">
+                              This vehicle is currently on a trip with a traveler{hireStatus.returnDate ? ` until ${hireStatus.returnDate}` : ''}. Booking and payment are disabled until return handover inspection is completed by Admin.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {isVehicle && !hireStatus.isOnTrip && hireStatus.isAwaitingHandover && (
+                        <div className="mt-3 p-2.5 rounded-xl bg-slate-100 border border-slate-300 flex items-start gap-2 text-xs">
+                          <Lock className="h-4 w-4 text-slate-800 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-bold text-slate-950 block text-[11px]">Booked &bull; Awaiting Handover</span>
+                            <p className="text-[10px] text-slate-700 mt-0.5 leading-snug">
+                              This vehicle is reserved and scheduled for departure. Booking is locked until it completes its trip.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       {/* ADMIN LIVE FLEET OVERRIDE BAR */}
                       {isAdmin && isVehicle && (
-                        <div className="mt-3 p-2.5 rounded-xl bg-purple-950/50 border border-purple-500/30 flex items-center justify-between text-xs">
+                        <div className="mt-3 p-2.5 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-between text-xs">
                           <div className="flex items-center gap-1.5">
-                            <ShieldCheck className="h-4 w-4 text-purple-400 shrink-0" />
+                            <ShieldCheck className="h-4 w-4 text-purple-700 shrink-0" />
                             <div>
-                              <span className="font-bold text-purple-200 block text-[11px]">Admin Fleet Controls</span>
+                              <span className="font-bold text-purple-950 block text-[11px]">Admin Fleet Controls</span>
                               <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-[10px] text-purple-300 font-medium">Status:</span>
-                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${isLive ? 'text-emerald-400' : 'text-slate-400'}`}>
-                                  <span className={`h-1.5 w-1.5 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+                                <span className="text-[10px] text-purple-700 font-medium">Status:</span>
+                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${isLive ? 'text-emerald-700' : 'text-slate-600'}`}>
+                                  <span className={`h-1.5 w-1.5 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
                                   {isLive ? 'Live on Marketplace' : 'Offline (Paused)'}
                                 </span>
                               </div>
@@ -408,7 +419,7 @@ export default function Catalogue() {
                             }}
                             className={`px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-sm transition flex items-center gap-1 shrink-0 ${
                               isLive
-                                ? 'bg-rose-950 text-rose-300 border border-rose-700 hover:bg-rose-900'
+                                ? 'bg-rose-100 text-rose-800 border border-rose-300 hover:bg-rose-200'
                                 : 'bg-emerald-600 text-white hover:bg-emerald-700'
                             }`}
                             title={isLive ? 'Take offline upon host request' : 'Turn live upon host request'}
@@ -419,34 +430,12 @@ export default function Catalogue() {
                         </div>
                       )}
 
-                      {/* UNAVAILABILITY & HIRED NOTICES FOR TRAVELERS */}
-                      {isVehicle && hireStatus.isHired && (
-                        <div className="mt-2.5 p-2.5 rounded-xl bg-amber-950/60 border border-amber-600/40 text-amber-200 text-[11px] font-medium flex items-start gap-2 shadow-xs">
-                          <div className="p-1 rounded-lg bg-amber-500/20 text-amber-300 shrink-0 mt-0.5">
-                            <Navigation className="h-3.5 w-3.5 -rotate-45" />
-                          </div>
-                          <div className="leading-snug">
-                            <span className="font-bold block text-amber-300">Active Passenger Journey</span>
-                            Currently on an active trip with a traveler until {hireStatus.returnDate || 'return'}. Cannot be hired until returned.
-                          </div>
-                        </div>
-                      )}
-
-                      {isVehicle && !hireStatus.isHired && !isLive && (
-                        <div className="mt-2.5 p-2 rounded-xl bg-rose-950/60 border border-rose-700/50 text-rose-200 text-[11px] font-medium flex items-start gap-1.5">
-                          <AlertTriangle className="h-3.5 w-3.5 text-rose-400 shrink-0 mt-0.5" />
-                          <span>
-                            <strong>Temporarily offline:</strong> This car is not available for hire at the moment upon host/admin request.
-                          </span>
-                        </div>
-                      )}
-
                       {/* SPECS */}
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {item.specs.map((spec) => (
                           <span
                             key={spec}
-                            className="rounded-lg bg-black/40 border border-amber-900/40 px-2.5 py-1 text-[10px] font-medium text-amber-200/80"
+                            className="rounded-lg bg-slate-100 border border-slate-200 px-2.5 py-1 text-[10px] font-medium text-slate-700"
                           >
                             {spec}
                           </span>
@@ -454,12 +443,12 @@ export default function Catalogue() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-amber-900/30 pt-4">
+                    <div className="flex items-center justify-between border-t border-slate-100 pt-4">
                       <div>
-                        <span className="text-[10px] text-amber-300/50 uppercase tracking-widest block font-bold">Rate</span>
-                        <span className="text-xl font-bold text-white">
+                        <span className="text-[10px] text-slate-500 uppercase tracking-widest block font-bold">Rate</span>
+                        <span className="text-xl font-bold text-slate-950">
                           {formatPrice(item.priceKES)}
-                          <span className="text-xs font-normal text-amber-200/60">{item.priceUnit}</span>
+                          <span className="text-xs font-normal text-slate-500">{item.priceUnit}</span>
                         </span>
                       </div>
 
@@ -467,47 +456,48 @@ export default function Catalogue() {
                         <button
                           type="button"
                           onClick={() => {
-                            if (isVehicle) {
-                              navigate(`/vehicles/${item.id}`);
-                            } else {
-                              setSelectedItem(item);
-                            }
+                            navigate(`/vehicles/${item.id}`);
                           }}
-                          className="rounded-xl bg-[#1c1008] hover:bg-[#28170d] border border-amber-800/40 text-amber-200 !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold transition shadow-xs cursor-pointer"
+                          className="rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold transition shadow-xs cursor-pointer"
                         >
-                          <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />
+                          <ShieldCheck className="h-3.5 w-3.5 text-slate-700" />
                           <span>View Description &amp; Specs</span>
                         </button>
-                      ) : isVehicle && hireStatus.isHired ? (
+                      ) : hireStatus.isOnTrip ? (
                         <button
                           disabled
-                          className="rounded-xl bg-black/40 border border-white/10 text-slate-500 !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold cursor-not-allowed shadow-none"
-                          title={`This vehicle is hired until ${hireStatus.returnDate || 'return'}`}
+                          className="rounded-xl bg-slate-200 border border-slate-300 text-slate-500 !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold cursor-not-allowed shadow-none"
+                          title="Vehicle is currently on a trip and unavailable for hire"
                         >
                           <Lock className="h-3.5 w-3.5 text-slate-500" />
-                          Currently In Use
+                          <span>Unavailable (On Trip)</span>
                         </button>
-                      ) : isVehicle && !isLive ? (
+                      ) : hireStatus.isAwaitingHandover ? (
                         <button
                           disabled
-                          className="rounded-xl bg-black/40 border border-white/10 text-slate-500 !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold cursor-not-allowed shadow-none"
-                          title="Vehicle is temporarily paused from hire"
+                          className="rounded-xl bg-slate-200 border border-slate-300 text-slate-500 !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold cursor-not-allowed shadow-none"
+                          title="Vehicle is already booked and reserved"
                         >
                           <Lock className="h-3.5 w-3.5 text-slate-500" />
-                          Unavailable
+                          <span>Booked &amp; Reserved</span>
+                        </button>
+                      ) : !isLive && isVehicle ? (
+                        <button
+                          disabled
+                          className="rounded-xl bg-slate-200 border border-slate-300 text-slate-500 !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold cursor-not-allowed shadow-none"
+                          title="Vehicle is currently paused from hire"
+                        >
+                          <Lock className="h-3.5 w-3.5 text-slate-500" />
+                          <span>Unavailable (Offline)</span>
                         </button>
                       ) : (
                         <button
                           onClick={() => {
-                            if (isVehicle) {
-                              navigate(`/vehicles/${item.id}`);
-                            } else {
-                              setSelectedItem(item);
-                            }
+                            navigate(`/vehicles/${item.id}`);
                           }}
-                          className="btn-primary !px-5 !py-2 text-xs flex items-center gap-1.5 font-bold shadow-md shadow-amber-500/20"
+                          className="btn-primary !px-5 !py-2 text-xs flex items-center gap-1.5 font-bold shadow-sm"
                         >
-                          {activeTab === 'buses' ? 'Reserve Bus Seat' : 'Book Vehicle'}
+                          {activeTab === 'buses' ? 'Reserve Entire Bus' : 'Book Vehicle'}
                           <ArrowRight className="h-3.5 w-3.5" />
                         </button>
                       )}
@@ -527,7 +517,7 @@ export default function Catalogue() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="relative w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 md:p-8 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto text-slate-900"
+            className="relative w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-5 md:p-6 space-y-5 shadow-2xl max-h-[85vh] overflow-y-auto text-slate-900 my-auto"
           >
             <button
               onClick={() => setSelectedItem(null)}
@@ -537,7 +527,7 @@ export default function Catalogue() {
             </button>
 
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-amber-500 text-white font-mono text-[10px] font-bold px-3 py-1 uppercase shadow-sm">
+              <span className="rounded-full bg-slate-950 text-white font-mono text-[10px] font-bold px-3 py-1 uppercase shadow-sm">
                 {selectedItem.badge}
               </span>
               <span className="text-xs text-teal-700 font-semibold flex items-center gap-1">
@@ -565,7 +555,7 @@ export default function Catalogue() {
 
               {/* MODAL RIGHT: CATEGORY SPECIFIC WORKFLOW */}
               {(() => {
-                const isSelectedVehicle = selectedItem.category === 'vehicles';
+                const isSelectedVehicle = selectedItem.category === 'vehicles' || selectedItem.category === 'buses';
                 const selectedHireStatus: VehicleHireStatus = isSelectedVehicle ? getVehicleHireStatus(selectedItem.id) : { isHired: false, isOnTrip: false, isAwaitingHandover: false };
                 const selectedIsLive = isSelectedVehicle ? isVehicleLive(selectedItem.id) : true;
                 const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
@@ -612,62 +602,65 @@ export default function Catalogue() {
                       )}
 
                       {/* VEHICLE AVAILABILITY NOTICES */}
-                      {isSelectedVehicle && selectedHireStatus.isHired && (
-                        <div className="mt-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 space-y-1">
-                          <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
-                            <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                            Vehicle Currently In Use / Hired
+                      {isSelectedVehicle && selectedHireStatus.isOnTrip && (
+                        <div className="mt-3 rounded-2xl border border-slate-300 bg-slate-100 p-4 space-y-1">
+                          <div className="flex items-center gap-2 text-slate-900 font-bold text-xs">
+                            <AlertTriangle className="h-4 w-4 text-slate-900 shrink-0" />
+                            Vehicle Currently Active On Trip
                           </div>
-                          <p className="text-xs text-amber-800 leading-relaxed font-medium">
-                            This vehicle is currently on an active trip with another traveler until <strong>{selectedHireStatus.returnDate || 'return'}</strong>. It is locked for booking until safely inspected and returned.
+                          <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                            This vehicle is currently on an active trip with another traveler{selectedHireStatus.returnDate ? ` until ${selectedHireStatus.returnDate}` : ''}. It is locked for booking and payment until it returns from the trip and is successfully inspected and handed over back via the admin.
+                          </p>
+                        </div>
+                      )}
+
+                      {isSelectedVehicle && !selectedHireStatus.isOnTrip && selectedHireStatus.isAwaitingHandover && (
+                        <div className="mt-3 rounded-2xl border border-slate-300 bg-slate-100 p-4 space-y-1">
+                          <div className="flex items-center gap-2 text-slate-900 font-bold text-xs">
+                            <Lock className="h-4 w-4 text-slate-800 shrink-0" />
+                            Vehicle Booked &amp; Reserved
+                          </div>
+                          <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                            This vehicle is currently booked and awaiting handover. Further bookings are locked.
                           </p>
                         </div>
                       )}
 
                       {isSelectedVehicle && !selectedHireStatus.isHired && !selectedIsLive && (
-                        <div className="mt-3 rounded-2xl border border-rose-300 bg-rose-50 p-4 space-y-1">
-                          <div className="flex items-center gap-2 text-rose-900 font-bold text-xs">
-                            <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
+                        <div className="mt-3 rounded-2xl border border-slate-300 bg-slate-100 p-4 space-y-1">
+                          <div className="flex items-center gap-2 text-slate-900 font-bold text-xs">
+                            <AlertTriangle className="h-4 w-4 text-slate-700 shrink-0" />
                             Vehicle Temporarily Offline
                           </div>
-                          <p className="text-xs text-rose-800 leading-relaxed font-medium">
+                          <p className="text-xs text-slate-700 leading-relaxed font-medium">
                             This vehicle is temporarily paused from hire upon host/admin request. Please check back later or explore other available vehicles in the fleet.
                           </p>
                         </div>
                       )}
 
-                      {/* BUS SEAT PICKER */}
+                      {/* WHOLE BUS CHARTER NOTICE */}
                       {selectedItem.category === 'buses' && (
-                        <div className="mt-4 rounded-2xl border border-teal-200 bg-teal-50/50 p-4 space-y-3">
-                          <div className="flex items-center justify-between text-xs font-bold text-teal-800">
-                            <span className="flex items-center gap-1"><Ticket className="h-4 w-4" /> Select Coach Seat</span>
-                            <span className="font-mono">Seat #{selectedSeat}</span>
+                        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2">
+                          <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
+                            <Bus className="h-4 w-4 text-slate-700 shrink-0" />
+                            <span>Whole Bus Charter (Per Day)</span>
                           </div>
-                          <div className="grid grid-cols-5 gap-1.5 pt-1">
-                            {Array.from({ length: 15 }, (_, i) => i + 1).map(s => (
-                              <button
-                                key={s}
-                                type="button"
-                                onClick={() => setSelectedSeat(s)}
-                                className={`rounded-lg py-1.5 text-[11px] font-mono font-bold transition ${selectedSeat === s ? 'bg-teal-600 text-white shadow-sm' : 'bg-white text-slate-700 border border-slate-200 hover:border-teal-500'}`}
-                              >
-                                #{s}
-                              </button>
-                            ))}
-                          </div>
+                          <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                            Booking covers the entire vehicle per day. Includes dedicated certified coach captain, passenger insurance, and full route flexibility.
+                          </p>
                         </div>
                       )}
 
                       {/* SAFARI ITINERARY */}
                       {selectedItem.details.scheduleOrItinerary && (
-                        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/40 p-4 space-y-2">
-                          <h4 className="text-xs font-bold text-amber-900 flex items-center gap-1 uppercase">
-                            <Calendar className="h-3.5 w-3.5 text-amber-600" /> Program & Itinerary
+                        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2">
+                          <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1 uppercase">
+                            <Calendar className="h-3.5 w-3.5 text-slate-700" /> Program & Itinerary
                           </h4>
                           <ul className="space-y-1.5 text-xs text-slate-600">
                             {selectedItem.details.scheduleOrItinerary.map((step, idx) => (
                               <li key={idx} className="flex items-start gap-2">
-                                <span className="text-amber-600 font-bold">•</span>
+                                <span className="text-slate-800 font-bold">•</span>
                                 <span>{step}</span>
                               </li>
                             ))}
@@ -688,19 +681,26 @@ export default function Catalogue() {
                       {isAdmin ? (
                         <div className="rounded-2xl border border-slate-200 bg-slate-100 p-3.5 text-center space-y-1">
                           <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                            <ShieldCheck className="h-4 w-4 text-amber-600" />
+                            <ShieldCheck className="h-4 w-4 text-slate-700" />
                             Admin Fleet Monitoring View
                           </span>
                           <p className="text-[11px] text-slate-500">
                             You are viewing this fleet item with Administrator credentials. Booking and reservations are reserved exclusively for travelers.
                           </p>
                         </div>
-                      ) : isSelectedVehicle && selectedHireStatus.isHired ? (
+                      ) : isSelectedVehicle && selectedHireStatus.isOnTrip ? (
                         <button
                           disabled
                           className="w-full font-bold !py-3 text-sm flex items-center justify-center gap-2 rounded-2xl bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300"
                         >
-                          <Lock className="h-5 w-5 text-slate-400" /> Currently In Use (Returns {selectedHireStatus.returnDate})
+                          <Lock className="h-5 w-5 text-slate-500" /> Unavailable (Active On Trip{selectedHireStatus.returnDate ? ` - Returns ${selectedHireStatus.returnDate}` : ''})
+                        </button>
+                      ) : isSelectedVehicle && selectedHireStatus.isAwaitingHandover ? (
+                        <button
+                          disabled
+                          className="w-full font-bold !py-3 text-sm flex items-center justify-center gap-2 rounded-2xl bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300"
+                        >
+                          <Lock className="h-5 w-5 text-slate-500" /> Currently Reserved (Returns {selectedHireStatus.returnDate || 'Soon'})
                         </button>
                       ) : isSelectedVehicle && !selectedIsLive ? (
                         <button
@@ -711,8 +711,8 @@ export default function Catalogue() {
                         </button>
                       ) : !user ? (
                         <div className="space-y-2">
-                          <div className="rounded-xl border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-900 flex items-center gap-2">
-                            <Lock className="h-4 w-4 text-amber-700 shrink-0" />
+                          <div className="rounded-xl border border-slate-300 bg-slate-100 p-2.5 text-xs text-slate-900 flex items-center gap-2">
+                            <Lock className="h-4 w-4 text-slate-700 shrink-0" />
                             <span>Sign in or create an account to complete reservation</span>
                           </div>
                           <button

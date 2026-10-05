@@ -39,101 +39,156 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
+import nodemailer from 'nodemailer';
 function emailGatewayPlugin() {
+    var _this = this;
+    var handler = function (req, res) { return __awaiter(_this, void 0, void 0, function () {
+        var bodyStr;
+        var _this = this;
+        return __generator(this, function (_a) {
+            if (req.method !== 'POST') {
+                res.statusCode = 405;
+                res.end(JSON.stringify({ error: 'Method not allowed' }));
+                return [2 /*return*/];
+            }
+            bodyStr = '';
+            req.on('data', function (chunk) { bodyStr += chunk; });
+            req.on('end', function () { return __awaiter(_this, void 0, void 0, function () {
+                var data, to, subject, html, text, apiKey, from, smtpUser, smtpPass, effectiveSmtpUser, rawPass, effectiveSmtpPass, effectiveApiKey, transporter, senderAddress, info, smtpErr_1, resendRes, resendData, err_1;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            _a.trys.push([0, 8, , 9]);
+                            data = JSON.parse(bodyStr || '{}');
+                            to = data.to, subject = data.subject, html = data.html, text = data.text, apiKey = data.apiKey, from = data.from, smtpUser = data.smtpUser, smtpPass = data.smtpPass;
+                            if (!to || !subject || (!html && !text)) {
+                                res.statusCode = 400;
+                                res.setHeader('Content-Type', 'application/json');
+                                res.end(JSON.stringify({ error: 'Missing required email fields (to, subject, html/text)' }));
+                                return [2 /*return*/];
+                            }
+                            effectiveSmtpUser = smtpUser || process.env.SMTP_USER || 'jamalkarisa96@gmail.com';
+                            rawPass = smtpPass || process.env.SMTP_PASS || 'shrlkouyuajvddsa';
+                            effectiveSmtpPass = (rawPass || '').replace(/\s+/g, '');
+                            effectiveApiKey = apiKey || process.env.VITE_RESEND_API_KEY || process.env.RESEND_API_KEY;
+                            if (!(effectiveSmtpUser && effectiveSmtpPass)) return [3 /*break*/, 4];
+                            _a.label = 1;
+                        case 1:
+                            _a.trys.push([1, 3, , 4]);
+                            transporter = nodemailer.createTransport({
+                                service: 'gmail',
+                                auth: {
+                                    user: effectiveSmtpUser,
+                                    pass: effectiveSmtpPass,
+                                },
+                            });
+                            senderAddress = from || "\"M-TRAVEL Concierge\" <".concat(effectiveSmtpUser, ">");
+                            return [4 /*yield*/, transporter.sendMail({
+                                    from: senderAddress,
+                                    to: Array.isArray(to) ? to.join(', ') : to,
+                                    subject: subject,
+                                    html: html || text,
+                                    text: text || undefined,
+                                })];
+                        case 2:
+                            info = _a.sent();
+                            res.statusCode = 200;
+                            res.setHeader('Content-Type', 'application/json');
+                            res.end(JSON.stringify({
+                                success: true,
+                                id: info.messageId,
+                                provider: 'gmail_smtp',
+                                deliveredTo: to,
+                                timestamp: new Date().toISOString(),
+                            }));
+                            return [2 /*return*/];
+                        case 3:
+                            smtpErr_1 = _a.sent();
+                            console.error('Gmail SMTP error, attempting fallback if configured:', smtpErr_1);
+                            if (!effectiveApiKey) {
+                                res.statusCode = 200;
+                                res.setHeader('Content-Type', 'application/json');
+                                res.end(JSON.stringify({
+                                    success: false,
+                                    reason: 'SMTP_ERROR',
+                                    error: (smtpErr_1 === null || smtpErr_1 === void 0 ? void 0 : smtpErr_1.message) || 'Gmail SMTP dispatch failed',
+                                    deliveredTo: to,
+                                }));
+                                return [2 /*return*/];
+                            }
+                            return [3 /*break*/, 4];
+                        case 4:
+                            if (!effectiveApiKey) return [3 /*break*/, 7];
+                            return [4 /*yield*/, fetch('https://api.resend.com/emails', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': "Bearer ".concat(effectiveApiKey.trim()),
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        from: from || 'M-TRAVEL Concierge <onboarding@resend.dev>',
+                                        to: Array.isArray(to) ? to : [to],
+                                        subject: subject,
+                                        html: html,
+                                        text: text,
+                                    }),
+                                })];
+                        case 5:
+                            resendRes = _a.sent();
+                            return [4 /*yield*/, resendRes.json()];
+                        case 6:
+                            resendData = _a.sent();
+                            if (!resendRes.ok) {
+                                res.statusCode = 200;
+                                res.setHeader('Content-Type', 'application/json');
+                                res.end(JSON.stringify({
+                                    success: false,
+                                    reason: 'RESEND_ERROR',
+                                    error: resendData,
+                                    deliveredTo: to,
+                                }));
+                                return [2 /*return*/];
+                            }
+                            res.statusCode = 200;
+                            res.setHeader('Content-Type', 'application/json');
+                            res.end(JSON.stringify({
+                                success: true,
+                                id: resendData.id,
+                                provider: 'resend',
+                                deliveredTo: to,
+                                timestamp: new Date().toISOString(),
+                            }));
+                            return [2 /*return*/];
+                        case 7:
+                            res.statusCode = 200;
+                            res.setHeader('Content-Type', 'application/json');
+                            res.end(JSON.stringify({
+                                success: false,
+                                reason: 'NO_GATEWAY',
+                                message: 'No SMTP or Resend credentials configured.',
+                                deliveredTo: to,
+                            }));
+                            return [3 /*break*/, 9];
+                        case 8:
+                            err_1 = _a.sent();
+                            res.statusCode = 500;
+                            res.setHeader('Content-Type', 'application/json');
+                            res.end(JSON.stringify({ error: (err_1 === null || err_1 === void 0 ? void 0 : err_1.message) || 'Email dispatch failed' }));
+                            return [3 /*break*/, 9];
+                        case 9: return [2 /*return*/];
+                    }
+                });
+            }); });
+            return [2 /*return*/];
+        });
+    }); };
     return {
         name: 'email-gateway-plugin',
         configureServer: function (server) {
-            var _this = this;
-            server.middlewares.use('/api/send-email', function (req, res) { return __awaiter(_this, void 0, void 0, function () {
-                var bodyStr;
-                var _this = this;
-                return __generator(this, function (_a) {
-                    if (req.method !== 'POST') {
-                        res.statusCode = 405;
-                        res.end(JSON.stringify({ error: 'Method not allowed' }));
-                        return [2 /*return*/];
-                    }
-                    bodyStr = '';
-                    req.on('data', function (chunk) { bodyStr += chunk; });
-                    req.on('end', function () { return __awaiter(_this, void 0, void 0, function () {
-                        var data, to, subject, html, text, apiKey, from, effectiveApiKey, resendRes, resendData, err_1;
-                        return __generator(this, function (_a) {
-                            switch (_a.label) {
-                                case 0:
-                                    _a.trys.push([0, 3, , 4]);
-                                    data = JSON.parse(bodyStr || '{}');
-                                    to = data.to, subject = data.subject, html = data.html, text = data.text, apiKey = data.apiKey, from = data.from;
-                                    if (!to || !subject || (!html && !text)) {
-                                        res.statusCode = 400;
-                                        res.setHeader('Content-Type', 'application/json');
-                                        res.end(JSON.stringify({ error: 'Missing required email fields (to, subject, html/text)' }));
-                                        return [2 /*return*/];
-                                    }
-                                    effectiveApiKey = apiKey || process.env.VITE_RESEND_API_KEY || process.env.RESEND_API_KEY;
-                                    if (!effectiveApiKey) {
-                                        res.statusCode = 200;
-                                        res.setHeader('Content-Type', 'application/json');
-                                        res.end(JSON.stringify({
-                                            success: false,
-                                            reason: 'NO_API_KEY',
-                                            message: 'Outbound email dispatch requires a Resend API key or Gmail SMTP configuration. Configure in Admin Email Gateway console or use the direct Gmail Web compose bridge.',
-                                            deliveredTo: to,
-                                        }));
-                                        return [2 /*return*/];
-                                    }
-                                    return [4 /*yield*/, fetch('https://api.resend.com/emails', {
-                                            method: 'POST',
-                                            headers: {
-                                                'Authorization': "Bearer ".concat(effectiveApiKey.trim()),
-                                                'Content-Type': 'application/json',
-                                            },
-                                            body: JSON.stringify({
-                                                from: from || 'M-TRAVEL Concierge <onboarding@resend.dev>',
-                                                to: [to],
-                                                subject: subject,
-                                                html: html,
-                                                text: text,
-                                            }),
-                                        })];
-                                case 1:
-                                    resendRes = _a.sent();
-                                    return [4 /*yield*/, resendRes.json()];
-                                case 2:
-                                    resendData = _a.sent();
-                                    if (!resendRes.ok) {
-                                        res.statusCode = 200;
-                                        res.setHeader('Content-Type', 'application/json');
-                                        res.end(JSON.stringify({
-                                            success: false,
-                                            reason: 'RESEND_ERROR',
-                                            error: resendData,
-                                            deliveredTo: to,
-                                        }));
-                                        return [2 /*return*/];
-                                    }
-                                    res.statusCode = 200;
-                                    res.setHeader('Content-Type', 'application/json');
-                                    res.end(JSON.stringify({
-                                        success: true,
-                                        id: resendData.id,
-                                        provider: 'resend',
-                                        deliveredTo: to,
-                                        timestamp: new Date().toISOString(),
-                                    }));
-                                    return [3 /*break*/, 4];
-                                case 3:
-                                    err_1 = _a.sent();
-                                    res.statusCode = 500;
-                                    res.setHeader('Content-Type', 'application/json');
-                                    res.end(JSON.stringify({ error: (err_1 === null || err_1 === void 0 ? void 0 : err_1.message) || 'Email dispatch failed' }));
-                                    return [3 /*break*/, 4];
-                                case 4: return [2 /*return*/];
-                            }
-                        });
-                    }); });
-                    return [2 /*return*/];
-                });
-            }); });
+            server.middlewares.use('/api/send-email', handler);
+        },
+        configurePreviewServer: function (server) {
+            server.middlewares.use('/api/send-email', handler);
         },
     };
 }
@@ -145,5 +200,17 @@ export default defineConfig({
     server: {
         port: 3001,
         strictPort: true,
+    },
+    build: {
+        chunkSizeWarningLimit: 1000,
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+                    'vendor-state': ['@reduxjs/toolkit', 'react-redux', '@tanstack/react-query'],
+                    'vendor-ui': ['lucide-react', 'framer-motion'],
+                },
+            },
+        },
     },
 });

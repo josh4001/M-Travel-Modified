@@ -1,235 +1,622 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Car, Bus, Palmtree, Home, Wallet, ShieldCheck, MapPinned, Headset, CheckCircle, Sparkles, Award, Smartphone } from 'lucide-react';
-import { CatalogueTabs } from '@/components/ui/CatalogueTabs';
-import { PinterestThemes } from '@/components/ui/PinterestThemes';
 import {
-  SatisfiedExplorerIllustration,
-  PalmTreeCartoon,
-  SavannahGrassTuft
-} from '@/components/ui/CartoonSafariIllustrations';
+  Car, Bus, Home, Palmtree, Sparkles, ShieldCheck,
+  CheckCircle2, ArrowRight, Award, Eye,
+  Maximize2, X
+} from 'lucide-react';
 
-const services = [
+type ServiceCategory = 'all' | 'vehicles' | 'buses' | 'villas' | 'tours';
+
+interface ShowcaseItem {
+  id: string;
+  category: 'vehicles' | 'buses' | 'villas' | 'tours';
+  categoryLabel: string;
+  categoryIcon: typeof Car;
+  title: string;
+  badge: string;
+  image: string;
+  altText: string;
+  aspectClass: string; // Tailored aspect ratio for perfect fitting
+  subtitle: string;
+  description: string;
+  highlights: string[];
+  specs: { label: string; value: string }[];
+  targetLink: string;
+  buttonLabel: string;
+}
+
+const SHOWCASE_ITEMS: ShowcaseItem[] = [
+  // ── VEHICLES ──
   {
-    icon: Car,
-    title: 'Vehicle hire',
-    cat: 'vehicles',
-    desc: 'Executive cars, 4×4 safari SUVs, safari vans, and pickups — search nearby, filter by price and location, and book with M-Pesa in a few taps.',
+    id: 'veh-1',
+    category: 'vehicles',
+    categoryLabel: 'Vehicle Hire',
+    categoryIcon: Car,
+    title: 'Heavy-Duty Open-Top 4×4 Safari Cruiser',
+    badge: 'Savannah Tier • Showcase',
+    image: '/services/vehicle-safari-cruiser.jpg',
+    altText: 'Heavy-duty open-top safari 4x4 cruiser in Kenya savannah',
+    aspectClass: 'aspect-[4/3] sm:aspect-[16/11]',
+    subtitle: 'Purpose-built for national game reserves and 360° unobstructed wildlife photography.',
+    description:
+      'Engineered specifically for rough savannah tracks and game viewing. Outfitted with all-terrain tires, elevated stadium seating, heavy steel roll-cage protection, and open-sided visibility for uncompromised big-game tracking.',
+    highlights: [
+      'Elevated multi-tier seating for panoramic 360° views',
+      'Reinforced heavy-duty 4WD chassis with high ground clearance',
+      'Dual spare all-terrain tires and emergency recovery bush gear',
+      'Available with certified safari chauffeur or verified self-drive',
+    ],
+    specs: [
+      { label: 'Drive', value: 'Full 4×4 Range' },
+      { label: 'Capacity', value: 'Up to 7 Guests' },
+      { label: 'Terrain', value: 'Bush, Sand & Rock' },
+      { label: 'Safety', value: 'Roll-Cage & PSV Kit' },
+    ],
+    targetLink: '/catalogue?category=vehicles',
+    buttonLabel: 'Explore Live Vehicle Fleet',
   },
   {
-    icon: Bus,
-    title: 'Bus reservations',
-    cat: 'buses',
-    desc: 'Compare routes and prices, pick your seat, and get a QR ticket with SMS confirmation — no queueing at the stage.',
+    id: 'veh-2',
+    category: 'vehicles',
+    categoryLabel: 'Vehicle Hire',
+    categoryIcon: Car,
+    title: 'Executive All-Terrain Nissan Patrol 4×4',
+    badge: 'Expedition Tier • Showcase',
+    image: '/services/vehicle-nissan-patrol.jpg',
+    altText: 'Nissan Patrol 4x4 on off-road expedition and sand dunes',
+    aspectClass: 'aspect-[4/3] sm:aspect-[16/11]',
+    subtitle: 'High-torque expedition powerhouse for cross-country exploration and dunes.',
+    description:
+      'A legendary all-terrain platform designed for rugged reliability with executive comfort. Features high-flow snorkel induction for dust and water resistance, high-traction off-road tires, spacious cabin climate control, and supreme torque.',
+    highlights: [
+      'Heavy-duty raised air intake snorkel for dust & water wading',
+      'High-traction off-road tires with beadlock-style wheels',
+      'Heavy-duty roof rack for oversized expedition equipment',
+      'Dual-zone climate control for long inter-county expeditions',
+    ],
+    specs: [
+      { label: 'Drive', value: 'All-Mode 4×4' },
+      { label: 'Capacity', value: '5 - 7 Passengers' },
+      { label: 'Terrain', value: 'Dunes & Highway' },
+      { label: 'Gear', value: 'Snorkel & Roof Rack' },
+    ],
+    targetLink: '/catalogue?category=vehicles',
+    buttonLabel: 'Explore Live Vehicle Fleet',
+  },
+
+  // ── BUSES ──
+  {
+    id: 'bus-1',
+    category: 'buses',
+    categoryLabel: 'Bus Reservations',
+    categoryIcon: Bus,
+    title: 'Luxury Intercity Highway Express Coach',
+    badge: 'Intercity Express • Showcase',
+    image: '/services/bus-tahmeed-coach.jpg',
+    altText: 'Tahmeed Coach luxury intercity passenger bus on highway',
+    aspectClass: 'aspect-[16/9] sm:aspect-[2/1] lg:aspect-[16/9]',
+    subtitle: 'Premium scheduled long-distance coach travel across major Kenyan cities.',
+    description:
+      'Seamless, dignified highway travel connecting Nairobi, Mombasa, Kisumu, Nakuru, and Eldoret. Travelers enjoy generous legroom in plush reclining VIP seats, onboard high-speed WiFi, personal USB charging ports, climate-controlled cabins, and professional certified PSV captains.',
+    highlights: [
+      'Plush first-class VIP reclining passenger seats with footrests',
+      'Continuous high-speed onboard WiFi and individual USB power',
+      'Overhead climate vents, ambient reading illumination & wide luggage hold',
+      'Strict safety telemetry, GPS tracking, and experienced vetted drivers',
+    ],
+    specs: [
+      { label: 'Service', value: 'Intercity Express' },
+      { label: 'Class', value: 'VIP 2×1 & 2×2 Classes' },
+      { label: 'Luggage', value: 'Under-Deck Hold' },
+      { label: 'Ticketing', value: 'Instant QR Boarding' },
+    ],
+    targetLink: '/catalogue?category=buses',
+    buttonLabel: 'View Bus Routes & Schedules',
+  },
+
+  // ── HOLIDAY HOMES / VILLAS ──
+  {
+    id: 'vil-1',
+    category: 'villas',
+    categoryLabel: 'Holiday Villas',
+    categoryIcon: Home,
+    title: 'Private Oceanfront Beach Villa & Swimming Pool',
+    badge: 'Coastal Haven • Showcase',
+    image: '/services/villa-beachfront-resort.jpg',
+    altText: 'Private beachfront luxury villa with swimming pool overlooking turquoise ocean',
+    aspectClass: 'aspect-[3/2] sm:aspect-[16/10]',
+    subtitle: 'Direct coral beach access, tropical palm gardens, and private infinity pool.',
+    description:
+      'A coastal sanctuary where tropical palm trees meet the turquoise Indian Ocean. Enjoy open-air makuti verandas, a private crystal-clear swimming pool overlooking the shoreline, cool ocean breezes, and on-site chef and housekeeping services.',
+    highlights: [
+      'Direct private access to powder-white sands and warm ocean waters',
+      'Private oceanfront swimming pool with sunbeds and shaded parasols',
+      'Private resident chef on request for fresh coastal Swahili seafood dining',
+      'Spacious multi-bedroom suites with private en-suite bathrooms and verandas',
+    ],
+    specs: [
+      { label: 'Type', value: 'Oceanfront Villa' },
+      { label: 'Setting', value: 'Direct Beachfront' },
+      { label: 'Amenities', value: 'Private Pool & Chef' },
+      { label: 'Connectivity', value: 'High-Speed WiFi' },
+    ],
+    targetLink: '/holidays-and-tours',
+    buttonLabel: 'Browse Verified Holiday Stays',
   },
   {
-    icon: Palmtree,
-    title: 'Tours & travel',
-    cat: 'tours',
-    desc: 'Safari, beach, hiking, camping, and city-tour packages from vetted local operators, bookable end-to-end.',
+    id: 'vil-2',
+    category: 'villas',
+    categoryLabel: 'Holiday Villas',
+    categoryIcon: Home,
+    title: 'Contemporary Minimalist Resort Villa & Lap Pool',
+    badge: 'Modern Architecture • Showcase',
+    image: '/services/villa-contemporary-pool.jpg',
+    altText: 'Contemporary white luxury villa with large lap swimming pool and sun terrace',
+    aspectClass: 'aspect-[3/2] sm:aspect-[16/10]',
+    subtitle: 'Chic whitewashed architecture, Olympic-style lap pool, and sun terraces.',
+    description:
+      'Designed for travelers who appreciate refined architectural luxury. Features crisp whitewashed facades, an elongated private lap pool, expansive floor-to-ceiling glass doors, minimalist decor, air-conditioned designer bedrooms, and private sun lounger decks.',
+    highlights: [
+      'Private elongated swimming pool surrounded by tropical vegetation',
+      'Modern open-plan kitchen, dining, and indoor-outdoor entertainment lounge',
+      'Air-conditioned bedrooms with luxury linens and walk-in showers',
+      'High-security gated enclave with secure vehicle parking',
+    ],
+    specs: [
+      { label: 'Type', value: 'Designer Villa' },
+      { label: 'Setting', value: 'Gated Private Enclave' },
+      { label: 'Comfort', value: 'Air-Conditioned' },
+      { label: 'Features', value: 'Lap Pool & Deck' },
+    ],
+    targetLink: '/holidays-and-tours',
+    buttonLabel: 'Browse Verified Holiday Stays',
+  },
+
+  // ── TOURS & TRAVEL ──
+  {
+    id: 'tour-1',
+    category: 'tours',
+    categoryLabel: 'Tours & Safaris',
+    categoryIcon: Palmtree,
+    title: 'Maasai Mara Big Five Wildlife Expedition',
+    badge: 'Savannah Classic • Showcase',
+    image: '/services/tour-mara-wildlife-lion.jpg',
+    altText: 'Safari Land Cruiser with pop-up roof watching a male lion in Maasai Mara',
+    aspectClass: 'aspect-[3/2] sm:aspect-[16/10]',
+    subtitle: 'Immersive guided game drives alongside Africa’s iconic apex predators.',
+    description:
+      'Witness the timeless drama of the African savannah firsthand. Accompanied by certified professional safari guides, you will traverse vast plains in pop-up roof 4×4 cruisers to track prides of lions, leopards, cheetahs, and massive elephant herds across world-renowned wildlife reserves.',
+    highlights: [
+      'Dedicated pop-up roof 4×4 safari cruiser for 360° unobstructed photography',
+      'Accompanied by KPSGA certified professional driver-naturalist',
+      'All reserve permits, park entry clearances, and logistics fully arranged',
+      'Comprehensive itinerary balancing morning, afternoon, and twilight game drives',
+    ],
+    specs: [
+      { label: 'Experience', value: 'Big Cat Wildlife Safari' },
+      { label: 'Vehicle', value: 'Pop-Up 4×4 Cruiser' },
+      { label: 'Guide', value: 'KPSGA Naturalist' },
+      { label: 'Inclusions', value: 'Game Drives & Permits' },
+    ],
+    targetLink: '/holidays-and-tours',
+    buttonLabel: 'Explore Guided Safari Packages',
   },
   {
-    icon: Home,
-    title: 'Holiday homes',
-    cat: 'homes',
-    desc: 'Apartments, villas, cottages, and Airbnb-style stays searchable by county, guests, bedrooms, and amenities.',
-  },
-  {
-    icon: Wallet,
-    title: 'Provider wallet',
-    desc: 'Every vehicle owner, bus company, tour operator, and home owner gets a wallet with transaction history and withdrawals.',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Trust & safety',
-    desc: 'Verified insurance details, rated reviews, and secure M-Pesa, card, and PayPal payments on every booking.',
-  },
-  {
-    icon: MapPinned,
-    title: 'Interactive Maps & Search',
-    desc: 'Google Maps-powered search, directions, and location results for vehicles, homes, and tours.',
-  },
-  {
-    icon: Headset,
-    title: 'Support',
-    desc: 'In-app chat, support tickets, and a responsive team behind every booking.',
+    id: 'tour-2',
+    category: 'tours',
+    categoryLabel: 'Tours & Safaris',
+    categoryIcon: Palmtree,
+    title: 'Diani White Sands Beach & Camel Safari Tour',
+    badge: 'Coastal Discovery • Showcase',
+    image: '/services/tour-coastal-camel-safari.jpg',
+    altText: 'Diani beach camel safari along powder white sand and turquoise ocean',
+    aspectClass: 'aspect-[3/2] sm:aspect-[16/10]',
+    subtitle: 'Gentle shoreline camel rides, coral marine parks, and Swahili coastal heritage.',
+    description:
+      'Unwind along Africa’s premier coastline with an unforgettable camel trek along powder-white sands. Discover hidden sandbars, vibrant coral reefs through glass-bottom marine excursions, and authentic Swahili culture, creating a serene beach escape for all travelers.',
+    highlights: [
+      'Guided coastal camel rides along the scenic shoreline at sunrise or sunset',
+      'Marine park boat excursions for snorkeling and dolphin encounters',
+      'Complimentary hotel pickup and drop-off in air-conditioned transport',
+      'Curated experiences suitable for solo travelers, couples, and family groups',
+    ],
+    specs: [
+      { label: 'Experience', value: 'Beach & Marine Adventure' },
+      { label: 'Setting', value: 'Diani Coral Coast' },
+      { label: 'Activities', value: 'Camel Trek & Snorkeling' },
+      { label: 'Transfers', value: 'Hotel Shuttles Included' },
+    ],
+    targetLink: '/holidays-and-tours',
+    buttonLabel: 'Explore Guided Safari Packages',
   },
 ];
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
-};
-
 export default function Services() {
+  const [selectedCategory, setSelectedCategory] = useState<ServiceCategory>('all');
+  const [previewImage, setPreviewImage] = useState<{ src: string; title: string; badge: string } | null>(null);
+
+  const filteredItems =
+    selectedCategory === 'all'
+      ? SHOWCASE_ITEMS
+      : SHOWCASE_ITEMS.filter((item) => item.category === selectedCategory);
+
   return (
-    <div className="min-h-screen bg-[#060302] text-slate-100 relative overflow-hidden font-display">
-      {/* ATMOSPHERIC GLOWING BROWN AMBIENT RADIANCE */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[650px] bg-gradient-to-b from-amber-900/20 via-[#22140b]/35 to-transparent blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-1/4 -right-40 w-96 h-96 bg-amber-800/10 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute bottom-1/3 -left-40 w-96 h-96 bg-[#22140b]/25 rounded-full blur-3xl pointer-events-none -z-10" />
+    <div className="min-h-screen bg-slate-50 text-slate-950 font-sans selection:bg-slate-900 selection:text-white">
+      {/* ── HERO BANNER (EXECUTIVE BLACK & WHITE THEME) ── */}
+      <section className="relative overflow-hidden bg-white text-slate-950 border-b border-slate-200 pt-16 pb-16 px-6">
+        <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:24px_24px] opacity-70 pointer-events-none" />
 
-      <div className="mx-auto max-w-7xl px-6 py-12 space-y-16 relative z-10">
-        <motion.div initial="hidden" animate="show" variants={fadeUp}>
-          <span className="mb-4 inline-block rounded-full border border-amber-400/40 bg-amber-500/15 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-300">
-            What we offer
-          </span>
-          <h1 className="font-serif text-4xl font-bold tracking-tight md:text-5xl text-white">
-            Everything you need to travel, in one place.
-          </h1>
-          <p className="mt-4 max-w-2xl text-amber-100/70 text-base leading-relaxed">
-            M-TRAVEL brings vehicle hire, bus travel, tours, and holiday homes together under a
-            single account, a single wallet, and a single support line.
-          </p>
-        </motion.div>
+        <div className="relative mx-auto max-w-7xl">
+          <div className="max-w-3xl space-y-5">
+            <span className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-100 px-4 py-1.5 text-xs font-mono font-bold uppercase tracking-widest text-slate-800 shadow-2xs">
+              <Sparkles className="h-3.5 w-3.5 text-slate-900" />
+              M-TRAVEL Services Portfolio
+            </span>
 
-        {/* INTERACTIVE CATALOGUE TABS */}
-        <CatalogueTabs />
+            <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-slate-950 leading-tight">
+              Specialized Mobility, Executive Coaches &amp; Luxury Stays.
+            </h1>
 
-        {/* TOURISM VIBES AND MOOD BOARDS */}
-        <PinterestThemes />
-
-        {/* ── TRAVELER SATISFACTION & SERVICE EXCELLENCE BANNER WITH CARTOON EXPLORER ── */}
-        <motion.div
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          variants={fadeUp}
-          className="rounded-3xl border border-amber-500/30 bg-gradient-to-br from-[#1c1008]/95 via-[#100804]/95 to-black/95 p-6 md:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-xl relative overflow-hidden"
-        >
-          {/* Background Tropical Palm & Savannah Grass Illustrations */}
-          <div className="absolute top-2 right-4 opacity-15 md:opacity-25 pointer-events-none -z-10">
-            <PalmTreeCartoon size={140} />
-          </div>
-          <div className="absolute -bottom-4 right-32 opacity-20 pointer-events-none -z-10">
-            <SavannahGrassTuft size={110} />
+            <p className="text-sm sm:text-base md:text-lg text-slate-600 font-normal leading-relaxed max-w-2xl">
+              Experience the pinnacle of travel across Kenya. Explore our specialized services across
+              safari 4×4s, luxury intercity coaches, oceanfront holiday villas, and guided wildlife safaris.
+            </p>
           </div>
 
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-8 relative z-10">
-            {/* Satisfied Cartoon Explorer with Thumbs-up */}
-            <div className="shrink-0 flex flex-col items-center">
-              <SatisfiedExplorerIllustration />
-              <div className="mt-2 text-center">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-[11px] font-black uppercase tracking-wider shadow-2xs">
-                  <CheckCircle className="h-3.5 w-3.5 text-emerald-400" /> 100% Safari Ready
-                </span>
-              </div>
+          {/* INFORMATIVE REPRESENTATIVE SHOWCASE NOTICE */}
+          <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5 max-w-3xl text-slate-700 flex flex-col sm:flex-row items-start sm:items-center gap-3.5 shadow-xs">
+            <div className="h-10 w-10 rounded-xl bg-slate-950 text-white flex items-center justify-center shrink-0 font-bold shadow-sm">
+              <Eye className="h-5 w-5" />
             </div>
-
-            {/* Description & Confidence Commitments */}
-            <div className="flex-1 space-y-4 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/15 px-3.5 py-1 text-xs font-bold text-amber-300 shadow-2xs">
-                <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                <span>Service Excellence Commitment</span>
-              </div>
-
-              <h2 className="font-serif text-3xl md:text-4xl font-bold text-white tracking-tight">
-                Designed for Pure Travel Joy &amp; Complete Peace of Mind
-              </h2>
-
-              <p className="text-sm md:text-base text-amber-100/70 leading-relaxed max-w-2xl">
-                Whether you are booking a rugged 4x4 game drive cruiser to the Maasai Mara, an executive coastal safari van, or a private beachfront villa, M-TRAVEL delivers dependable, stress-free hospitality on every journey.
-              </p>
-
-              {/* Satisfaction Guarantees Grid with Premium Brand Icons */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
-                <div className="flex items-center gap-3.5 rounded-2xl bg-black/50 border border-amber-900/40 p-3.5 shadow-2xs hover:border-amber-500/40 hover:bg-black/70 transition-all group">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-[0_4px_12px_rgba(245,158,11,0.35)] shrink-0 ring-2 ring-amber-400/40 group-hover:scale-105 transition-transform">
-                    <ShieldCheck className="h-5 w-5" strokeWidth={2.2} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Mechanically Inspected Fleet</h4>
-                    <p className="text-[11px] text-amber-200/60 font-medium">Every 4x4 &amp; van verified for road safety</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3.5 rounded-2xl bg-black/50 border border-amber-900/40 p-3.5 shadow-2xs hover:border-amber-500/40 hover:bg-black/70 transition-all group">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-[0_4px_12px_rgba(245,158,11,0.35)] shrink-0 ring-2 ring-amber-400/40 group-hover:scale-105 transition-transform">
-                    <Award className="h-5 w-5" strokeWidth={2.2} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Certified Professional Drivers</h4>
-                    <p className="text-[11px] text-amber-200/60 font-medium">Experienced terrain &amp; wildlife experts</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3.5 rounded-2xl bg-black/50 border border-amber-900/40 p-3.5 shadow-2xs hover:border-amber-500/40 hover:bg-black/70 transition-all group">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-[0_4px_12px_rgba(245,158,11,0.35)] shrink-0 ring-2 ring-amber-400/40 group-hover:scale-105 transition-transform">
-                    <Smartphone className="h-5 w-5" strokeWidth={2.2} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Direct M-Pesa Confirmations</h4>
-                    <p className="text-[11px] text-amber-200/60 font-medium">Instant receipts &amp; secure booking tickets</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3.5 rounded-2xl bg-black/50 border border-amber-900/40 p-3.5 shadow-2xs hover:border-amber-500/40 hover:bg-black/70 transition-all group">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-[0_4px_12px_rgba(245,158,11,0.35)] shrink-0 ring-2 ring-amber-400/40 group-hover:scale-105 transition-transform">
-                    <Headset className="h-5 w-5" strokeWidth={2.2} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">24/7 Roadside Assistance</h4>
-                    <p className="text-[11px] text-amber-200/60 font-medium">Rapid local concierge response across Kenya</p>
-                  </div>
-                </div>
-              </div>
+            <div className="text-xs sm:text-sm leading-relaxed">
+              <strong className="text-slate-950 font-bold block mb-0.5">
+                Representative Service Overviews
+              </strong>
+              The imagery and specifications below showcase our service tiers, equipment standards, and travel comforts.
+              Real-time available fleet vehicles, live bus coach seat maps, and bookable holiday packages are selected inside the traveler portal.
             </div>
           </div>
-        </motion.div>
+        </div>
+      </section>
 
-        {/* CORE FEATURES GRID */}
-        <div>
-          <h2 className="font-serif text-2xl font-bold text-white mb-6">Platform Features & Services</h2>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
-            {services.map((s, i) => {
-              const cardContent = (
-                <div className="flex flex-col justify-between h-full">
-                  <div>
-                    <div className="inline-flex rounded-2xl border border-amber-500/30 bg-amber-500/15 p-3 text-amber-400 shadow-sm group-hover:scale-110 transition-transform">
-                      <s.icon className="h-6 w-6" strokeWidth={2} />
-                    </div>
-                    <h3 className="mt-4 font-serif text-lg font-bold text-white group-hover:text-amber-400 transition-colors">{s.title}</h3>
-                    <p className="mt-2 text-xs text-amber-100/65 leading-relaxed min-h-[3rem]">{s.desc}</p>
-                  </div>
-                  {s.cat ? (
-                    <span className="mt-4 pt-3 border-t border-amber-900/30 inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 group-hover:translate-x-1 transition-transform">
-                      Explore {s.title} Catalogue →
-                    </span>
-                  ) : (
-                    <span className="mt-4 pt-3 border-t border-amber-900/20 inline-flex items-center gap-1 text-[11px] font-medium text-amber-200/40">
-                      Included in All Trips
-                    </span>
-                  )}
-                </div>
+      {/* ── STICKY CATEGORY FILTER BAR ── */}
+      <section className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 py-3.5 px-6 shadow-2xs">
+        <div className="mx-auto max-w-7xl flex items-center justify-between gap-4 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-2">
+            {[
+              { id: 'all', label: 'All Services', icon: Sparkles, count: 7 },
+              { id: 'vehicles', label: 'Vehicle Hire', icon: Car, count: 2 },
+              { id: 'buses', label: 'Bus Reservations', icon: Bus, count: 1 },
+              { id: 'villas', label: 'Holiday Villas', icon: Home, count: 2 },
+              { id: 'tours', label: 'Tours & Safaris', icon: Palmtree, count: 2 },
+            ].map((cat) => {
+              const Icon = cat.icon;
+              const isActive = selectedCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id as ServiceCategory)}
+                  className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-150 whitespace-nowrap cursor-pointer ${
+                    isActive
+                      ? 'bg-slate-950 text-white shadow-sm border border-slate-950 scale-[1.01]'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-950 border border-slate-200'
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-slate-600'}`} />
+                  <span>{cat.label}</span>
+                  <span
+                    className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {cat.count}
+                  </span>
+                </button>
               );
+            })}
+          </div>
 
-              return s.cat ? (
-                <Link
-                  key={s.title}
-                  to={`/catalogue?category=${s.cat}`}
-                  className="group p-6 rounded-2xl border border-amber-900/40 bg-[#120a05]/85 hover:border-amber-500/50 hover:bg-[#1a0f08] transition shadow-lg flex flex-col justify-between h-full"
+          <div className="hidden lg:flex items-center gap-2 text-xs font-mono font-medium text-slate-500">
+            <span>Showing {filteredItems.length} Curated Showcases</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── SHOWCASE GRID (NATURAL RATIO & PERFECT IMAGE FITTING) ── */}
+      <section className="py-12 px-6">
+        <div className="mx-auto max-w-7xl">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={selectedCategory}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch"
+            >
+              {filteredItems.map((item) => {
+                const Icon = item.categoryIcon;
+                // For the single bus item, give it full width on md+ when viewing buses specifically or in grid
+                const isBusFullWidth = item.category === 'buses' && selectedCategory === 'buses';
+
+                return (
+                  <div
+                    key={item.id}
+                    className={`rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-xl hover:border-slate-300 transition-all duration-300 flex flex-col justify-between group ${
+                      isBusFullWidth ? 'md:col-span-2 max-w-4xl mx-auto' : ''
+                    }`}
+                  >
+                    <div>
+                      {/* ── PROPORTIONALLY FITTED HD IMAGE CONTAINER ── */}
+                      <div className="relative w-full overflow-hidden bg-slate-950 p-2 sm:p-2.5">
+                        <div
+                          className={`relative w-full ${item.aspectClass} overflow-hidden rounded-2xl bg-slate-900 shadow-inner group/img cursor-pointer`}
+                          onClick={() => setPreviewImage({ src: item.image, title: item.title, badge: item.badge })}
+                        >
+                          <img
+                            src={item.image}
+                            alt={item.altText}
+                            className="w-full h-full object-cover object-center transition-transform duration-500 ease-out group-hover/img:scale-105"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover/img:opacity-20 transition-opacity" />
+
+                          {/* OVERLAY BADGES */}
+                          <div className="absolute top-3 left-3 z-10">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-950/90 text-white font-mono text-[10px] sm:text-[11px] font-bold px-3 py-1 border border-white/20 backdrop-blur-md shadow-md uppercase tracking-wider">
+                              {item.badge}
+                            </span>
+                          </div>
+
+                          {/* EXPAND PREVIEW ICON */}
+                          <div className="absolute bottom-3 right-3 z-10 opacity-0 group-hover/img:opacity-100 transition-opacity">
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-black/80 text-white text-[11px] font-medium px-2.5 py-1 backdrop-blur-md border border-white/20 shadow">
+                              <Maximize2 className="h-3 w-3" /> Full HD View
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ── CONTENT BODY ── */}
+                      <div className="p-6 sm:p-8 space-y-5">
+                        {/* CATEGORY & TITLE */}
+                        <div>
+                          <div className="flex items-center gap-1.5 text-xs font-mono font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                            <Icon className="h-3.5 w-3.5 text-slate-950" />
+                            <span>{item.categoryLabel}</span>
+                          </div>
+
+                          <h2 className="font-serif text-xl sm:text-2xl font-extrabold text-slate-950 tracking-tight leading-snug group-hover:text-black transition-colors">
+                            {item.title}
+                          </h2>
+
+                          <p className="mt-1.5 text-xs sm:text-sm font-medium text-slate-600 leading-relaxed">
+                            {item.subtitle}
+                          </p>
+                        </div>
+
+                        {/* DESCRIPTION */}
+                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-normal">
+                          {item.description}
+                        </p>
+
+                        {/* HIGHLIGHTS CHECKLIST */}
+                        <div className="space-y-2 pt-1">
+                          <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-900 block">
+                            Key Standards &amp; Inclusions:
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {item.highlights.map((highlight, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-start gap-2 rounded-xl bg-slate-50 border border-slate-200/80 p-2.5 text-xs text-slate-800"
+                              >
+                                <CheckCircle2 className="h-4 w-4 text-slate-950 shrink-0 mt-0.5" />
+                                <span className="leading-snug">{highlight}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* SPECIFICATION PILLS (NO PRICES) */}
+                        <div className="pt-2 border-t border-slate-100">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {item.specs.map((spec, idx) => (
+                              <div
+                                key={idx}
+                                className="rounded-xl border border-slate-200 bg-white p-2.5 text-center shadow-2xs"
+                              >
+                                <span className="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
+                                  {spec.label}
+                                </span>
+                                <span className="mt-0.5 block text-xs font-bold text-slate-950 truncate">
+                                  {spec.value}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── CARD FOOTER WITH ACTION BUTTON ── */}
+                    <div className="p-6 sm:p-8 pt-0">
+                      <div className="border-t border-slate-100 pt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                        <span className="text-[11px] text-slate-500 font-mono font-medium">
+                          * Live inventory available in portal
+                        </span>
+
+                        <Link
+                          to={item.targetLink}
+                          className="rounded-xl bg-slate-950 hover:bg-black text-white px-5 py-2.5 text-xs font-bold shadow-sm inline-flex items-center justify-center gap-1.5 transition active:scale-[0.99] border border-slate-900 cursor-pointer"
+                        >
+                          <span>{item.buttonLabel}</span>
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </section>
+
+      {/* ── FULL-SCREEN HD IMAGE LIGHTBOX MODAL ── */}
+      <AnimatePresence>
+        {previewImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setPreviewImage(null)}
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md p-4 sm:p-8 flex flex-col items-center justify-center cursor-zoom-out"
+          >
+            <div
+              className="relative max-w-5xl max-h-[90vh] flex flex-col items-center bg-slate-950 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl p-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-full flex items-center justify-between p-3 text-white border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 rounded-full bg-white/10 text-white text-[10px] font-mono font-bold uppercase tracking-wider">
+                    {previewImage.badge}
+                  </span>
+                  <h3 className="text-sm font-bold text-white truncate max-w-md">
+                    {previewImage.title}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setPreviewImage(null)}
+                  className="rounded-full bg-white/10 hover:bg-white/20 p-1.5 text-white transition cursor-pointer"
                 >
-                  {cardContent}
-                </Link>
-              ) : (
-                <motion.div
-                  key={s.title}
-                  initial="hidden" whileInView="show" viewport={{ once: true, margin: '-60px' }}
-                  variants={fadeUp} transition={{ delay: i * 0.05 }}
-                  className="p-6 rounded-2xl border border-amber-900/40 bg-[#120a05]/85 hover:border-amber-500/50 hover:bg-[#1a0f08] transition shadow-lg flex flex-col justify-between h-full"
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl bg-black max-h-[75vh] flex items-center justify-center">
+                <img
+                  src={previewImage.src}
+                  alt={previewImage.title}
+                  className="max-h-[75vh] w-auto object-contain rounded-2xl"
+                />
+              </div>
+
+              <div className="w-full text-center py-2.5 text-[11px] text-slate-400 font-mono">
+                High-Definition Preview • Click anywhere to close
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── EXECUTIVE SERVICE GUARANTEES & STANDARDS ── */}
+      <section className="py-16 px-6 bg-white border-t border-slate-200">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-slate-100 px-3.5 py-1 text-xs font-mono font-bold uppercase tracking-widest text-slate-800 shadow-2xs">
+              <ShieldCheck className="h-3.5 w-3.5 text-slate-950" />
+              <span>Trust &amp; Operational Excellence</span>
+            </span>
+            <h2 className="font-serif text-3xl md:text-4xl font-extrabold text-slate-950 tracking-tight">
+              Built on Transparency, Safety and Verified Quality
+            </h2>
+            <p className="text-sm text-slate-600 font-normal leading-relaxed">
+              Every vehicle, bus seat, villa, and safari package across our ecosystem undergoes rigorous verification.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                icon: ShieldCheck,
+                title: 'Rigorous Physical Inspections',
+                desc: 'Every 4×4, safari cruiser, and highway coach is mechanically inspected and verified before entering live service.',
+              },
+              {
+                icon: Award,
+                title: 'Certified Operators & Guides',
+                desc: 'Travel with KPSGA-licensed safari naturalists and professional PSV captains with clean national road records.',
+              },
+              {
+                icon: Home,
+                title: 'Vetted Luxury Properties',
+                desc: 'Each private villa and holiday cottage is vetted for hygiene, security, high-speed amenities, and true hospitality.',
+              },
+              {
+                icon: CheckCircle2,
+                title: 'Instant Transparent Booking',
+                desc: 'Automated digital boarding passes, electronic vehicle vouchers, and instant M-Pesa receipts with zero hidden fees.',
+              },
+            ].map((card, i) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  key={i}
+                  className="rounded-2xl border border-slate-200 bg-slate-50/60 p-6 flex flex-col justify-between space-y-4 hover:border-slate-400 hover:bg-slate-100/70 transition shadow-2xs"
                 >
-                  {cardContent}
-                </motion.div>
+                  <div className="h-12 w-12 rounded-2xl bg-white border border-slate-200 text-slate-950 flex items-center justify-center shadow-xs">
+                    <Icon className="h-6 w-6 stroke-[2]" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-950 mb-1.5">{card.title}</h3>
+                    <p className="text-xs text-slate-600 leading-relaxed font-normal">{card.desc}</p>
+                  </div>
+                </div>
               );
             })}
           </div>
         </div>
+      </section>
 
-        <div className="text-center pt-8">
-          <Link to="/catalogue" className="btn-primary !px-8 !py-3 font-bold shadow-md shadow-amber-500/20">Browse Available Vehicles & Trips</Link>
+      {/* ── PORTAL ACCESS CALL TO ACTION (EXECUTIVE BLACK & WHITE THEME) ── */}
+      <section className="py-16 px-6 bg-slate-50 border-t border-slate-200">
+        <div className="mx-auto max-w-5xl rounded-3xl border border-slate-200 bg-white p-8 sm:p-12 md:p-16 text-center space-y-6 shadow-sm relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:24px_24px] opacity-70 pointer-events-none" />
+
+          <div className="relative z-10 space-y-4 max-w-2xl mx-auto">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-slate-100 px-4 py-1.5 text-xs font-mono font-bold uppercase tracking-widest text-slate-800 shadow-2xs">
+              <Sparkles className="h-3.5 w-3.5 text-slate-900" />
+              <span>Ready to Travel Kenya?</span>
+            </span>
+            <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-950 tracking-tight">
+              Step Into the Verified Traveler Marketplace
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+              Sign in or create your traveler account to explore real-time availability, select your specific coach seats, book verified 4×4 cruisers, and reserve private holiday villas.
+            </p>
+          </div>
+
+          <div className="relative z-10 pt-2 flex flex-wrap items-center justify-center gap-3.5">
+            <Link
+              to="/login"
+              className="rounded-xl bg-slate-950 hover:bg-black text-white px-7 py-3.5 text-xs font-bold shadow-sm transition active:scale-[0.99] border border-slate-900 cursor-pointer"
+            >
+              Sign In to View Live Inventory
+            </Link>
+            <Link
+              to="/register"
+              className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 px-7 py-3.5 text-xs font-bold transition active:scale-[0.99] border border-slate-200 shadow-2xs cursor-pointer"
+            >
+              Create Free Traveler Account
+            </Link>
+          </div>
+
+          <div className="relative z-10 pt-4 flex flex-wrap items-center justify-center gap-6 text-[11px] font-mono text-slate-500 font-medium">
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-slate-900" /> 100% Vetted Fleet &amp; Stays
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5 text-slate-900" /> Instant M-Pesa Confirmations
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Award className="h-3.5 w-3.5 text-slate-900" /> 24/7 Roadside Concierge
+            </span>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
-

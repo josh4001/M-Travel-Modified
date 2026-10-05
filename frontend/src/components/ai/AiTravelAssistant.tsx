@@ -1,10 +1,68 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bot, Send, Sparkles, Car, Bus, Calculator, Compass, Palmtree, CreditCard, MapPin } from 'lucide-react';
-import { KENYA_DESTINATIONS } from '@/data/kenyaDestinations';
-import type { Destination } from '@/data/kenyaDestinations';
+import {
+  Bot,
+  Send,
+  Sparkles,
+  Car,
+  Calculator,
+  Compass,
+  Palmtree,
+  CreditCard,
+  MapPin,
+  Clock,
+  ArrowRight,
+  AlertTriangle,
+} from 'lucide-react';
+import {
+  getStoredDestinations,
+  type TravelDestinationItem,
+} from '@/lib/destinationsStore';
+import {
+  getStoredVehicles,
+  isVehicleLive,
+  isBusVehicle,
+  getVehicleHireStatus,
+  type StoredVehicle,
+} from '@/lib/bookingStore';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface SystemInventory {
+  liveDestinations: TravelDestinationItem[];
+  liveVehicles: StoredVehicle[];
+  availableVehicles: StoredVehicle[];
+  onTripVehicles: StoredVehicle[];
+  isEmpty: boolean;
+}
+
+export function getLiveSystemInventory(): SystemInventory {
+  const allDestinations = getStoredDestinations();
+  const liveDestinations = allDestinations.filter((d) => d.isLive !== false);
+
+  const allVehicles = getStoredVehicles();
+  const liveVehicles = allVehicles.filter(
+    (v) => isVehicleLive(v.id) && (v.status || '').toUpperCase() === 'APPROVED'
+  );
+
+  const availableVehicles = liveVehicles.filter((v) => {
+    const hire = getVehicleHireStatus(v.id);
+    return !hire.isOnTrip && !hire.isAwaitingHandover;
+  });
+
+  const onTripVehicles = liveVehicles.filter((v) => {
+    const hire = getVehicleHireStatus(v.id);
+    return hire.isOnTrip || hire.isAwaitingHandover;
+  });
+
+  return {
+    liveDestinations,
+    liveVehicles,
+    availableVehicles,
+    onTripVehicles,
+    isEmpty: liveDestinations.length === 0 && liveVehicles.length === 0,
+  };
+}
 
 interface CostEstimate {
   destinationName: string;
@@ -25,237 +83,651 @@ interface SuggestedAction {
   url: string;
 }
 
+export interface AlternativeItem {
+  id: string;
+  type: 'DESTINATION' | 'VEHICLE';
+  title: string;
+  subtitle: string;
+  priceText: string;
+  url: string;
+  imageUrl?: string;
+  badge?: string;
+  specs?: string[];
+}
+
 interface Message {
   id: string;
   sender: 'ai' | 'user';
   text: string;
   timestamp: string;
-  destinationData?: Destination;
+  destinationData?: TravelDestinationItem;
+  vehicleData?: StoredVehicle;
   costEstimate?: CostEstimate;
   suggestedAction?: SuggestedAction;
+  alternatives?: {
+    type: 'DESTINATION' | 'VEHICLE';
+    items: AlternativeItem[];
+  };
 }
 
-// ─── Knowledge Base ────────────────────────────────────────────────────────────
+// ─── General Procedural Knowledge Base ────────────────────────────────────────
 
-const GENERAL_KNOWLEDGE: Record<string, string> = {
-  greeting: "Jambo! I'm your M-TRAVEL AI Concierge — your expert guide to travel, safari planning, vehicle hire, and tour bookings across Kenya and East Africa. Ask me anything about destinations, costs, vehicles, best travel times, or how to plan your perfect trip!",
+const PROCEDURAL_KNOWLEDGE = {
+  mtravel:
+    "**M-TRAVEL** is Kenya's premier independent travel marketplace. We connect travelers with verified fleet vehicles (4x4 SUVs, vans, buses, and sedans), curated safari expeditions, holiday villas, and luxury bus routes — all supported by 24/7 dedicated concierge assistance.",
 
-  mtravel: "**M-TRAVEL** is Kenya's premier independent travel marketplace. We connect travelers with quality vehicles (custom 4x4 Land Cruisers, SUVs, executive vans, buses), curated safari expeditions, holiday villas, and luxury bus routes — all supported by 24/7 dedicated concierge assistance. We partner with top local operators to give you unbiased, handpicked African journeys.",
+  mpesa:
+    "We provide **direct M-Pesa digital checkout, major cards, and instant reservation confirmation**. All bookings are secured with our trust escrow protocol, meaning funds are only disbursed once your vehicle or travel experience is successfully delivered and verified.",
 
-  mpesa: "We provide **seamless digital checkout, major cards, and instant reservation confirmation**. All bookings are encrypted and you receive your verified itinerary, driver details, and booking pass immediately after reservation.",
+  visaKenya:
+    "Most international visitors obtain a **Kenya Electronic Travel Authorization (eTA)** online before arrival. East African Community citizens enjoy visa-free entry. Always verify entry conditions on official government portals before your journey.",
 
-  visaKenya: "Most nationalities get a **Kenya e-Visa** online at evisa.go.ke. Cost is $51 USD for a single-entry 90-day visa. East African citizens enjoy free entry. Citizens of many African countries also get visa-on-arrival. Always check the latest requirements before travel.",
+  packingList:
+    "**Kenya Safari Packing Checklist**:\n• Sunscreen SPF 50+ & UV sunglasses\n• Insect repellent (DEET)\n• Neutral earth-tone clothing (khaki, beige, olive)\n• Sturdy walking boots\n• Camera with optical zoom lens\n• Compact headlamp / torch\n• Reusable thermal water bottle\n• Offline road maps downloaded prior to departure",
 
-  bestTimeAfrica: "**Best time for East Africa safaris**: July–October (peak wildebeest migration, dry season, best wildlife viewing). January–February is also excellent (short dry season, fewer crowds). March–June is the long rains — discounts available but some parks muddy.",
+  malaria:
+    "**Health & Malaria Advice**: Malaria risk exists in certain low-altitude and coastal zones across East Africa. Travelers often consult a travel clinic for prophylaxis (e.g., Malarone or Doxycycline), use repellent at dusk, and sleep under mosquito nets.",
 
-  budget: "**Budget travel in Kenya**: Budget travelers can explore on KES 3,000–5,000/day. Mid-range is KES 8,000–15,000/day. Luxury safaris run KES 25,000–100,000+/day including accommodation, vehicle, and park fees.",
+  safety:
+    "**Travel Safety in Kenya**: Safari destinations, protected national parks, and tourist transit routes are well-managed and monitored. Standard travel precautions apply — use accredited vehicles, keep documents in hotel safes, and travel with verified drivers.",
 
-  maasaiMara: "**Maasai Mara** is Kenya's crown jewel — home to the Big Five and the world-famous Great Wildebeest Migration (July–October). Entry conservancy fees range KES 3,000–13,000 depending on conservancy. A 3-night package typically costs KES 45,000–150,000 per person. We recommend a 4x4 Land Cruiser or Toyota Prado.",
+  currency:
+    "**Currency & Payments**: The local currency is the Kenyan Shilling (KES). M-Pesa is universally accepted across restaurants, fuel stations, national parks, and local vendors throughout Kenya.",
 
-  amboseli: "**Amboseli National Park** is world-famous for its large-tusked elephants set against Mount Kilimanjaro's backdrop. Park entry: ~KES 860 (residents) / $60 (non-residents) per day. Best visited June–October and January–February. A 2-day trip from Nairobi (240km) costs approximately KES 35,000–60,000 all-inclusive.",
-
-  diani: "**Diani Beach** on Kenya's South Coast is consistently voted Africa's best beach. 500km from Nairobi via Mombasa. Pristine white sands, crystal waters, kite surfing, scuba diving, and nearby Shimba Hills. Best October–March. A family van or luxury sedan is ideal for the tarmac journey.",
-
-  naivasha: "**Lake Naivasha** is just 95km from Nairobi (1.5 hours). It's famous for boat rides among hippos, cycling in Hell's Gate National Park among zebras and giraffes, Crescent Island walks, and geothermal spas at Olkaria. Perfect weekend escape. Entry KES 600. An easy sedan or SUV drive.",
-
-  mountKenya: "**Mount Kenya National Park** sits 180km from Nairobi. Point Lenana (4,985m) is the trekker's summit — accessible without technical climbing. Trek duration: 3–5 days. The park also has game drives with buffaloes, elephants, and bushbucks. A 4WD is essential for forest tracks.",
-
-  tsavo: "**Tsavo West & East** form Kenya's largest national park system (22,000 sq km). Famous for red-dust elephants, Mzima Springs crystal pools, Shetani lava flows, and Aruba Dam. 330km from Nairobi. Entry ~KES 860. 4x4 required. A 3-day self-drive costs KES 40,000–80,000.",
-
-  vehicles: "**M-TRAVEL Fleet Standards**:\n• **4x4 Safari SUV (Prado/Land Cruiser)** — KES 12,000–18,000/day. Best for national parks, rough terrain, river crossings.\n• **Safari Van (Minibus)** — KES 8,000–12,000/day. Up to 7 passengers, pop-up roof, great for group safaris.\n• **Luxury Coach / Bus** — KES 18,000–25,000/day. Large group travel, corporate tours, and intercity transit.\n• **Executive Sedan (Corolla/Premio)** — KES 5,000–7,000/day. Coastal trips, city drives, highway journeys.\n• **Pickup Truck** — KES 9,000–14,000/day. Heavy loads, rural roads, camping gear.",
-
-  packingList: "**Kenya Safari Packing Checklist**:\n• Sunscreen SPF 50+\n• Insect repellent (DEET)\n• Neutral earth-tone clothing (khaki, beige, olive)\n• Comfortable walking shoes / boots\n• Camera with optical zoom lens\n• Torch / headlamp\n• Anti-malaria medication (consult physician)\n• Hand sanitizer\n• Offline safari maps\n• Reusable thermal water bottle",
-
-  malaria: "**Malaria in Kenya**: Risk is present in most of Kenya below 2,500m including coastal areas and most game parks. Start prophylaxis (Malarone, Doxycycline, or Mefloquine) before travel — consult your doctor. Use insect repellent, sleep under nets, wear long sleeves at dusk.",
-
-  zanzibar: "**Zanzibar, Tanzania** — a stunning Indian Ocean island 1.5 hours by ferry from Dar es Salaam. Famous for Stone Town (UNESCO heritage), spice tours, pristine Nungwi and Kendwa beaches. Entry: Zanzibar tourist levy $30. Best November–March. Combine with a Serengeti safari for the ultimate East Africa experience.",
-
-  serengeti: "**Serengeti National Park (Tanzania)** — neighbor to Kenya's Maasai Mara, sharing the same ecosystem. Over 1 million wildebeest migrate in a circular route. Entry $60/day. A 5-day Serengeti + Ngorongoro Crater circuit costs $800–2,500 USD per person depending on lodge tier.",
-
-  mombasa: "**Mombasa, Kenya's coastal city** — gateway to the South Coast beaches. Fort Jesus (UNESCO site), Old Town spice markets, and Haller Park. 480km from Nairobi (SGR train: 4.5 hours, KES 1,000). Fort Jesus entry KES 1,500. Use M-TRAVEL to hire a vehicle for coastal exploration.",
-
-  food: "**Kenyan cuisine highlights**: Nyama Choma (grilled meat), Ugali (maize cake), Sukuma Wiki (sautéed greens), Pilau rice, Mandazi (fried dough), Chai (spiced tea). Coast specialties: Swahili biryani, coconut fish, samosas. Budget meal: KES 200–500. Mid-range restaurant: KES 800–2,000.",
-
-  currency: "**Kenya currency**: Kenyan Shilling (KES). Current rate: ~KES 130 per USD, ~KES 160 per EUR, ~KES 165 per GBP. Banks and Forex bureaus in Nairobi city center and airports. M-Pesa works everywhere. ATMs widely available.",
-
-  safety: "**Kenya travel safety**: Nairobi, Mombasa, and tourist parks are generally safe for visitors. Exercise normal urban precautions — avoid displaying expensive gadgets, use registered taxis/Uber, keep documents secure. Foreign Office travel advisories recommend caution near Somalia and Ethiopian borders — M-TRAVEL only operates in safe tourist zones.",
-
-  connectivity: "**Internet & SIM in Kenya**: Safaricom (best coverage), Airtel, and Telkom. A tourist SIM with 20GB data costs KES 1,000–2,000. 4G coverage is excellent in Nairobi, Mombasa, and most towns. National parks have limited or no signal — download offline maps before your trip.",
+  connectivity:
+    "**Internet & SIM**: Safaricom and Airtel offer excellent 4G/5G coverage in Nairobi, major towns, and transit corridors. Some remote conservancies and deep valleys have limited coverage, so we recommend downloading offline navigation.",
 };
 
-// ─── AI Response Engine ────────────────────────────────────────────────────────
+function getDynamicGreeting(inv: SystemInventory): string {
+  if (inv.isEmpty) {
+    return "Jambo! I'm your M-TRAVEL AI Concierge. We currently do not have active vehicles or destinations available in our system at the moment. Please try again later or contact our 24/7 Concierge Support Desk for upcoming schedule releases.";
+  }
+  if (inv.liveDestinations.length > 0 && inv.availableVehicles.length > 0) {
+    return `Jambo! I'm your M-TRAVEL AI Concierge — your real-time guide to travel planning and vehicle hire. We currently have **${inv.liveDestinations.length} active destination(s)** and **${inv.availableVehicles.length} verified vehicle(s)** ready in our live system. Ask me about available tours, fleet pricing, route estimates, or trip advice!`;
+  }
+  if (inv.liveDestinations.length > 0) {
+    return `Jambo! I'm your M-TRAVEL AI Concierge. We currently have **${inv.liveDestinations.length} active travel experience(s)** published in our live system. Ask me about any available trip, pricing, or itineraries!`;
+  }
+  return `Jambo! I'm your M-TRAVEL AI Concierge. We currently have **${inv.availableVehicles.length} verified vehicle(s)** ready for hire in our active fleet. Ask me about vehicle specs, daily rates, or road trip recommendations!`;
+}
 
-function buildAiResponse(query: string): {
+// ─── Real-Time AI Response Engine ──────────────────────────────────────────────
+
+function buildLiveAiResponse(
+  query: string,
+  inv: SystemInventory
+): {
   text: string;
-  dest?: Destination;
+  dest?: TravelDestinationItem;
+  vehicle?: StoredVehicle;
   cost?: CostEstimate;
   action?: SuggestedAction;
+  alternatives?: {
+    type: 'DESTINATION' | 'VEHICLE';
+    items: AlternativeItem[];
+  };
 } {
-  const q = query.toLowerCase();
+  const q = query.toLowerCase().trim();
 
-  // Greeting detection
+  // 1. GREETING DETECTION
   if (/\b(hi|hello|hey|jambo|habari|hujambo|good morning|good evening|sup|what's up)\b/.test(q)) {
-    return { text: GENERAL_KNOWLEDGE.greeting };
+    return { text: getDynamicGreeting(inv) };
   }
 
-  // M-TRAVEL info
+  // 2. CHECK IF SYSTEM IS COMPLETELY EMPTY
+  if (inv.isEmpty) {
+    // If it's a procedural question (payment, visa, packing, etc.), answer helpfully with empty note
+    if (/mpesa|payment|pay|card|wallet/.test(q)) {
+      return {
+        text: `${PROCEDURAL_KNOWLEDGE.mpesa}\n\n*(Note: Our marketplace catalogue currently does not have active vehicles or destinations available at the moment. Please try again later.)*`,
+      };
+    }
+    if (/visa|entry|passport|permit/.test(q)) {
+      return {
+        text: `${PROCEDURAL_KNOWLEDGE.visaKenya}\n\n*(Note: We currently do not have active vehicles or destinations available in our system at the moment. Please try again later.)*`,
+      };
+    }
+    if (/pack|luggage|gear|clothing/.test(q)) {
+      return { text: PROCEDURAL_KNOWLEDGE.packingList };
+    }
+    if (/malaria|health|vaccine/.test(q)) {
+      return { text: PROCEDURAL_KNOWLEDGE.malaria };
+    }
+
+    // For all destinations, vehicles, bookings, costs, or trip questions:
+    return {
+      text: "We currently do not have active vehicles or destinations available in our system at the moment. Please try again later or contact our 24/7 Concierge Support Desk for upcoming schedule releases.",
+      action: {
+        label: "Contact Concierge Desk",
+        url: "https://wa.me/254791888840?text=Hello%20M-Travel,%20I%20would%20like%20to%20inquire%20about%20upcoming%20destinations%20and%20fleet%20availability",
+      },
+    };
+  }
+
+  // 3. PROCEDURAL GENERAL QUESTIONS
   if (/m.?travel|about us|who are you|your company|your platform/.test(q)) {
-    return { text: GENERAL_KNOWLEDGE.mtravel };
+    return {
+      text: `${PROCEDURAL_KNOWLEDGE.mtravel}\n\n**Current Live System Status**:\n• Verified Active Vehicles: **${inv.availableVehicles.length} available**${inv.onTripVehicles.length > 0 ? ` (${inv.onTripVehicles.length} on trip)` : ''}\n• Published Destinations / Tours: **${inv.liveDestinations.length} active**`,
+      action: {
+        label: inv.liveDestinations.length > 0 ? 'Browse Live Destinations' : 'View Fleet Catalogue',
+        url: inv.liveDestinations.length > 0 ? '/holidays' : '/catalogue',
+      },
+    };
   }
 
-  // Payment
   if (/mpesa|m-pesa|payment|pay|card|visa|mastercard|wallet/.test(q)) {
-    return { text: GENERAL_KNOWLEDGE.mpesa };
+    return { text: PROCEDURAL_KNOWLEDGE.mpesa };
   }
 
-  // Visa / Entry
   if (/visa|entry|passport|permit|immigration/.test(q)) {
-    return { text: GENERAL_KNOWLEDGE.visaKenya };
+    return { text: PROCEDURAL_KNOWLEDGE.visaKenya };
   }
 
-  // Best time
-  if (/best time|when to visit|season|weather|rain|dry season|migration/.test(q)) {
-    return { text: GENERAL_KNOWLEDGE.bestTimeAfrica };
-  }
-
-  // Budget
-  if (/budget|cost|cheap|expensive|price|afford|how much (for|to) travel/.test(q)) {
-    return { text: GENERAL_KNOWLEDGE.budget };
-  }
-
-  // Vehicles
-  if (/vehicle|car|suv|van|prado|land cruiser|4x4|pickup|fleet|hire a car|rent/.test(q)) {
-    return { text: GENERAL_KNOWLEDGE.vehicles };
-  }
-
-  // Packing
   if (/pack|what to bring|luggage|clothes|kit|gear/.test(q)) {
-    return { text: GENERAL_KNOWLEDGE.packingList };
+    return { text: PROCEDURAL_KNOWLEDGE.packingList };
   }
 
-  // Health / Malaria
-  if (/malaria|health|vaccine|vaccination|medicine|mosquito|medical/.test(q)) {
-    return { text: GENERAL_KNOWLEDGE.malaria };
+  if (/malaria|health|vaccine|vaccination|medicine|mosquito/.test(q)) {
+    return { text: PROCEDURAL_KNOWLEDGE.malaria };
   }
 
-  // Food
-  if (/food|eat|restaurant|cuisine|nyama|ugali|swahili|local dish/.test(q)) {
-    return { text: GENERAL_KNOWLEDGE.food };
-  }
-
-  // Currency
   if (/currency|money|exchange|shilling|kes|usd|forex/.test(q)) {
-    return { text: GENERAL_KNOWLEDGE.currency };
+    return { text: PROCEDURAL_KNOWLEDGE.currency };
   }
 
-  // Safety
   if (/safe|security|danger|crime|risk|is kenya safe/.test(q)) {
-    return { text: GENERAL_KNOWLEDGE.safety };
+    return { text: PROCEDURAL_KNOWLEDGE.safety };
   }
 
-  // Internet / SIM
   if (/sim|internet|wifi|data|network|safaricom|connectivity/.test(q)) {
-    return { text: GENERAL_KNOWLEDGE.connectivity };
+    return { text: PROCEDURAL_KNOWLEDGE.connectivity };
   }
 
-  // Zanzibar
-  if (/zanzibar|stone town|tanzania coast/.test(q)) {
-    return { text: GENERAL_KNOWLEDGE.zanzibar };
+  // 4. CHECK SPECIFIC VEHICLE MENTIONS OR FLEET QUERIES
+  const vehicleKeywords = [
+    'vehicle', 'car', 'suv', 'van', 'prado', 'land cruiser', '4x4', 'pickup',
+    'fleet', 'hire a car', 'rent a car', 'bus', 'coaster', 'coach', 'sedan',
+    'toyota', 'isuzu', 'subaru', 'mercedes', 'vitz', 'harrier', 'rav4', 'minibus'
+  ];
+  const isVehicleQuery = vehicleKeywords.some((k) => q.includes(k));
+
+  if (isVehicleQuery) {
+    // Check if user specifically requested a particular model
+    const requestedModel =
+      q.includes('prado') ? 'Toyota Land Cruiser Prado' :
+      q.includes('land cruiser') ? 'Toyota Land Cruiser' :
+      q.includes('coach') || q.includes('bus') ? 'Tour Coach / Bus' :
+      q.includes('van') || q.includes('minibus') ? 'Safari Minibus Van' :
+      q.includes('rav4') ? 'Toyota RAV4' :
+      q.includes('subaru') ? 'Subaru' :
+      q.includes('sedan') ? 'Executive Sedan' :
+      q.includes('pickup') ? '4x4 Pickup' : null;
+
+    if (requestedModel) {
+      // Find if this vehicle exists in the live fleet
+      const matchedVehicle = inv.liveVehicles.find((v) => {
+        const name = `${v.make} ${v.model} ${v.type}`.toLowerCase();
+        return (
+          (q.includes('prado') && name.includes('prado')) ||
+          (q.includes('land cruiser') && name.includes('cruiser')) ||
+          ((q.includes('bus') || q.includes('coach')) && (isBusVehicle(v) || name.includes('bus') || name.includes('coach'))) ||
+          (q.includes('van') && (v.type === 'VAN' || name.includes('van') || name.includes('minibus'))) ||
+          (q.includes('rav4') && name.includes('rav4')) ||
+          (q.includes('pickup') && (v.type === 'PICKUP' || name.includes('pickup')))
+        );
+      });
+
+      if (matchedVehicle) {
+        const hireStatus = getVehicleHireStatus(matchedVehicle.id);
+
+        if (hireStatus.isOnTrip) {
+          // Vehicle is currently out on a trip
+          let text = `The **${matchedVehicle.make} ${matchedVehicle.model}** is **currently on an active trip with a traveler**${
+            hireStatus.returnDate ? ` until ${hireStatus.returnDate}` : ''
+          }. Booking and payment are disabled until the vehicle returns and inspection is completed by Admin.\n\n`;
+
+          if (inv.availableVehicles.length > 0) {
+            text += `Here are alternative vehicles **currently available** in our active fleet:\n\n`;
+            inv.availableVehicles.slice(0, 3).forEach((v) => {
+              text += `• **${v.make} ${v.model}** (${v.year}) — KES ${v.pricePerDay.toLocaleString()}/day · ${v.seats} Seats\n`;
+            });
+            text += `\nWould you like to reserve one of these available alternatives?`;
+
+            return {
+              text,
+              alternatives: {
+                type: 'VEHICLE',
+                items: inv.availableVehicles.slice(0, 3).map((v) => ({
+                  id: v.id,
+                  type: 'VEHICLE',
+                  title: `${v.make} ${v.model}`,
+                  subtitle: `${v.seats} Seats · ${v.transmission} · ${v.fuelType}`,
+                  priceText: `KES ${v.pricePerDay.toLocaleString()} / day`,
+                  url: isBusVehicle(v) ? '/catalogue?category=buses' : `/vehicles/${v.id}`,
+                  imageUrl: v.images?.[0],
+                  specs: [`${v.seats} Seats`, v.transmission, v.fuelType],
+                })),
+              },
+              action: {
+                label: 'View Available Fleet',
+                url: '/catalogue',
+              },
+            };
+          } else {
+            text += `There are currently no other vehicles available in the fleet. Please check back later once this vehicle completes its trip.`;
+            return { text };
+          }
+        }
+
+        if (hireStatus.isAwaitingHandover) {
+          let text = `The **${matchedVehicle.make} ${matchedVehicle.model}** is **reserved and scheduled for departure**.\n\n`;
+          if (inv.availableVehicles.length > 0) {
+            text += `Here are alternative vehicles **currently available** in our fleet:\n\n`;
+            inv.availableVehicles.slice(0, 3).forEach((v) => {
+              text += `• **${v.make} ${v.model}** (${v.year}) — KES ${v.pricePerDay.toLocaleString()}/day · ${v.seats} Seats\n`;
+            });
+            return {
+              text,
+              alternatives: {
+                type: 'VEHICLE',
+                items: inv.availableVehicles.slice(0, 3).map((v) => ({
+                  id: v.id,
+                  type: 'VEHICLE',
+                  title: `${v.make} ${v.model}`,
+                  subtitle: `${v.seats} Seats · ${v.transmission} · ${v.fuelType}`,
+                  priceText: `KES ${v.pricePerDay.toLocaleString()} / day`,
+                  url: isBusVehicle(v) ? '/catalogue?category=buses' : `/vehicles/${v.id}`,
+                  imageUrl: v.images?.[0],
+                })),
+              },
+              action: { label: 'View Available Fleet', url: '/catalogue' },
+            };
+          }
+          text += `No other vehicles are currently available in the fleet. Please try again later.`;
+          return { text };
+        }
+
+        // Available!
+        return {
+          text: `The **${matchedVehicle.make} ${matchedVehicle.model} (${matchedVehicle.year})** is **currently available for hire** in our fleet!\n\n• **Daily Rate**: KES ${matchedVehicle.pricePerDay.toLocaleString()}/day\n• **Capacity**: ${matchedVehicle.seats} Passengers\n• **Transmission**: ${matchedVehicle.transmission} · **Fuel**: ${matchedVehicle.fuelType}\n• **Pickup Location**: ${matchedVehicle.address || 'Nairobi, Kenya'}\n• **Status**: Verified, commercially insured, and ready for immediate booking.`,
+          vehicle: matchedVehicle,
+          action: {
+            label: `Book ${matchedVehicle.make} ${matchedVehicle.model}`,
+            url: isBusVehicle(matchedVehicle) ? '/catalogue?category=buses' : `/vehicles/${matchedVehicle.id}`,
+          },
+        };
+      }
+
+      // The requested model is NOT in live fleet
+      let text = `**"${requestedModel}"** is currently **not available in our fleet** as it has been unlisted or removed.\n\n`;
+      if (inv.availableVehicles.length > 0) {
+        text += `However, we currently have the following verified vehicle(s) **available in our active fleet**:\n\n`;
+        inv.availableVehicles.slice(0, 3).forEach((v) => {
+          text += `• **${v.make} ${v.model}** (${v.year}) — KES ${v.pricePerDay.toLocaleString()}/day · ${v.seats} Seats\n`;
+        });
+        text += `\nWould you like to book one of these available options?`;
+        return {
+          text,
+          alternatives: {
+            type: 'VEHICLE',
+            items: inv.availableVehicles.slice(0, 3).map((v) => ({
+              id: v.id,
+              type: 'VEHICLE',
+              title: `${v.make} ${v.model}`,
+              subtitle: `${v.seats} Seats · ${v.transmission} · ${v.fuelType}`,
+              priceText: `KES ${v.pricePerDay.toLocaleString()} / day`,
+              url: isBusVehicle(v) ? '/catalogue?category=buses' : `/vehicles/${v.id}`,
+              imageUrl: v.images?.[0],
+            })),
+          },
+          action: { label: 'Explore Fleet Catalogue', url: '/catalogue' },
+        };
+      } else {
+        text = "We currently do not have active vehicles available in our fleet at the moment. Please try again later.";
+        return { text };
+      }
+    }
+
+    // General vehicle fleet question ("What vehicles do you have?")
+    if (inv.availableVehicles.length === 0 && inv.liveVehicles.length === 0) {
+      return {
+        text: "There are currently no vehicles available for hire in our fleet at the moment. Please try again later or check back soon as hosts add new vehicles.",
+      };
+    }
+
+    let text = `Here are the vehicles **currently in our active fleet**:\n\n`;
+    inv.liveVehicles.forEach((v) => {
+      const hire = getVehicleHireStatus(v.id);
+      const statusText = hire.isOnTrip
+        ? `⚠️ *(Currently on trip${hire.returnDate ? ` until ${hire.returnDate}` : ''})*`
+        : hire.isAwaitingHandover
+        ? `🔒 *(Booked · Awaiting departure)*`
+        : `✅ *(Available for hire)*`;
+      text += `• **${v.make} ${v.model} (${v.year})** — KES ${v.pricePerDay.toLocaleString()}/day · ${v.seats} Seats · ${statusText}\n`;
+    });
+
+    if (inv.availableVehicles.length > 0) {
+      return {
+        text,
+        alternatives: {
+          type: 'VEHICLE',
+          items: inv.availableVehicles.slice(0, 4).map((v) => ({
+            id: v.id,
+            type: 'VEHICLE',
+            title: `${v.make} ${v.model}`,
+            subtitle: `${v.seats} Seats · ${v.transmission} · ${v.fuelType}`,
+            priceText: `KES ${v.pricePerDay.toLocaleString()} / day`,
+            url: isBusVehicle(v) ? '/catalogue?category=buses' : `/vehicles/${v.id}`,
+            imageUrl: v.images?.[0],
+          })),
+        },
+        action: { label: 'View Fleet Catalogue', url: '/catalogue' },
+      };
+    }
+
+    return { text };
   }
 
-  // Serengeti
-  if (/serengeti|ngorongoro|tanzania|dar es salaam/.test(q)) {
-    return { text: GENERAL_KNOWLEDGE.serengeti };
-  }
+  // 5. DESTINATION MATCHING AGAINST CURRENT LIVE SYSTEM DATA
+  // Check if query matches a destination CURRENTLY in the system
+  const matchingLiveDest = inv.liveDestinations.find((d) => {
+    const t = (d.title || '').toLowerCase();
+    const loc = (d.location || '').toLowerCase();
+    const reg = (d.region || '').toLowerCase();
+    const tokens = q.split(/\s+/).filter((w) => w.length >= 4);
 
-  // Mombasa
-  if (/mombasa|fort jesus|old town coast/.test(q)) {
-    return { text: GENERAL_KNOWLEDGE.mombasa };
-  }
+    return (
+      tokens.some((tok) => t.includes(tok) || loc.includes(tok) || reg.includes(tok)) ||
+      (q.includes('mara') && (t.includes('mara') || loc.includes('mara'))) ||
+      (q.includes('diani') && (t.includes('diani') || loc.includes('diani'))) ||
+      (q.includes('amboseli') && (t.includes('amboseli') || loc.includes('amboseli'))) ||
+      (q.includes('naivasha') && (t.includes('naivasha') || loc.includes('naivasha'))) ||
+      (q.includes('tsavo') && (t.includes('tsavo') || loc.includes('tsavo'))) ||
+      (q.includes('kenya') && t.includes('kenya'))
+    );
+  });
 
-  // ── Destination matching with cost calculation ──
-
-  let matchedDest: Destination | undefined;
-
-  if (/mara|migration|wildebeest|masai|maasai/.test(q)) {
-    matchedDest = KENYA_DESTINATIONS.find((d) => d.id === 'maasai-mara');
-  } else if (/amboseli|kilimanjaro|elephant/.test(q)) {
-    matchedDest = KENYA_DESTINATIONS.find((d) => d.id === 'amboseli');
-  } else if (/diani|beach|coast|ocean|swim|snorkel/.test(q)) {
-    matchedDest = KENYA_DESTINATIONS.find((d) => d.id === 'diani-beach');
-  } else if (/naivasha|hell.?gate|hippo|boat|rift/.test(q)) {
-    matchedDest = KENYA_DESTINATIONS.find((d) => d.id === 'lake-naivasha');
-  } else if (/mount kenya|mountain|trek|hiking|point lenana/.test(q)) {
-    matchedDest = KENYA_DESTINATIONS.find((d) => d.id === 'mount-kenya');
-  } else if (/tsavo|mzima|lava|aruba/.test(q)) {
-    matchedDest = KENYA_DESTINATIONS.find((d) => d.id === 'tsavo-national-parks');
-  } else if (/safari|national park|game drive|big five/.test(q)) {
-    matchedDest = KENYA_DESTINATIONS.find((d) => d.id === 'maasai-mara');
-  }
-
-  if (matchedDest) {
-    // Extract days/passengers from query
+  // Scenario A: Destination IS currently published in the system!
+  if (matchingLiveDest) {
     const daysMatch = q.match(/(\d+)\s*day/);
     const paxMatch = q.match(/(\d+)\s*(person|people|passenger|pax)/);
     const days = daysMatch ? parseInt(daysMatch[1]) : 3;
     const passengers = paxMatch ? parseInt(paxMatch[1]) : 4;
-    const vehicleType = matchedDest.suggestedVehicleTypes[0] || 'SUV';
 
-    const dailyRate = vehicleType === 'SUV' ? 12000 : vehicleType === 'VAN' ? 10000 : vehicleType === 'BUS' ? 20000 : 7000;
+    const matchedVeh = inv.availableVehicles[0];
+    const dailyRate = matchedVeh ? matchedVeh.pricePerDay : 12000;
+    const vehicleType = matchedVeh ? `${matchedVeh.make} ${matchedVeh.model}` : '4x4 SUV';
     const vehicleTotal = dailyRate * days;
-    const fuelRatePerKm = vehicleType === 'BUS' ? 35 : 25;
-    const fuelEst = Math.round(matchedDest.distanceFromNairobiKm * 2 * fuelRatePerKm + days * 1500);
-    const parkFees = matchedDest.kwsAdultFeeKes * passengers * days;
-    const driverAllowance = days * (vehicleType === 'BUS' ? 2500 : 2000);
-    const totalKes = vehicleTotal + fuelEst + parkFees + driverAllowance;
+    const estimatedFuel = days * 3500;
+    const parkFees = 1500 * passengers * days;
+    const driverAllowance = days * 2000;
+    const totalKes = vehicleTotal + estimatedFuel + parkFees + driverAllowance;
 
-    const text = `Great choice! Here's everything you need to know about **${matchedDest.name}**:\n\n• **Location**: ${matchedDest.location}\n• **Highlights**: ${matchedDest.highlights.slice(0, 3).join(', ')}\n• **Best Time to Visit**: ${matchedDest.bestMonths}\n• **Recommended Vehicle**: ${matchedDest.vehicleReason}\n\nI've calculated your estimated trip cost below for ${days} days, ${passengers} passengers.`;
+    const highlightsText =
+      matchingLiveDest.details?.highlights && matchingLiveDest.details.highlights.length > 0
+        ? `\n• **Highlights**: ${matchingLiveDest.details.highlights.slice(0, 3).join(', ')}`
+        : '';
+
+    const text =
+      `Great choice! Here are the details for **${matchingLiveDest.title}** currently available in our system:\n\n` +
+      `• **Location**: ${matchingLiveDest.location}\n` +
+      `• **Price**: KES ${matchingLiveDest.priceKES.toLocaleString()} ${matchingLiveDest.priceUnit || '/ person'}` +
+      `${highlightsText}\n` +
+      `• **Overview**: ${matchingLiveDest.details?.overview || matchingLiveDest.subtitle}\n\n` +
+      `I've calculated your estimated itinerary cost below for **${days} days, ${passengers} passenger(s)**${
+        matchedVeh ? ` paired with our available **${matchedVeh.make} ${matchedVeh.model}**` : ''
+      }.`;
 
     return {
       text,
-      dest: matchedDest,
+      dest: matchingLiveDest,
       cost: {
-        destinationName: matchedDest.name,
+        destinationName: matchingLiveDest.title,
         days,
         passengers,
         vehicleType,
         dailyRateKes: dailyRate,
         vehicleTotalKes: vehicleTotal,
-        estimatedFuelKes: fuelEst,
+        estimatedFuelKes: estimatedFuel,
         parkFeesKes: parkFees,
         driverAllowanceKes: driverAllowance,
         totalKes,
         totalUsd: Math.round(totalKes / 130),
       },
       action: {
-        label: `Book a ${vehicleType === 'BUS' ? 'Bus' : vehicleType} for ${matchedDest.name}`,
-        url: vehicleType === 'BUS' ? '/catalogue?category=buses' : `/search?type=${vehicleType}`,
+        label: `Book ${matchingLiveDest.title}`,
+        url: '/holidays',
       },
     };
   }
 
-  // General travel questions fallback
-  if (/plan|itinerary|suggest|recommend|where|trip|travel|destination/.test(q)) {
+  // Scenario B: User asked about a specific destination that is NOT in the system
+  // (e.g. they asked for Maasai Mara, Amboseli, Diani Beach, Naivasha, Mount Kenya, Tsavo, etc., but it was removed)
+  const knownDestinationNames: Record<string, string> = {
+    mara: 'Maasai Mara National Reserve',
+    masai: 'Maasai Mara National Reserve',
+    wildebeest: 'Maasai Mara (Wildebeest Migration)',
+    amboseli: 'Amboseli National Park',
+    kilimanjaro: 'Amboseli / Mount Kilimanjaro',
+    diani: 'Diani Beach & South Coast',
+    naivasha: 'Lake Naivasha',
+    'hells gate': "Hell's Gate National Park",
+    'mount kenya': 'Mount Kenya National Park',
+    'mt kenya': 'Mount Kenya National Park',
+    tsavo: 'Tsavo National Parks',
+    serengeti: 'Serengeti Safari',
+    zanzibar: 'Zanzibar Island',
+    mombasa: 'Mombasa Coastal Tour',
+    samburu: 'Samburu National Reserve',
+    nakuru: 'Lake Nakuru',
+    watamu: 'Watamu Beach',
+    lamu: 'Lamu Old Town',
+  };
+
+  const matchedKnownKeyword = Object.keys(knownDestinationNames).find((k) => q.includes(k));
+
+  if (matchedKnownKeyword) {
+    const missingDestName = knownDestinationNames[matchedKnownKeyword];
+    let text = `**"${missingDestName}"** is currently **not available in our active catalogue** as it has been removed or is temporarily unlisted.\n\n`;
+
+    // Suggest available destination alternatives
+    if (inv.liveDestinations.length > 0) {
+      text += `However, we currently have the following verified travel experiences **available in our system** as great alternatives:\n\n`;
+      inv.liveDestinations.slice(0, 3).forEach((d) => {
+        text += `• **${d.title}** (${d.location}) — KES ${d.priceKES.toLocaleString()} ${d.priceUnit || '/ person'}\n`;
+      });
+      text += `\nWould you like details or an itinerary for any of these available destinations?`;
+
+      return {
+        text,
+        alternatives: {
+          type: 'DESTINATION',
+          items: inv.liveDestinations.slice(0, 3).map((d) => ({
+            id: d.id,
+            type: 'DESTINATION',
+            title: d.title,
+            subtitle: d.location,
+            priceText: `KES ${d.priceKES.toLocaleString()} ${d.priceUnit || ''}`,
+            url: '/holidays',
+            imageUrl: d.imageUrl,
+            badge: d.badge,
+            specs: d.specs,
+          })),
+        },
+        action: {
+          label: `Explore ${inv.liveDestinations[0].title}`,
+          url: '/holidays',
+        },
+      };
+    }
+
+    // No destinations, but vehicles exist
+    if (inv.availableVehicles.length > 0) {
+      text += `Currently, there are no packaged tours published in our catalogue. However, we have **${inv.availableVehicles.length} verified vehicle(s)** ready for custom self-drive hire or road trips:\n\n`;
+      inv.availableVehicles.slice(0, 3).forEach((v) => {
+        text += `• **${v.make} ${v.model}** (${v.year}) — KES ${v.pricePerDay.toLocaleString()}/day · ${v.seats} Seats\n`;
+      });
+      text += `\nYou can hire an available vehicle and travel to any destination across Kenya on your own schedule!`;
+
+      return {
+        text,
+        alternatives: {
+          type: 'VEHICLE',
+          items: inv.availableVehicles.slice(0, 3).map((v) => ({
+            id: v.id,
+            type: 'VEHICLE',
+            title: `${v.make} ${v.model}`,
+            subtitle: `${v.seats} Seats · ${v.transmission} · ${v.fuelType}`,
+            priceText: `KES ${v.pricePerDay.toLocaleString()} / day`,
+            url: '/catalogue',
+            imageUrl: v.images?.[0],
+          })),
+        },
+        action: {
+          label: 'View Available Fleet',
+          url: '/catalogue',
+        },
+      };
+    }
+
+    // Both 0
     return {
-      text: `I'd love to help you plan the perfect trip! Here are some popular M-TRAVEL experiences:\n\n• **Maasai Mara Safari** — 3 days, KES 50,000–90,000/group\n• **Amboseli Elephant Safari** — 2 days, KES 35,000–60,000/group\n• **Diani Beach Escape** — 3 days, KES 30,000–70,000/group\n• **Mount Kenya Trek** — 4 days, KES 45,000–80,000/group\n• **Lake Naivasha Weekend** — 1–2 days, KES 15,000–35,000/group\n\nTell me which destination excites you most and I'll give you a full itinerary with exact costs, vehicle recommendations, and booking options!`,
+      text: "We currently do not have active vehicles or destinations available in our system at the moment. Please try again later or contact our 24/7 concierge support desk.",
+      action: {
+        label: "Contact Concierge Desk",
+        url: "https://wa.me/254791888840",
+      },
     };
   }
 
-  // Default helpful response
+  // 6. GENERAL TRAVEL / ITINERARY PLANNING QUESTIONS ("Plan a trip", "Suggest a holiday", etc.)
+  if (/plan|itinerary|suggest|recommend|where|trip|travel|destination|safari|holiday|tour/.test(q)) {
+    if (inv.liveDestinations.length > 0) {
+      let text = `I'd love to help you plan your journey! Here are the premier travel experiences **currently published in our system**:\n\n`;
+      inv.liveDestinations.slice(0, 4).forEach((d) => {
+        text += `• **${d.title}** (${d.location}) — KES ${d.priceKES.toLocaleString()} ${d.priceUnit || '/ person'}\n  ${d.subtitle || d.specs?.join(' · ') || ''}\n`;
+      });
+      text += `\nTell me which experience interests you, or how many days and travelers you have, and I will prepare a complete itinerary!`;
+
+      return {
+        text,
+        alternatives: {
+          type: 'DESTINATION',
+          items: inv.liveDestinations.slice(0, 4).map((d) => ({
+            id: d.id,
+            type: 'DESTINATION',
+            title: d.title,
+            subtitle: d.location,
+            priceText: `KES ${d.priceKES.toLocaleString()} ${d.priceUnit || ''}`,
+            url: '/holidays',
+            imageUrl: d.imageUrl,
+            badge: d.badge,
+            specs: d.specs,
+          })),
+        },
+        action: {
+          label: 'Explore Active Destinations',
+          url: '/holidays',
+        },
+      };
+    }
+
+    if (inv.availableVehicles.length > 0) {
+      let text = `We currently do not have pre-packaged tour packages in our catalogue, but we have **${inv.availableVehicles.length} verified vehicle(s)** ready for custom self-drive hire or guided road trips:\n\n`;
+      inv.availableVehicles.slice(0, 3).forEach((v) => {
+        text += `• **${v.make} ${v.model}** (${v.year}) — KES ${v.pricePerDay.toLocaleString()}/day · ${v.seats} Seats\n`;
+      });
+      text += `\nYou can hire a vehicle for your chosen number of days. Where would you like to travel?`;
+
+      return {
+        text,
+        alternatives: {
+          type: 'VEHICLE',
+          items: inv.availableVehicles.slice(0, 3).map((v) => ({
+            id: v.id,
+            type: 'VEHICLE',
+            title: `${v.make} ${v.model}`,
+            subtitle: `${v.seats} Seats · ${v.transmission} · ${v.fuelType}`,
+            priceText: `KES ${v.pricePerDay.toLocaleString()} / day`,
+            url: '/catalogue',
+            imageUrl: v.images?.[0],
+          })),
+        },
+        action: { label: 'View Available Fleet', url: '/catalogue' },
+      };
+    }
+
+    return {
+      text: "We currently do not have active vehicles or destinations available in our system at the moment. Please try again later or contact our concierge support desk.",
+      action: {
+        label: "Contact Concierge Desk",
+        url: "https://wa.me/254791888840",
+      },
+    };
+  }
+
+  // 7. DEFAULT HELPFUL FALLBACK
   return {
-    text: `Great question! I'm here to help with anything travel-related — destinations, costs, vehicle hire, safaris, beaches, mountains, city tours, packing advice, visa info, local food, safety tips, and more.\n\nHere are some things you can ask me:\n• "Plan a 3-day Maasai Mara safari for 4 people"\n• "What vehicle do I need for Amboseli?"\n• "How much does a trip to Diani Beach cost?"\n• "Is Kenya safe to travel?"\n• "What should I pack for a safari?"\n• "How do I pay with M-Pesa?"\n\nWhat would you like to know?`,
+    text: `I'm your real-time M-TRAVEL AI Concierge! I am synchronized with our live system (${inv.liveDestinations.length} active destination(s) and ${inv.availableVehicles.length} available vehicle(s)).\n\nYou can ask me:\n${
+      inv.liveDestinations.length > 0
+        ? `• "Tell me about ${inv.liveDestinations[0].title}"\n`
+        : ''
+    }${
+      inv.availableVehicles.length > 0
+        ? `• "Is the ${inv.availableVehicles[0].make} ${inv.availableVehicles[0].model} available?"\n`
+        : ''
+    }• "What vehicles are in our fleet?"\n• "How does direct M-Pesa payment work?"\n• "What should I pack for safari?"\n\nHow can I assist your journey?`,
   };
 }
 
-// ─── Preset Prompts ────────────────────────────────────────────────────────────
+// ─── Memoized Chat Input Component (Zero Keystroke Latency) ─────────────────
 
-const PRESET_PROMPTS = [
-  { text: 'Plan a Maasai Mara safari for 4 people', icon: Compass },
-  { text: 'What 4x4 vehicle do I need for Amboseli?', icon: Car },
-  { text: 'How much is a luxury Diani Beach trip?', icon: Palmtree },
-  { text: 'How does direct M-Pesa payment work?', icon: CreditCard },
-  { text: 'What are Kenya’s premier safari destinations?', icon: MapPin },
-];
+interface ChatInputBoxProps {
+  onSend: (text: string) => void;
+  isTyping: boolean;
+}
+
+const ChatInputBox = React.memo(function ChatInputBox({ onSend, isTyping }: ChatInputBoxProps) {
+  const [inputText, setInputText] = useState('');
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  const handleSubmit = () => {
+    const trimmed = inputText.trim();
+    if (!trimmed || isTyping) return;
+    onSend(trimmed);
+    setInputText('');
+  };
+
+  return (
+    <div className="p-3 border-t border-slate-200 bg-white flex items-center gap-2 shrink-0">
+      <input
+        type="text"
+        placeholder="Ask anything about travel, costs, vehicles, visas…"
+        className="input-field !py-2.5 text-sm"
+        value={inputText}
+        onChange={(e) => setInputText(e.target.value)}
+        onKeyDown={handleKeyDown}
+        disabled={isTyping}
+        autoFocus
+      />
+      <button
+        onClick={handleSubmit}
+        disabled={!inputText.trim() || isTyping}
+        className="btn-primary !p-2.5 rounded-xl shrink-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+        title="Send"
+        aria-label="Send message"
+      >
+        <Send className="h-4 w-4" />
+      </button>
+    </div>
+  );
+});
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -271,22 +743,66 @@ export function AiTravelAssistant({
   initialPrompt?: string;
 }) {
   const navigate = useNavigate();
+
+  // Real-time dynamic inventory state
+  const [inventory, setInventory] = useState<SystemInventory>(getLiveSystemInventory());
+
+  // Listen to real-time events to auto-update whenever items are added or removed (debounced)
+  useEffect(() => {
+    let timer: any = null;
+    const handleUpdate = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        setInventory(getLiveSystemInventory());
+      }, 150);
+    };
+
+    window.addEventListener('mt_destinations_updated', handleUpdate);
+    window.addEventListener('mt_vehicle_updated', handleUpdate);
+    window.addEventListener('mt_booking_updated', handleUpdate);
+    window.addEventListener('mt_remote_change', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener('mt_destinations_updated', handleUpdate);
+      window.removeEventListener('mt_vehicle_updated', handleUpdate);
+      window.removeEventListener('mt_booking_updated', handleUpdate);
+      window.removeEventListener('mt_remote_change', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
       sender: 'ai',
-      text: GENERAL_KNOWLEDGE.greeting,
+      text: getDynamicGreeting(getLiveSystemInventory()),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
-  const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [selectedDestId, setSelectedDestId] = useState('maasai-mara');
+
+  // Calculator state
+  const [selectedDestId, setSelectedDestId] = useState<string>(
+    inventory.liveDestinations[0]?.id || ''
+  );
   const [calcDays, setCalcDays] = useState(3);
   const [calcPassengers, setCalcPassengers] = useState(4);
   const [calcVehicleType, setCalcVehicleType] = useState('SUV');
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const isInitialMount = useRef(true);
+
+  // Auto-align selected destination if inventory changes
+  useEffect(() => {
+    if (inventory.liveDestinations.length > 0) {
+      if (!selectedDestId || !inventory.liveDestinations.some((d) => d.id === selectedDestId)) {
+        setSelectedDestId(inventory.liveDestinations[0].id);
+      }
+    } else {
+      setSelectedDestId('');
+    }
+  }, [inventory.liveDestinations, selectedDestId]);
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -294,49 +810,56 @@ export function AiTravelAssistant({
       return;
     }
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTo({
-        top: chatContainerRef.current.scrollHeight,
-        behavior: 'smooth',
-      });
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages, isTyping]);
 
-  const currentDestination =
-    KENYA_DESTINATIONS.find((d) => d.id === selectedDestId) || KENYA_DESTINATIONS[0];
+  const currentDestination = useMemo(() => {
+    return (
+      inventory.liveDestinations.find((d) => d.id === selectedDestId) ||
+      inventory.liveDestinations[0] ||
+      null
+    );
+  }, [inventory.liveDestinations, selectedDestId]);
 
-  const handleSend = useCallback(
-    (userText?: string) => {
-      const text = userText || input;
-      if (!text.trim()) return;
+  const handleSend = useCallback((textToSend: string) => {
+    const text = textToSend.trim();
+    if (!text) return;
 
-      const userMsg: Message = {
-        id: Date.now().toString(),
-        sender: 'user',
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      sender: 'user',
+      text,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    setIsTyping(true);
+
+    setTimeout(() => {
+      // Read the most up-to-date real-time inventory
+      const freshInventory = getLiveSystemInventory();
+      const { text: aiText, dest, vehicle, cost, action, alternatives } = buildLiveAiResponse(
         text,
+        freshInventory
+      );
+
+      const aiMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: 'ai',
+        text: aiText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        destinationData: dest,
+        vehicleData: vehicle,
+        costEstimate: cost,
+        suggestedAction: action,
+        alternatives,
       };
 
-      setMessages((prev) => [...prev, userMsg]);
-      if (!userText) setInput('');
-      setIsTyping(true);
-
-      setTimeout(() => {
-        const { text: aiText, dest, cost, action } = buildAiResponse(text);
-        const aiMsg: Message = {
-          id: (Date.now() + 1).toString(),
-          sender: 'ai',
-          text: aiText,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          destinationData: dest,
-          costEstimate: cost,
-          suggestedAction: action,
-        };
-        setMessages((prev) => [...prev, aiMsg]);
-        setIsTyping(false);
-      }, 900);
-    },
-    [input]
-  );
+      setMessages((prev) => [...prev, aiMsg]);
+      setIsTyping(false);
+    }, 600);
+  }, []);
 
   const handledInitialPrompt = useRef<string | null>(null);
   useEffect(() => {
@@ -346,27 +869,82 @@ export function AiTravelAssistant({
     }
   }, [initialPrompt, handleSend]);
 
-  const calculatedResult = React.useMemo(() => {
-    const dest = currentDestination;
+  // Dynamic preset prompts derived from LIVE inventory
+  const presetPrompts = useMemo(() => {
+    const list: Array<{ text: string; icon: any }> = [];
+
+    if (inventory.liveDestinations.length > 0) {
+      list.push({
+        text: `Plan a trip to ${inventory.liveDestinations[0].title}`,
+        icon: Compass,
+      });
+      if (inventory.liveDestinations.length > 1) {
+        list.push({
+          text: `Tell me about ${inventory.liveDestinations[1].title}`,
+          icon: Palmtree,
+        });
+      }
+    }
+
+    if (inventory.availableVehicles.length > 0) {
+      list.push({
+        text: `Is the ${inventory.availableVehicles[0].make} ${inventory.availableVehicles[0].model} available?`,
+        icon: Car,
+      });
+    } else if (inventory.onTripVehicles.length > 0) {
+      list.push({
+        text: `When will vehicles currently on trip return?`,
+        icon: Clock,
+      });
+    }
+
+    list.push({
+      text: `How does direct M-Pesa payment work?`,
+      icon: CreditCard,
+    });
+
+    if (inventory.isEmpty) {
+      list.unshift({
+        text: `Are any tours or vehicles available right now?`,
+        icon: Bot,
+      });
+    }
+
+    return list;
+  }, [inventory]);
+
+  // Calculator computation
+  const calculatedResult = useMemo(() => {
+    if (!currentDestination) {
+      const dailyRate =
+        calcVehicleType === 'BUS' ? 25000 : calcVehicleType === 'SUV' ? 15000 : 10000;
+      const vehicleTotal = dailyRate * calcDays;
+      const estimatedFuel = calcDays * 3000;
+      const totalKes = vehicleTotal + estimatedFuel;
+      return {
+        dailyRate,
+        vehicleTotal,
+        fuelEst: estimatedFuel,
+        parkFees: 0,
+        driverAllowance: calcDays * 2000,
+        totalKes: totalKes + calcDays * 2000,
+        totalUsd: Math.round((totalKes + calcDays * 2000) / 130),
+      };
+    }
+
     const dailyRate =
-      calcVehicleType === 'SUV'
-        ? 12000
-        : calcVehicleType === 'VAN'
-        ? 10000
-        : calcVehicleType === 'BUS'
-        ? 20000
-        : 7000;
+      calcVehicleType === 'BUS' ? 25000 : calcVehicleType === 'SUV' ? 15000 : 10000;
     const vehicleTotal = dailyRate * calcDays;
-    const fuelRatePerKm = calcVehicleType === 'BUS' ? 35 : 25;
-    const fuelEst = Math.round(dest.distanceFromNairobiKm * 2 * fuelRatePerKm + calcDays * 1500);
-    const parkFees = dest.kwsAdultFeeKes * calcPassengers * calcDays;
+    const destPriceTotal = (currentDestination.priceKES || 50000) * calcPassengers;
+    const fuelEst = calcDays * 3500;
     const driverAllowance = calcDays * (calcVehicleType === 'BUS' ? 2500 : 2000);
-    const totalKes = vehicleTotal + fuelEst + parkFees + driverAllowance;
+    const totalKes = vehicleTotal + destPriceTotal + fuelEst + driverAllowance;
+
     return {
       dailyRate,
       vehicleTotal,
       fuelEst,
-      parkFees,
+      parkFees: destPriceTotal,
       driverAllowance,
       totalKes,
       totalUsd: Math.round(totalKes / 130),
@@ -375,7 +953,7 @@ export function AiTravelAssistant({
 
   return (
     <div
-      className={`glass-card-3d overflow-hidden flex flex-col ${
+      className={`bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col ${
         isModal ? 'h-[85vh] max-w-4xl w-full mx-auto' : 'h-[750px] w-full'
       }`}
     >
@@ -383,42 +961,65 @@ export function AiTravelAssistant({
       <div className="bg-slate-50/90 p-4 border-b border-slate-200 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-marigold via-coral to-teal shadow-glow">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-sm border border-slate-800">
               <Bot className="h-5 w-5 text-white" />
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white" />
+            <span
+              className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${
+                inventory.isEmpty ? 'bg-amber-400' : 'bg-emerald-500'
+              }`}
+            />
           </div>
           <div>
-            <h3 className="font-display font-bold text-slate-900 flex items-center gap-2">
+            <h3 className="font-display font-bold text-slate-900 flex items-center gap-2 text-sm sm:text-base">
               M-TRAVEL AI Travel Concierge
-              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] uppercase font-mono font-bold text-emerald-600 border border-emerald-500/30">
-                Online
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] uppercase font-mono font-bold border ${
+                  inventory.isEmpty
+                    ? 'bg-amber-500/15 text-amber-700 border-amber-500/30'
+                    : 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30'
+                }`}
+              >
+                {inventory.isEmpty ? 'Standby' : 'Live Sync'}
               </span>
             </h3>
             <p className="text-xs text-slate-500">
-              Ask me anything — destinations, costs, vehicles, visas, packing, safety & more
+              {inventory.isEmpty
+                ? 'System updated in real time · No active listings currently published'
+                : `Live Inventory: ${inventory.liveDestinations.length} destination(s) · ${inventory.availableVehicles.length} available vehicle(s)`}
             </p>
           </div>
         </div>
         {isModal && onClose && (
-          <button onClick={onClose} className="btn-ghost !px-3 !py-1.5 text-xs">
+          <button onClick={onClose} className="btn-ghost !px-3 !py-1.5 text-xs cursor-pointer">
             Close
           </button>
         )}
       </div>
 
       {/* BODY */}
-      <div className={`flex-1 grid grid-cols-1 ${showCalculator ? 'lg:grid-cols-12' : ''} overflow-hidden min-h-0`}>
+      <div
+        className={`flex-1 grid grid-cols-1 ${
+          showCalculator ? 'lg:grid-cols-12' : ''
+        } overflow-hidden min-h-0`}
+      >
         {/* CHAT PANEL */}
-        <div className={`${showCalculator ? 'lg:col-span-7 border-r' : 'w-full'} flex flex-col border-slate-200 bg-slate-50/40 overflow-hidden`}>
+        <div
+          className={`${
+            showCalculator ? 'lg:col-span-7 border-r' : 'w-full'
+          } flex flex-col border-slate-200 bg-slate-50/40 overflow-hidden`}
+        >
           {/* MESSAGES */}
           <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
+              <div
+                key={msg.id}
+                className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+              >
                 <div
-                  className={`max-w-[90%] rounded-2xl p-4 ${
+                  className={`max-w-[92%] sm:max-w-[85%] rounded-2xl p-4 ${
                     msg.sender === 'user'
-                      ? 'bg-amber-500 text-white font-medium rounded-tr-none shadow-sm'
+                      ? 'bg-slate-950 text-white font-medium rounded-tr-none shadow-sm'
                       : 'bg-white border border-slate-200 text-slate-900 rounded-tl-none space-y-3 shadow-sm'
                   }`}
                 >
@@ -427,51 +1028,91 @@ export function AiTravelAssistant({
                   {/* DESTINATION CARD */}
                   {msg.destinationData && (
                     <div className="mt-3 rounded-xl border border-slate-200 bg-white overflow-hidden space-y-3 p-3 shadow-sm">
-                      <div className="relative h-40 rounded-lg overflow-hidden">
+                      <div className="relative h-40 rounded-lg overflow-hidden bg-slate-100">
                         <img
                           src={msg.destinationData.imageUrl}
-                          alt={msg.destinationData.name}
+                          alt={msg.destinationData.title}
                           className="h-full w-full object-cover"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
-                        <span className="absolute bottom-2 left-2 rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase shadow-sm">
-                          {msg.destinationData.category}
+                        <span className="absolute bottom-2 left-2 rounded-full bg-slate-950 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase shadow-sm border border-white/20">
+                          {msg.destinationData.category || 'DESTINATION'}
+                        </span>
+                        <span className="absolute bottom-2 right-2 rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold text-slate-950 uppercase shadow-sm font-mono">
+                          KES {msg.destinationData.priceKES.toLocaleString()}{' '}
+                          {msg.destinationData.priceUnit || ''}
                         </span>
                       </div>
 
-                      {/* GALLERY */}
-                      <div className="flex gap-2 overflow-x-auto">
-                        {msg.destinationData.galleryUrls.map((url, i) => (
-                          <img
-                            key={i}
-                            src={url}
-                            alt=""
-                            className="h-14 w-22 rounded-md object-cover border border-slate-200 shrink-0"
-                          />
-                        ))}
+                      {/* MULTI PHOTO GALLERY */}
+                      {Array.isArray(msg.destinationData.images) &&
+                        msg.destinationData.images.length > 0 && (
+                          <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                            {msg.destinationData.images.map((url, i) => (
+                              <img
+                                key={i}
+                                src={url}
+                                alt=""
+                                className="h-14 w-22 rounded-md object-cover border border-slate-200 shrink-0"
+                              />
+                            ))}
+                          </div>
+                        )}
+
+                      <div className="font-bold text-sm text-slate-900">
+                        {msg.destinationData.title}
                       </div>
+                      <div className="text-xs text-slate-500 flex items-center gap-1 font-medium">
+                        <MapPin className="h-3 w-3 text-slate-600" />
+                        <span>{msg.destinationData.location}</span>
+                      </div>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        {msg.destinationData.details?.overview || msg.destinationData.subtitle}
+                      </p>
 
-                      <p className="text-xs text-slate-600">{msg.destinationData.description}</p>
+                      {/* HIGHLIGHTS */}
+                      {msg.destinationData.details?.highlights &&
+                        msg.destinationData.details.highlights.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {msg.destinationData.details.highlights.slice(0, 4).map((h, i) => (
+                              <span
+                                key={i}
+                                className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-medium"
+                              >
+                                ✓ {h}
+                              </span>
+                            ))}
+                          </div>
+                        )}
 
-                      {/* COST BREAKDOWN */}
+                      {/* COST ESTIMATE */}
                       {msg.costEstimate && (
                         <div className="rounded-lg bg-slate-50 p-3 border border-slate-200 text-xs space-y-2">
-                          <div className="flex items-center justify-between text-amber-700 font-semibold">
+                          <div className="flex items-center justify-between text-slate-950 font-semibold">
                             <span>
-                              Cost Estimate — {msg.costEstimate.days} days, {msg.costEstimate.passengers} pax
+                              Trip Estimate — {msg.costEstimate.days} days,{' '}
+                              {msg.costEstimate.passengers} pax
                             </span>
-                            <span className="font-mono">
-                              KES {msg.costEstimate.totalKes.toLocaleString()} / ${msg.costEstimate.totalUsd}
+                            <span className="font-mono font-bold">
+                              KES {msg.costEstimate.totalKes.toLocaleString()} / $
+                              {msg.costEstimate.totalUsd}
                             </span>
                           </div>
                           <div className="grid grid-cols-2 gap-1.5 text-slate-600 pt-1 border-t border-slate-200">
                             <div>
-                              {msg.costEstimate.vehicleType} hire:{' '}
+                              Vehicle ({msg.costEstimate.vehicleType}):{' '}
                               KES {msg.costEstimate.vehicleTotalKes.toLocaleString()}
                             </div>
-                            <div>Fuel: KES {msg.costEstimate.estimatedFuelKes.toLocaleString()}</div>
-                            <div>Park fees: KES {msg.costEstimate.parkFeesKes.toLocaleString()}</div>
-                            <div>Driver: KES {msg.costEstimate.driverAllowanceKes.toLocaleString()}</div>
+                            <div>
+                              Fuel estimate: KES {msg.costEstimate.estimatedFuelKes.toLocaleString()}
+                            </div>
+                            <div>
+                              Tours/Fees: KES {msg.costEstimate.parkFeesKes.toLocaleString()}
+                            </div>
+                            <div>
+                              Driver allowance: KES{' '}
+                              {msg.costEstimate.driverAllowanceKes.toLocaleString()}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -480,57 +1121,145 @@ export function AiTravelAssistant({
                       {msg.suggestedAction && (
                         <button
                           onClick={() => navigate(msg.suggestedAction!.url)}
-                          className="btn-primary w-full text-xs !py-2.5 flex items-center justify-center gap-1.5"
+                          className="btn-primary w-full text-xs !py-2.5 flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Compass className="h-4 w-4" /> {msg.suggestedAction.label}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* VEHICLE CARD */}
+                  {msg.vehicleData && (
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-white overflow-hidden space-y-3 p-3 shadow-sm">
+                      <div className="relative h-40 rounded-lg overflow-hidden bg-slate-100">
+                        <img
+                          src={msg.vehicleData.images?.[0] || '/vehicles/prado-front.jpg'}
+                          alt={`${msg.vehicleData.make} ${msg.vehicleData.model}`}
+                          className="h-full w-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+                        <span className="absolute bottom-2 left-2 rounded-full bg-slate-950 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase shadow-sm border border-white/20">
+                          {msg.vehicleData.type}
+                        </span>
+                        <span className="absolute bottom-2 right-2 rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold text-slate-950 uppercase shadow-sm font-mono">
+                          KES {msg.vehicleData.pricePerDay.toLocaleString()} / day
+                        </span>
+                      </div>
+
+                      <div className="font-bold text-sm text-slate-900">
+                        {msg.vehicleData.make} {msg.vehicleData.model} ({msg.vehicleData.year})
+                      </div>
+                      <div className="text-xs text-slate-600 grid grid-cols-2 gap-1.5 font-medium">
+                        <div>👥 {msg.vehicleData.seats} Passengers</div>
+                        <div>⚙️ {msg.vehicleData.transmission}</div>
+                        <div>⛽ {msg.vehicleData.fuelType}</div>
+                        <div>📍 {msg.vehicleData.address || 'Nairobi, Kenya'}</div>
+                      </div>
+
+                      {msg.suggestedAction && (
+                        <button
+                          onClick={() => navigate(msg.suggestedAction!.url)}
+                          className="btn-primary w-full text-xs !py-2.5 flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <Car className="h-4 w-4" /> {msg.suggestedAction.label}
                         </button>
                       )}
                     </div>
                   )}
+
+                  {/* ALTERNATIVES CARDS (When requested item was removed or is not available) */}
+                  {msg.alternatives && msg.alternatives.items.length > 0 && (
+                    <div className="mt-3 space-y-2 border-t border-slate-200/80 pt-3">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1">
+                        <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                        <span>Available Alternatives Currently in System:</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {msg.alternatives.items.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-slate-400 transition shadow-2xs flex flex-col justify-between"
+                          >
+                            <div>
+                              {item.imageUrl && (
+                                <img
+                                  src={item.imageUrl}
+                                  alt={item.title}
+                                  className="h-20 w-full object-cover rounded-lg mb-2 border border-slate-200"
+                                />
+                              )}
+                              <div className="font-bold text-xs text-slate-900 line-clamp-1">
+                                {item.title}
+                              </div>
+                              <div className="text-[11px] text-slate-500 line-clamp-1">
+                                {item.subtitle}
+                              </div>
+                              <div className="text-xs font-bold text-slate-900 font-mono mt-1.5">
+                                {item.priceText}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => navigate(item.url)}
+                              className="mt-2.5 w-full rounded-lg bg-slate-950 text-white text-[11px] font-semibold py-1.5 hover:bg-slate-800 transition flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              <span>View &amp; Book</span>
+                              <ArrowRight className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STANDALONE ACTION */}
+                  {!msg.destinationData && !msg.vehicleData && msg.suggestedAction && (
+                    <div className="pt-1">
+                      <button
+                        onClick={() => {
+                          if (msg.suggestedAction!.url.startsWith('http')) {
+                            window.open(msg.suggestedAction!.url, '_blank');
+                          } else {
+                            navigate(msg.suggestedAction!.url);
+                          }
+                        }}
+                        className="btn-primary w-full text-xs !py-2.5 flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Compass className="h-4 w-4" /> {msg.suggestedAction.label}
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <span className="text-[10px] text-slate-500 font-medium mt-1 px-1">{msg.timestamp}</span>
+                <span className="text-[10px] text-slate-500 font-medium mt-1 px-1">
+                  {msg.timestamp}
+                </span>
               </div>
             ))}
 
             {isTyping && (
-              <div className="flex items-center gap-2 text-xs text-amber-700 p-3 bg-amber-50/80 rounded-xl max-w-xs border border-amber-200">
-                <Sparkles className="h-4 w-4 animate-spin text-amber-600" /> Thinking…
+              <div className="flex items-center gap-2 text-xs text-slate-700 p-3 bg-slate-100 rounded-xl max-w-xs border border-slate-200">
+                <Sparkles className="h-4 w-4 animate-spin text-slate-800" /> Checking live system
+                inventory…
               </div>
             )}
           </div>
 
-          {/* PRESET CHIPS */}
+          {/* DYNAMIC PRESET CHIPS */}
           <div className="px-3 py-2 border-t border-slate-200 bg-slate-50 flex gap-2 overflow-x-auto shrink-0 no-scrollbar">
-            {PRESET_PROMPTS.map((item, idx) => (
+            {presetPrompts.map((item, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSend(item.text)}
-                className="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 hover:text-amber-800 hover:border-amber-400 hover:bg-amber-50/70 transition font-semibold shadow-sm"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 hover:text-slate-950 hover:border-slate-900 hover:bg-slate-100 transition font-semibold shadow-2xs cursor-pointer"
               >
-                <item.icon className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                <item.icon className="h-3.5 w-3.5 text-slate-700 shrink-0" />
                 {item.text}
               </button>
             ))}
           </div>
 
-          {/* INPUT */}
-          <div className="p-3 border-t border-slate-200 bg-white flex items-center gap-2 shrink-0">
-            <input
-              type="text"
-              placeholder="Ask anything about travel, costs, vehicles, visas…"
-              className="input-field !py-2.5 text-sm"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            />
-            <button
-              onClick={() => handleSend()}
-              className="btn-primary !p-2.5 rounded-xl shrink-0"
-              title="Send"
-            >
-              <Send className="h-4 w-4" />
-            </button>
-          </div>
+          {/* ISOLATED MEMOIZED INPUT COMPONENT (ZERO TYPING LATENCY) */}
+          <ChatInputBox onSend={handleSend} isTyping={isTyping} />
         </div>
 
         {/* CALCULATOR PANEL */}
@@ -538,125 +1267,210 @@ export function AiTravelAssistant({
           <div className="lg:col-span-5 p-4 flex flex-col space-y-4 bg-slate-50/70 border-l border-slate-200 overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 shrink-0">
               <h4 className="font-display font-semibold text-slate-900 flex items-center gap-1.5 text-sm">
-                <Calculator className="h-4 w-4 text-amber-600" /> Trip Cost Calculator
+                <Calculator className="h-4 w-4 text-slate-800" /> Trip Cost Calculator
               </h4>
-              <span className="text-[10px] text-teal font-mono font-semibold">Live Estimates</span>
+              <span className="text-[10px] text-emerald-700 font-mono font-bold">
+                {inventory.liveDestinations.length > 0 ? 'Live Catalog Sync' : 'Fleet Mode'}
+              </span>
             </div>
 
-            <div>
-              <label className="block text-xs text-slate-700 font-semibold mb-1">Destination</label>
-              <select
-                className="input-field text-sm"
-                value={selectedDestId}
-                onChange={(e) => setSelectedDestId(e.target.value)}
-              >
-                {KENYA_DESTINATIONS.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {inventory.liveDestinations.length > 0 ? (
+              <>
+                <div>
+                  <label className="block text-xs text-slate-700 font-semibold mb-1">
+                    Active Destination
+                  </label>
+                  <select
+                    className="input-field text-sm"
+                    value={selectedDestId}
+                    onChange={(e) => setSelectedDestId(e.target.value)}
+                  >
+                    {inventory.liveDestinations.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.title} ({d.location})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <label className="block text-[10px] text-slate-700 font-semibold mb-1">Days</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={30}
-                  className="input-field text-sm !px-2 !py-2"
-                  value={calcDays}
-                  onChange={(e) => setCalcDays(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] text-slate-700 font-semibold mb-1">Passengers</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={calcVehicleType === 'BUS' ? 55 : 15}
-                  className="input-field text-sm !px-2 !py-2"
-                  value={calcPassengers}
-                  onChange={(e) => setCalcPassengers(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] text-slate-700 font-semibold mb-1">Vehicle</label>
-                <select
-                  className="input-field text-xs !px-1 !py-2"
-                  value={calcVehicleType}
-                  onChange={(e) => setCalcVehicleType(e.target.value)}
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[10px] text-slate-700 font-semibold mb-1">
+                      Days
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={30}
+                      className="input-field text-sm !px-2 !py-2"
+                      value={calcDays}
+                      onChange={(e) => setCalcDays(Number(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-700 font-semibold mb-1">
+                      Passengers
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={calcVehicleType === 'BUS' ? 55 : 15}
+                      className="input-field text-sm !px-2 !py-2"
+                      value={calcPassengers}
+                      onChange={(e) => setCalcPassengers(Number(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-700 font-semibold mb-1">
+                      Vehicle Type
+                    </label>
+                    <select
+                      className="input-field text-xs !px-1 !py-2"
+                      value={calcVehicleType}
+                      onChange={(e) => setCalcVehicleType(e.target.value)}
+                    >
+                      <option value="SUV">4x4 SUV</option>
+                      <option value="VAN">Safari Van</option>
+                      <option value="BUS">Bus / Coach</option>
+                      <option value="CAR">Sedan</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* DESTINATION PREVIEW */}
+                {currentDestination && (
+                  <div className="rounded-xl border border-slate-200 overflow-hidden relative group shadow-sm bg-slate-100">
+                    <img
+                      src={currentDestination.imageUrl}
+                      alt={currentDestination.title}
+                      className="h-36 w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent" />
+                    <div className="absolute bottom-2 left-3">
+                      <h5 className="font-display font-semibold text-sm text-white">
+                        {currentDestination.title}
+                      </h5>
+                      <p className="text-[10px] text-slate-200">{currentDestination.location}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* COST BREAKDOWN */}
+                <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <span className="text-xs text-slate-600 font-medium">Estimated Total</span>
+                    <div className="text-right">
+                      <span className="font-mono text-xl font-bold text-slate-950">
+                        KES {calculatedResult.totalKes.toLocaleString()}
+                      </span>
+                      <span className="block text-[10px] text-slate-500">
+                        ≈ ${calculatedResult.totalUsd} USD
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-slate-700">
+                    <div className="flex justify-between">
+                      <span>
+                        Vehicle hire ({calcDays}d ×{' '}
+                        {calculatedResult.dailyRate.toLocaleString()}):
+                      </span>
+                      <span className="font-mono font-semibold">
+                        KES {calculatedResult.vehicleTotal.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Package estimate ({calcPassengers} pax):</span>
+                      <span className="font-mono font-semibold">
+                        KES {calculatedResult.parkFees.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Fuel &amp; logistics:</span>
+                      <span className="font-mono font-semibold">
+                        KES {calculatedResult.fuelEst.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-slate-600">
+                      <span>Driver allowance:</span>
+                      <span className="font-mono font-semibold">
+                        KES {calculatedResult.driverAllowance.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => navigate('/holidays')}
+                    className="btn-primary w-full text-xs !py-2.5 font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Compass className="h-4 w-4" />
+                    <span>View &amp; Book Tour</span>
+                  </button>
+                </div>
+              </>
+            ) : inventory.availableVehicles.length > 0 ? (
+              <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm text-xs">
+                <div className="flex items-center gap-2 text-slate-800 font-bold text-sm">
+                  <Car className="h-4 w-4 text-slate-950" />
+                  <span>Fleet Vehicle Hire Estimator</span>
+                </div>
+                <p className="text-slate-600">
+                  No packaged tours are published currently, but you can estimate self-drive vehicle hire across our active fleet.
+                </p>
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <div>
+                    <label className="block text-[10px] text-slate-700 font-semibold mb-1">
+                      Days of Hire
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={30}
+                      className="input-field text-sm !px-2 !py-2"
+                      value={calcDays}
+                      onChange={(e) => setCalcDays(Number(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-700 font-semibold mb-1">
+                      Vehicle Type
+                    </label>
+                    <select
+                      className="input-field text-xs !px-1 !py-2"
+                      value={calcVehicleType}
+                      onChange={(e) => setCalcVehicleType(e.target.value)}
+                    >
+                      <option value="SUV">4x4 SUV</option>
+                      <option value="VAN">Safari Van</option>
+                      <option value="BUS">Bus / Coach</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-200 pt-3 flex items-center justify-between">
+                  <span className="font-semibold text-slate-800">Vehicle Total ({calcDays} days):</span>
+                  <span className="font-mono font-bold text-slate-950 text-sm">
+                    KES {(calculatedResult.dailyRate * calcDays).toLocaleString()}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => navigate('/catalogue')}
+                  className="btn-primary w-full text-xs !py-2.5 font-semibold flex items-center justify-center gap-1.5 cursor-pointer mt-2"
                 >
-                  <option value="SUV">4x4 SUV</option>
-                  <option value="VAN">Safari Van</option>
-                  <option value="BUS">Bus</option>
-                  <option value="CAR">Sedan</option>
-                </select>
+                  <Car className="h-4 w-4" />
+                  <span>Browse Fleet Catalogue</span>
+                </button>
               </div>
-            </div>
-
-            {/* DESTINATION PREVIEW */}
-            <div className="rounded-xl border border-slate-200 overflow-hidden relative group shadow-sm">
-              <img
-                src={currentDestination.imageUrl}
-                alt={currentDestination.name}
-                className="h-36 w-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent" />
-              <div className="absolute bottom-2 left-3">
-                <h5 className="font-display font-semibold text-sm text-white">{currentDestination.name}</h5>
-                <p className="text-[10px] text-slate-200">{currentDestination.location}</p>
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-slate-100 p-4 space-y-2 text-center text-xs text-slate-600">
+                <AlertTriangle className="h-5 w-5 text-amber-600 mx-auto" />
+                <div className="font-bold text-slate-900">No Listings in Catalogue</div>
+                <p>
+                  There are currently no active vehicles or destinations published in the system. Check back later or add items via Admin Dashboard.
+                </p>
               </div>
-            </div>
-
-            {/* COST BREAKDOWN */}
-            <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                <span className="text-xs text-slate-600 font-medium">Estimated Total</span>
-                <div className="text-right">
-                  <span className="font-mono text-xl font-bold text-amber-600">
-                    KES {calculatedResult.totalKes.toLocaleString()}
-                  </span>
-                  <span className="block text-[10px] text-slate-500">≈ ${calculatedResult.totalUsd} USD</span>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 text-xs text-slate-700">
-                <div className="flex justify-between">
-                  <span>
-                    {calcVehicleType === 'BUS' ? 'Bus' : calcVehicleType === 'SUV' ? '4x4 SUV' : calcVehicleType === 'VAN' ? 'Safari Van' : 'Sedan'} hire ({calcDays}d × {calculatedResult.dailyRate.toLocaleString()}):
-                  </span>
-                  <span className="font-mono font-semibold">KES {calculatedResult.vehicleTotal.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Fuel ({currentDestination.distanceFromNairobiKm * 2} km):</span>
-                  <span className="font-mono font-semibold">KES {calculatedResult.fuelEst.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Park fees ({calcPassengers} pax):</span>
-                  <span className="font-mono font-semibold">KES {calculatedResult.parkFees.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>Driver allowance:</span>
-                  <span className="font-mono font-semibold">KES {calculatedResult.driverAllowance.toLocaleString()}</span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => {
-                  if (calcVehicleType === 'BUS') {
-                    navigate('/catalogue?category=buses');
-                  } else {
-                    navigate(`/search?type=${calcVehicleType}`);
-                  }
-                }}
-                className="btn-primary w-full text-xs !py-2.5 font-semibold flex items-center justify-center gap-1.5"
-              >
-                {calcVehicleType === 'BUS' ? <Bus className="h-4 w-4" /> : <Car className="h-4 w-4" />}
-                <span>Book {calcVehicleType === 'BUS' ? 'Bus' : calcVehicleType} for {currentDestination.name}</span>
-              </button>
-            </div>
+            )}
           </div>
         )}
       </div>

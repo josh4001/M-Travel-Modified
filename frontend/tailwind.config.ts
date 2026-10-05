@@ -49,10 +49,11 @@ export default {
         },
       },
       fontFamily: {
-        display: ['"Plus Jakarta Sans"', '"Outfit"', 'system-ui', 'sans-serif'],
-        serif: ['"Playfair Display"', 'serif'],
-        body: ['"Plus Jakarta Sans"', '"Satoshi"', 'system-ui', 'sans-serif'],
-        mono: ['"Space Mono"', 'monospace'],
+        sans: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        display: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        serif: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        body: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        mono: ['"SF Mono"', '"Space Mono"', 'monospace'],
       },
       backgroundImage: {
         'gold-gradient': 'linear-gradient(135deg, #D97706 0%, #F59E0B 50%, #FBBF24 100%)',

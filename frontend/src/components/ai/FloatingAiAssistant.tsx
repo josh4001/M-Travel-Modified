@@ -39,7 +39,7 @@ export function FloatingAiAssistant() {
             }
             setIsOpen(!isOpen);
           }}
-          className="group flex items-center gap-2.5 rounded-full bg-slate-950/95 text-white border border-amber-400/40 px-4 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.3)] backdrop-blur-xl hover:border-amber-400 hover:scale-105 active:scale-95 transition-all duration-200"
+          className="group flex items-center gap-2.5 rounded-full bg-slate-950/95 text-white border border-white/30 px-4 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.3)] backdrop-blur-xl hover:border-white hover:scale-105 active:scale-95 transition-all duration-200"
           title="Open M-TRAVEL AI Safari Concierge"
         >
           {isOpen ? (
@@ -50,11 +50,11 @@ export function FloatingAiAssistant() {
           ) : (
             <>
               <div className="relative flex items-center justify-center">
-                <Bot className="h-4 w-4 text-amber-400" />
+                <Bot className="h-4 w-4 text-white" />
                 <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-slate-950 animate-pulse" />
               </div>
               <span className="text-xs font-bold tracking-wide font-display text-white">AI Concierge</span>
-              <Sparkles className="h-3.5 w-3.5 text-amber-400/80" />
+              <Sparkles className="h-3.5 w-3.5 text-white/80" />
             </>
           )}
         </button>
@@ -62,8 +62,16 @@ export function FloatingAiAssistant() {
 
       {/* OVERLAY MODAL */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/85 backdrop-blur-md p-4 animate-fadeIn">
-          <div className="relative w-full max-w-4xl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 animate-fadeIn"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsOpen(false);
+              setInitialPrompt(undefined);
+            }
+          }}
+        >
+          <div className="relative w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
             <AiTravelAssistant
               isModal
               initialPrompt={initialPrompt}

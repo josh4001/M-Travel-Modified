@@ -1,16 +1,16 @@
-import { useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import {
   ShieldCheck, Phone as PhoneIcon, Mail, Calendar, MapPin,
   Car, CheckCircle2, Lock, Headset, AlertCircle,
-  MessageSquare
+  MessageSquare, Wallet, ArrowRight
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Vehicle } from '@/types';
 import { createBooking, fetchVehicleBookedDates, fetchVehicleById } from '@/lib/supabaseClient';
-import { payForBooking } from '@/lib/paymentService';
+import { payForBooking, payWithWallet, getLocalWallet, type LocalWalletData } from '@/lib/paymentService';
 import { selectUser } from '@/store/slices/authSlice';
 import { useCurrency } from '@/context/CurrencyContext';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
@@ -57,7 +57,6 @@ export default function VehicleDetail() {
   const storedMatch = storedVehicles.find((v) => v.id === id);
   const hireStatus = getVehicleHireStatus(id ?? '');
   const isLive = isVehicleLive(id ?? '');
-  const isAvailableForHire = isLive && !hireStatus.isHired;
 
   // Real-time traveler credit eligibility check
   const creditProfile = user?.id
@@ -139,6 +138,22 @@ export default function VehicleDetail() {
 
   const targetVehicle = vehicle || fallbackVehicle;
 
+  // Resolve hire status across targetVehicle ID and plate number for absolute accuracy
+  const resolvedHireStatus = (() => {
+    if (hireStatus.isOnTrip || hireStatus.isHired) return hireStatus;
+    if (targetVehicle?.id && targetVehicle.id !== id) {
+      const altStatus = getVehicleHireStatus(targetVehicle.id);
+      if (altStatus.isOnTrip || altStatus.isHired) return altStatus;
+    }
+    const plate = (targetVehicle as any)?.plateNumber || (targetVehicle as any)?.registrationNumber;
+    if (plate) {
+      const plateStatus = getVehicleHireStatus(plate);
+      if (plateStatus.isOnTrip || plateStatus.isHired) return plateStatus;
+    }
+    return hireStatus;
+  })();
+  const isAvailableForHire = isLive && !resolvedHireStatus.isHired;
+
   // Calculate days & pricing
   const days = Math.max(
     1,
@@ -150,6 +165,24 @@ export default function VehicleDetail() {
   const driverCost = withDriver ? days * 2000 : 0;
   const insuranceCost = targetVehicle?.hasInsurance ? 0 : days * 500;
   const grandTotal = vehicleTotal + driverCost + insuranceCost;
+
+  // Real-time wallet tracking for booking payment deduction
+  const [wallet, setWallet] = useState<LocalWalletData | null>(() => {
+    if (user?.id) return getLocalWallet(user.id);
+    return null;
+  });
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const updateWallet = () => setWallet(getLocalWallet(user.id));
+    updateWallet();
+    window.addEventListener('mt_wallet_updated', updateWallet);
+    return () => window.removeEventListener('mt_wallet_updated', updateWallet);
+  }, [user?.id]);
+
+  const walletBalance = Number(wallet?.balance || 0);
+  const hasSufficientWalletBalance = walletBalance >= grandTotal;
+  const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MPESA'>('MPESA');
 
   // Fetch booked dates for this vehicle from Supabase
   const { data: bookedDates } = useQuery<string[]>({
@@ -174,14 +207,30 @@ export default function VehicleDetail() {
       return;
     }
 
+    if (!isAvailableForHire || resolvedHireStatus.isOnTrip || resolvedHireStatus.isHired) {
+      setPaymentError(
+        resolvedHireStatus.isOnTrip
+          ? `This vehicle is currently active on a trip with a traveler (returns ${resolvedHireStatus.returnDate || 'soon'}). Booking and payment are disabled until return handover is inspected and approved by Admin.`
+          : 'This vehicle is currently unavailable for booking.'
+      );
+      return;
+    }
+
     if (isCreditRestricted) {
       setPaymentError(`Booking restricted: Your account credit rating (${creditProfile?.score || 0}/850) is below the minimum threshold (550) or restricted by Admin. Please contact M-Travel Administration.`);
       return;
     }
 
-    if (!mpesaPhone || mpesaPhone.length < 9) {
-      setPaymentError('Please enter a valid M-Pesa phone number.');
-      return;
+    if (paymentMethod === 'WALLET') {
+      if (!hasSufficientWalletBalance) {
+        setPaymentError(`Insufficient wallet balance. You have KES ${walletBalance.toLocaleString()} available, but KES ${grandTotal.toLocaleString()} is required. Please top up your wallet or pay directly via M-Pesa.`);
+        return;
+      }
+    } else {
+      if (!mpesaPhone || mpesaPhone.length < 9) {
+        setPaymentError('Please enter a valid M-Pesa phone number.');
+        return;
+      }
     }
 
     setPaymentLoading(true);
@@ -222,19 +271,34 @@ export default function VehicleDetail() {
 
       setBookedRef(finalRef);
 
-      // 2. Process Demo M-Pesa Payment
-      const payResult = await payForBooking(bookingId, mpesaPhone, grandTotal);
-      const paySuccess = payResult.success;
-
-      if (!paySuccess) {
-        setPaymentError(payResult.message || 'M-Pesa payment failed. Please try again.');
-        return;
+      // 2. Process Payment (M-Travel Wallet deduction or Direct M-Pesa)
+      let mpesaReceiptCode = '';
+      if (paymentMethod === 'WALLET') {
+        const walletResult = await payWithWallet(
+          user.id,
+          grandTotal,
+          finalRef,
+          `Vehicle hire: ${targetVehicle.make} ${targetVehicle.model} (Ref: ${finalRef})`
+        );
+        if (!walletResult.success) {
+          setPaymentError(walletResult.message || 'Wallet payment deduction failed. Please try again.');
+          setPaymentLoading(false);
+          return;
+        }
+        mpesaReceiptCode = walletResult.reference || `WAL-${Date.now().toString().slice(-6)}`;
+      } else {
+        const payResult = await payForBooking(bookingId, mpesaPhone, grandTotal);
+        if (!payResult.success) {
+          setPaymentError(payResult.message || 'M-Pesa payment failed. Please try again.');
+          setPaymentLoading(false);
+          return;
+        }
+        mpesaReceiptCode = payResult.reference || `QK${Math.floor(100000 + Math.random() * 900000)}`;
       }
 
       setIsSuccess(true);
 
       // Save to centralized store for real-time dashboards & executive handovers
-      const mpesaReceiptCode = payResult.reference || `QK${Math.floor(100000 + Math.random() * 900000)}`;
       const hostOwnerId = targetVehicle.ownerId || (targetVehicle.owner as any)?.id || 'a0000000-0000-0000-0000-000000000002';
       const newBooking = saveBooking({
         id: bookingId,
@@ -334,7 +398,7 @@ export default function VehicleDetail() {
   if (isLoading && !targetVehicle) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-24 text-center space-y-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-amber-600 border-t-transparent mx-auto" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-900 border-t-transparent mx-auto" />
         <p className="text-xs text-slate-500 font-medium">Loading vehicle details…</p>
       </div>
     );
@@ -343,7 +407,7 @@ export default function VehicleDetail() {
   if (!targetVehicle) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-24 text-center space-y-4">
-        <div className="h-16 w-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mx-auto">
+        <div className="h-16 w-16 rounded-2xl bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center mx-auto">
           <Car className="h-8 w-8 stroke-[1.75]" />
         </div>
         <h1 className="font-serif text-2xl font-bold text-slate-900">Vehicle Not Available</h1>
@@ -366,11 +430,11 @@ export default function VehicleDetail() {
     <div className="mx-auto max-w-6xl px-6 py-10">
       {/* HEADER BREADCRUMB */}
       <div className="mb-6 flex items-center gap-2 text-xs text-slate-500 font-medium">
-        <span className="cursor-pointer hover:text-amber-700 transition" onClick={() => navigate('/search')}>
+        <span className="cursor-pointer hover:text-slate-900 transition" onClick={() => navigate('/search')}>
           Vehicles
         </span>
         <span>/</span>
-        <span className="text-amber-700 font-bold">
+        <span className="text-slate-900 font-bold">
           {targetVehicle.make} {targetVehicle.model}
         </span>
       </div>
@@ -389,11 +453,11 @@ export default function VehicleDetail() {
               alt={`${targetVehicle.make} ${targetVehicle.model}`}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
-            <span className="absolute top-4 left-4 rounded-full bg-amber-500 text-slate-950 font-bold text-xs px-3 py-1 uppercase tracking-wider shadow-md">
+            <span className="absolute top-4 left-4 rounded-full bg-slate-950 text-white font-bold text-xs px-3 py-1 uppercase tracking-wider shadow-md border border-white/20">
               {targetVehicle.type}
             </span>
             <span className="absolute bottom-4 left-4 flex items-center gap-1.5 text-xs text-white bg-slate-900/80 px-3 py-1.5 rounded-full border border-white/20 backdrop-blur-md shadow-md">
-              <MapPin className="h-3.5 w-3.5 text-amber-400" /> {targetVehicle.address || 'Nairobi, Kenya'}
+              <MapPin className="h-3.5 w-3.5 text-slate-300" /> {targetVehicle.address || 'Nairobi, Kenya'}
             </span>
           </div>
 
@@ -429,7 +493,7 @@ export default function VehicleDetail() {
           {/* STRICT DISINTERMEDIATION: M-TRAVEL OFFICIAL SUPPORT CONCIERGE */}
           <div className="card-luxe bg-white border border-slate-200 p-5 rounded-2xl space-y-3 shadow-sm">
             <h3 className="font-display font-bold text-slate-900 flex items-center gap-2 text-sm">
-              <Headset className="h-4 w-4 text-amber-600" /> M-TRAVEL Official Concierge &amp; Support
+              <Headset className="h-4 w-4 text-slate-800" /> M-TRAVEL Official Concierge &amp; Support
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed font-medium">
               For security and platform insurance protection, all inquiries, bookings, and driver requests are managed through M-TRAVEL Concierge.
@@ -440,7 +504,7 @@ export default function VehicleDetail() {
                   <PhoneIcon className="h-3.5 w-3.5 text-teal" /> 0207855558 / 0722374535
                 </p>
                 <p className="text-[11px] text-slate-600 flex items-center gap-1.5 mt-0.5 font-medium">
-                  <Mail className="h-3 w-3 text-amber-600" /> safari@jambo.africa
+                  <Mail className="h-3 w-3 text-slate-700" /> safari@jambo.africa
                 </p>
               </div>
               <a
@@ -459,21 +523,21 @@ export default function VehicleDetail() {
         <div className="card-luxe bg-white border border-slate-200 h-fit p-6 rounded-2xl space-y-5 shadow-sm">
           <div className="flex items-baseline justify-between border-b border-slate-200 pb-4">
             <div>
-              <span className="font-mono text-3xl font-bold text-amber-700">
+              <span className="font-mono text-3xl font-bold text-slate-950">
                 {formatPrice(dailyPrice)}
               </span>
               <span className="text-xs text-slate-500 font-semibold font-sans"> / day</span>
             </div>
             <VehicleStatusBadge
-              isHired={hireStatus.isOnTrip}
-              isOnTrip={hireStatus.isOnTrip}
-              isAwaitingHandover={hireStatus.isAwaitingHandover}
+              isHired={resolvedHireStatus.isOnTrip}
+              isOnTrip={resolvedHireStatus.isOnTrip}
+              isAwaitingHandover={resolvedHireStatus.isAwaitingHandover}
               isLive={isLive}
               variant="light"
               labelOverride={
-                hireStatus.isOnTrip
+                resolvedHireStatus.isOnTrip
                   ? 'In Use (On Trip)'
-                  : hireStatus.isAwaitingHandover
+                  : resolvedHireStatus.isAwaitingHandover
                   ? 'Booked (Awaiting Handover)'
                   : undefined
               }
@@ -481,37 +545,37 @@ export default function VehicleDetail() {
           </div>
 
           {/* AVAILABILITY NOTICES */}
-          {hireStatus.isOnTrip && (
-            <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 space-y-1">
-              <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
-                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-                Vehicle Currently On Active Trip
+          {resolvedHireStatus.isOnTrip && (
+            <div className="rounded-xl border border-slate-300 bg-slate-100 p-4 space-y-1">
+              <div className="flex items-center gap-2 text-slate-900 font-bold text-xs">
+                <AlertCircle className="h-4 w-4 text-slate-700 shrink-0" />
+                Vehicle Currently Unavailable &bull; On Active Trip
               </div>
-              <p className="text-xs text-amber-800 leading-relaxed font-medium">
-                This vehicle is currently on a trip with a traveler until <strong>{hireStatus.returnDate || 'return'}</strong>. It is locked for booking until safely inspected and returned.
+              <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                This vehicle is currently on an active trip with another traveler until <strong>{resolvedHireStatus.returnDate || 'return'}</strong>. Booking and payment are disabled until the vehicle returns and is successfully inspected and handed over back via the Admin.
               </p>
             </div>
           )}
 
-          {hireStatus.isAwaitingHandover && (
-            <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-4 space-y-1">
-              <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
-                <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
+          {resolvedHireStatus.isAwaitingHandover && (
+            <div className="rounded-xl border border-slate-300 bg-slate-100 p-4 space-y-1">
+              <div className="flex items-center gap-2 text-slate-900 font-bold text-xs">
+                <ShieldCheck className="h-4 w-4 text-slate-700 shrink-0" />
                 Booked &amp; Reserved — Awaiting Executive Handover
               </div>
-              <p className="text-xs text-amber-800 leading-relaxed font-medium">
+              <p className="text-xs text-slate-700 leading-relaxed font-medium">
                 This vehicle has been booked and reserved. The trip officially begins once the traveler is verified and keys are handed over at the executive inspection station.
               </p>
             </div>
           )}
 
-          {!hireStatus.isHired && !isLive && (
-            <div className="rounded-xl border border-rose-300 bg-rose-50 p-4 space-y-1">
-              <div className="flex items-center gap-2 text-rose-900 font-bold text-xs">
-                <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+          {!resolvedHireStatus.isHired && !isLive && (
+            <div className="rounded-xl border border-slate-300 bg-slate-100 p-4 space-y-1">
+              <div className="flex items-center gap-2 text-slate-900 font-bold text-xs">
+                <AlertCircle className="h-4 w-4 text-slate-700 shrink-0" />
                 Vehicle Temporarily Offline
               </div>
-              <p className="text-xs text-rose-800 leading-relaxed font-medium">
+              <p className="text-xs text-slate-700 leading-relaxed font-medium">
                 This car is temporarily not available for hire at the moment upon host/admin request. Please explore other available cars or check back later.
               </p>
             </div>
@@ -524,7 +588,7 @@ export default function VehicleDetail() {
                 <CheckCircle2 className="h-5 w-5 text-emerald-600" /> Booking Confirmed!
               </div>
               <p className="text-xs text-slate-800 font-medium">
-                Ref: <span className="font-mono text-amber-700 font-bold">{bookedRef}</span>
+                Ref: <span className="font-mono text-slate-950 font-bold">{bookedRef}</span>
               </p>
               <p className="text-[11px] text-emerald-900 font-medium">
                 Your payment has been processed. Waiting for traveler validation at executive handover before trip begins.
@@ -577,7 +641,7 @@ export default function VehicleDetail() {
           {/* CALENDAR & TRIP DETAILS FORM */}
           <div className="space-y-4">
             <h4 className="font-display text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-amber-600" /> Select Travel Dates &amp; Time
+              <Calendar className="h-4 w-4 text-slate-800" /> Select Travel Dates &amp; Time
             </h4>
 
             {/* PICKUP DATE & TIME */}
@@ -658,16 +722,16 @@ export default function VehicleDetail() {
                 <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider font-display mb-1.5">
                   Vehicle Collection Station
                 </label>
-                <div className="p-3.5 rounded-2xl border border-amber-300 bg-amber-50/70 flex items-start gap-3 shadow-xs">
-                  <div className="mt-0.5 h-8 w-8 rounded-xl bg-amber-500/20 border border-amber-400 text-amber-800 flex items-center justify-center shrink-0">
-                    <MapPin className="h-4 w-4 text-amber-700" />
+                <div className="p-3.5 rounded-2xl border border-slate-300 bg-slate-100 flex items-start gap-3 shadow-xs">
+                  <div className="mt-0.5 h-8 w-8 rounded-xl bg-slate-200 border border-slate-300 text-slate-800 flex items-center justify-center shrink-0">
+                    <MapPin className="h-4 w-4 text-slate-700" />
                   </div>
                   <div>
                     <p className="font-bold text-xs text-slate-900">Collect at Vehicle Station / Hub</p>
                     <p className="text-[11px] text-slate-700 mt-0.5">
                       Station: <strong className="text-slate-900">{targetVehicle.location || targetVehicle.address || 'Westlands Fleet Hub, Nairobi'}</strong>
                     </p>
-                    <p className="text-[10px] text-amber-800 font-medium mt-1">
+                    <p className="text-[10px] text-slate-600 font-medium mt-1">
                       Travelers navigate directly to the vehicle's parked location for key collection and hand-off.
                     </p>
                   </div>
@@ -676,77 +740,103 @@ export default function VehicleDetail() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider font-display mb-1.5 flex items-center justify-between">
-                  <span>Rental Driving Option</span>
-                  <span className="text-[10px] text-amber-700 font-semibold uppercase">Choose before booking</span>
+                  <span>{(isBusVehicle(targetVehicle) || targetVehicle.type === 'BUS' || Number(targetVehicle.seats) >= 20) ? 'Bus Reservation Mode' : 'Rental Driving Option'}</span>
+                  <span className="text-[10px] text-slate-900 font-semibold uppercase">{(isBusVehicle(targetVehicle) || targetVehicle.type === 'BUS' || Number(targetVehicle.seats) >= 20) ? 'Whole Bus Charter' : 'Choose before booking'}</span>
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <div
-                    onClick={() => setWithDriver(false)}
-                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3 ${
-                      !withDriver
-                        ? 'border-amber-500 bg-amber-50/80 shadow-xs ring-1 ring-amber-400/30'
-                        : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className={`mt-0.5 h-4 w-4 rounded-full border flex items-center justify-center shrink-0 ${
-                      !withDriver ? 'border-amber-600 bg-amber-600' : 'border-slate-300'
-                    }`}>
-                      {!withDriver && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
-                    </div>
+                {(isBusVehicle(targetVehicle) || targetVehicle.type === 'BUS' || Number(targetVehicle.seats) >= 20) ? (
+                  <div className="p-3.5 rounded-2xl border-2 border-slate-900 bg-slate-50 shadow-xs flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <p className="font-bold text-xs text-slate-900">Self-Drive</p>
-                        <span className="text-[9px] font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded border border-emerald-300">Standard Rate</span>
+                        <p className="font-bold text-xs text-slate-900">Whole Bus Charter (Whole Vehicle Per Day)</p>
+                        <span className="text-[9px] font-bold text-slate-900 bg-slate-200 px-1.5 py-0.5 rounded border border-slate-300">Captain Included</span>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">Collect keys at pickup station &amp; drive yourself (Valid license required)</p>
+                      <p className="text-[11px] text-slate-700 mt-0.5 leading-snug">
+                        Full vehicle charter per day with certified professional coach driver &amp; passenger insurance included in daily rate.
+                      </p>
                     </div>
                   </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div
+                      onClick={() => setWithDriver(false)}
+                      className={`p-3.5 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3 ${
+                        !withDriver
+                          ? 'border-slate-900 bg-slate-50 shadow-xs ring-1 ring-slate-400/30'
+                          : 'border-slate-200 bg-white hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className={`mt-0.5 h-4 w-4 rounded-full border flex items-center justify-center shrink-0 ${
+                        !withDriver ? 'border-slate-900 bg-slate-900' : 'border-slate-300'
+                      }`}>
+                        {!withDriver && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-bold text-xs text-slate-900">Self-Drive</p>
+                          <span className="text-[9px] font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded border border-emerald-300">Standard Rate</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">Collect keys at pickup station &amp; drive yourself (Valid license required)</p>
+                      </div>
+                    </div>
 
-                  <div
-                    onClick={() => setWithDriver(true)}
-                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3 ${
-                      withDriver
-                        ? 'border-amber-500 bg-amber-50/80 shadow-xs ring-1 ring-amber-400/30'
-                        : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className={`mt-0.5 h-4 w-4 rounded-full border flex items-center justify-center shrink-0 ${
-                      withDriver ? 'border-amber-600 bg-amber-600' : 'border-slate-300'
-                    }`}>
-                      {withDriver && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-bold text-xs text-slate-900">With Driver</p>
-                        <span className="text-[9px] font-bold text-amber-900 bg-amber-200 px-1.5 py-0.2 rounded border border-amber-300">+ KES 2,000 / day</span>
+                    <div
+                      onClick={() => setWithDriver(true)}
+                      className={`p-3.5 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3 ${
+                        withDriver
+                          ? 'border-slate-900 bg-slate-50 shadow-xs ring-1 ring-slate-400/30'
+                          : 'border-slate-200 bg-white hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className={`mt-0.5 h-4 w-4 rounded-full border flex items-center justify-center shrink-0 ${
+                        withDriver ? 'border-slate-900 bg-slate-900' : 'border-slate-300'
+                      }`}>
+                        {withDriver && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">Professional certified chauffeur stationed to pilot the vehicle</p>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-bold text-xs text-slate-900">With Driver</p>
+                          <span className="text-[9px] font-bold text-slate-900 bg-slate-200 px-1.5 py-0.2 rounded border border-slate-300">+ KES 2,000 / day</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">Professional certified chauffeur stationed to pilot the vehicle</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
-              {/* WITH CHAUFFEUR NOTICE */}
-              {withDriver ? (
-                <div className="flex items-center justify-between border border-amber-300 bg-amber-50/90 rounded-xl p-3 text-xs text-amber-900 shadow-xs">
+              {/* WITH CHAUFFEUR NOTICE / BUS CAPTAIN NOTICE */}
+              {(isBusVehicle(targetVehicle) || targetVehicle.type === 'BUS' || Number(targetVehicle.seats) >= 20) ? (
+                <div className="flex items-center justify-between border border-emerald-300 bg-emerald-50/90 rounded-xl p-3 text-xs text-emerald-900 shadow-xs">
                   <div>
-                    <span className="font-bold block">Certified Chauffeur Included (+{formatPrice(2000)}/day)</span>
-                    <span className="text-[11px] text-slate-600">Stationed driver meets you at vehicle pickup station</span>
+                    <span className="font-bold block">Company-Designated Coach Captain Included</span>
+                    <span className="text-[11px] text-slate-600">Present original National ID / Passport only at pickup for verification (No driver's license required)</span>
                   </div>
-                  <span className="text-[10px] font-bold uppercase bg-amber-600 text-white px-2 py-0.5 rounded-md shrink-0">
-                    Selected
+                  <span className="text-[10px] font-bold uppercase bg-emerald-700 text-white px-2 py-0.5 rounded-md shrink-0">
+                    ID Only Required
                   </span>
                 </div>
               ) : (
-                <div className="flex items-center justify-between border border-emerald-300 bg-emerald-50/90 rounded-xl p-3 text-xs text-emerald-900 shadow-xs">
-                  <div>
-                    <span className="font-bold block">Self-Drive Rental (Standard Rate)</span>
-                    <span className="text-[11px] text-slate-600">Present original National ID / Passport &amp; Driving License at pickup</span>
+                withDriver ? (
+                  <div className="flex items-center justify-between border border-slate-300 bg-slate-100 rounded-xl p-3 text-xs text-slate-900 shadow-xs">
+                    <div>
+                      <span className="font-bold block">Certified Chauffeur Included (+{formatPrice(2000)}/day)</span>
+                      <span className="text-[11px] text-slate-600">Stationed driver meets you at vehicle pickup station</span>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase bg-slate-900 text-white px-2 py-0.5 rounded-md shrink-0">
+                      Selected
+                    </span>
                   </div>
-                  <span className="text-[10px] font-bold uppercase bg-emerald-600 text-white px-2 py-0.5 rounded-md shrink-0">
-                    Selected
-                  </span>
-                </div>
+                ) : (
+                  <div className="flex items-center justify-between border border-emerald-300 bg-emerald-50/90 rounded-xl p-3 text-xs text-emerald-900 shadow-xs">
+                    <div>
+                      <span className="font-bold block">Self-Drive Rental (Standard Rate)</span>
+                      <span className="text-[11px] text-slate-600">Present original National ID / Passport &amp; Driving License at pickup</span>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase bg-emerald-600 text-white px-2 py-0.5 rounded-md shrink-0">
+                      Selected
+                    </span>
+                  </div>
+                )
               )}
             </div>
           </div>
@@ -769,24 +859,24 @@ export default function VehicleDetail() {
               <span>M-Pesa / Card Security &amp; Protection:</span>
               <span className="font-mono font-bold text-emerald-700">Included</span>
             </div>
-            <div className="flex justify-between border-t border-slate-200 pt-2 font-bold text-sm text-amber-700">
+            <div className="flex justify-between border-t border-slate-200 pt-2 font-bold text-sm text-slate-950">
               <span className="text-slate-900">Total Payable</span>
-              <span className="font-mono text-lg text-amber-700">{formatPrice(grandTotal)}</span>
+              <span className="font-mono text-lg text-slate-950">{formatPrice(grandTotal)}</span>
             </div>
           </div>
 
           {/* CLEAN RETURN & DAMAGE LIABILITY POLICY NOTICE */}
-          <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-3.5 text-xs text-amber-950 space-y-1 shadow-2xs">
-            <div className="flex items-center gap-2 font-bold text-amber-900 uppercase text-[10px] tracking-wider border-b border-amber-300/60 pb-1">
-              <ShieldCheck className="h-4 w-4 text-amber-700 shrink-0" />
+          <div className="rounded-xl border border-slate-300 bg-slate-100 p-3.5 text-xs text-slate-950 space-y-1 shadow-2xs">
+            <div className="flex items-center gap-2 font-bold text-slate-900 uppercase text-[10px] tracking-wider border-b border-slate-300 pb-1">
+              <ShieldCheck className="h-4 w-4 text-slate-700 shrink-0" />
               <span>Clean Return &amp; Damage Liability Policy</span>
             </div>
-            <p className="text-[11px] leading-relaxed text-amber-900 font-medium">
+            <p className="text-[11px] leading-relaxed text-slate-700 font-medium">
               <strong>KES 0 Upfront Deposit Held:</strong> Vehicles returned in good condition incur <strong>KES 0 damage fees</strong>. If accidental damage or missing equipment occurs during rental, the renter is legally &amp; financially liable for assessed repair costs documented during return handover.
             </p>
           </div>
 
-          {/* M-PESA PAYMENT SECTION OR ADMIN OVERSIGHT */}
+          {/* M-PESA PAYMENT SECTION OR ADMIN OVERSIGHT OR UNAVAILABILITY CARD */}
           {isAdmin ? (
             <div className="space-y-3 border-t border-slate-200 pt-4">
               <div className="rounded-2xl border border-primary-200 bg-primary-50/70 p-4 text-xs text-primary-950 space-y-2 shadow-sm">
@@ -803,39 +893,192 @@ export default function VehicleDetail() {
                 </div>
               </div>
             </div>
+          ) : !isAvailableForHire ? (
+            <div className="space-y-4 border-t border-slate-200 pt-4">
+              {resolvedHireStatus.isOnTrip ? (
+                <div className="rounded-2xl border border-slate-300 bg-slate-100 p-5 text-xs text-slate-900 space-y-3 shadow-xs">
+                  <div className="flex items-center gap-2 font-bold text-slate-950 text-sm">
+                    <AlertCircle className="h-5 w-5 text-slate-900 shrink-0" />
+                    <span>Vehicle Currently Unavailable &bull; Active On Trip</span>
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                    This <strong>{targetVehicle.make} {targetVehicle.model}</strong> ({targetVehicle.plateNumber || targetVehicle.registrationNumber || 'Fleet Unit'}) is currently on an active trip with another traveler{resolvedHireStatus.returnDate ? ` until ${resolvedHireStatus.returnDate}` : ''}.
+                  </p>
+                  <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                    Booking and payment features are disabled until the vehicle returns from the trip and is successfully inspected and handed over back via the admin.
+                  </p>
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between text-[11px] font-medium text-slate-700">
+                    <span>Current Trip Status: <strong className="font-bold text-slate-900">In Progress</strong></span>
+                    <span>Expected Return: <strong className="font-bold text-slate-900">{resolvedHireStatus.returnDate || 'Pending Inspection'}</strong></span>
+                  </div>
+                </div>
+              ) : resolvedHireStatus.isAwaitingHandover ? (
+                <div className="rounded-2xl border border-slate-300 bg-slate-100 p-5 text-xs text-slate-900 space-y-3 shadow-xs">
+                  <div className="flex items-center gap-2 font-bold text-slate-950 text-sm">
+                    <ShieldCheck className="h-5 w-5 text-slate-800 shrink-0" />
+                    <span>Vehicle Booked &amp; Reserved</span>
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                    This vehicle has already been reserved and is awaiting executive traveler handover. Booking and payment options are disabled.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-slate-300 bg-slate-100 p-5 text-xs text-slate-900 space-y-3 shadow-xs">
+                  <div className="flex items-center gap-2 font-bold text-slate-950 text-sm">
+                    <Lock className="h-5 w-5 text-slate-700 shrink-0" />
+                    <span>Vehicle Temporarily Offline</span>
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                    This vehicle is temporarily paused from hire upon host/admin request. Please check back later or explore other available vehicles in our fleet.
+                  </p>
+                </div>
+              )}
+
+              <button
+                disabled
+                className="w-full text-sm !py-3.5 font-bold rounded-2xl bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300 flex items-center justify-center gap-2 shadow-none"
+              >
+                <Lock className="h-4 w-4 text-slate-400" />
+                {resolvedHireStatus.isOnTrip
+                  ? `Booking & Payment Disabled (Vehicle On Trip${resolvedHireStatus.returnDate ? ` Until ${resolvedHireStatus.returnDate}` : ''})`
+                  : resolvedHireStatus.isAwaitingHandover
+                  ? 'Booking Disabled (Vehicle Booked & Reserved)'
+                  : 'Booking Disabled (Vehicle Unavailable)'}
+              </button>
+            </div>
           ) : (
             <>
-              {/* M-PESA PAYMENT SECTION */}
+              {/* PAYMENT METHOD SELECTION & PROMPT */}
               <div className="space-y-3 border-t border-slate-200 pt-4">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 font-display flex items-center gap-2">
-                    <MpesaLogo variant="icon" />
-                    <span>Instant M-PESA Mobile Checkout</span>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 font-display flex items-center gap-1.5">
+                    <Wallet className="h-4 w-4 text-slate-900" />
+                    <span>Choose Payment Method</span>
                   </label>
-                  <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                    Safaricom M-PESA
+                  <span className="text-[10px] font-mono font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+                    2 Options Available
                   </span>
                 </div>
 
-                <div className="space-y-1.5 rounded-xl border border-emerald-300 bg-emerald-50/50 p-3">
-                  <label className="block text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
-                    <PhoneIcon className="h-3.5 w-3.5" /> Mobile Number for Reservation Prompt
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="e.g. 0712345678 or 254712345678"
-                    className="input-field text-xs !py-2 bg-white focus:border-emerald-500 font-mono text-slate-900 font-bold"
-                    value={mpesaPhone}
-                    onChange={(e) => {
-                      setMpesaPhone(e.target.value);
+                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200">
+                  {/* OPTION 1: WALLET */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentMethod('WALLET');
                       setPaymentError(null);
                     }}
-                  />
-                  <p className="text-[10px] text-slate-600 font-medium">
-                    A secure M-PESA authorization prompt will be sent to your phone to confirm reservation of {formatPrice(grandTotal)}
-                  </p>
+                    className={`flex flex-col items-center justify-center py-2.5 px-3 rounded-xl transition cursor-pointer text-center ${
+                      paymentMethod === 'WALLET'
+                        ? 'bg-white border border-slate-900 text-slate-950 font-bold shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 text-xs font-bold">
+                      <Wallet className={`h-4 w-4 ${paymentMethod === 'WALLET' ? 'text-slate-950' : 'text-slate-500'}`} />
+                      <span>M-Travel Wallet</span>
+                    </div>
+                    <span className="text-[10px] font-mono mt-0.5 text-slate-700 font-medium">
+                      KES {walletBalance.toLocaleString()} bal
+                    </span>
+                  </button>
+
+                  {/* OPTION 2: DIRECT MPESA */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentMethod('MPESA');
+                      setPaymentError(null);
+                    }}
+                    className={`flex flex-col items-center justify-center py-2.5 px-3 rounded-xl transition cursor-pointer text-center ${
+                      paymentMethod === 'MPESA'
+                        ? 'bg-white border border-slate-900 text-slate-950 font-bold shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 text-xs font-bold">
+                      <PhoneIcon className={`h-4 w-4 ${paymentMethod === 'MPESA' ? 'text-slate-950' : 'text-slate-500'}`} />
+                      <span>Direct M-PESA</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 mt-0.5 font-medium">
+                      Safaricom STK
+                    </span>
+                  </button>
                 </div>
+
+                {/* OPTION 1 DETAILS: WALLET */}
+                {paymentMethod === 'WALLET' && (
+                  <div className="space-y-3">
+                    {hasSufficientWalletBalance ? (
+                      <div className="rounded-xl border border-emerald-300 bg-emerald-50/70 p-3.5 space-y-2 text-xs">
+                        <div className="flex items-center justify-between text-slate-700">
+                          <span>Current Wallet Balance:</span>
+                          <span className="font-mono font-bold text-slate-900">KES {walletBalance.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-rose-600 font-medium">
+                          <span>Vehicle Rental Charge:</span>
+                          <span className="font-mono font-bold">- KES {grandTotal.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-emerald-200 pt-2 font-bold text-emerald-900">
+                          <span>Balance Remaining After Booking:</span>
+                          <span className="font-mono text-sm">KES {(walletBalance - grandTotal).toLocaleString()}</span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-emerald-800">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                          <span>Sufficient funds in wallet for instant reservation confirmation.</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-amber-300 bg-amber-50 p-3.5 space-y-2.5 text-xs text-amber-900">
+                        <div className="flex items-center gap-2 font-bold text-amber-950">
+                          <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                          <span>Insufficient Wallet Balance</span>
+                        </div>
+                        <p className="text-[11px] text-amber-800 leading-relaxed">
+                          Your wallet has <strong className="font-mono text-slate-900">KES {walletBalance.toLocaleString()}</strong>, but this reservation requires <strong className="font-mono text-slate-900">KES {grandTotal.toLocaleString()}</strong> (short by KES {(grandTotal - walletBalance).toLocaleString()}).
+                        </p>
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setPaymentMethod('MPESA')}
+                            className="flex-1 rounded-xl bg-slate-900 text-white font-bold px-3 py-2 text-xs hover:bg-slate-800 transition cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            <PhoneIcon className="h-3.5 w-3.5" /> Pay with Direct M-Pesa
+                          </button>
+                          <Link
+                            to="/dashboard/wallet"
+                            className="rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100/60 transition flex items-center gap-1"
+                          >
+                            Top Up Wallet <ArrowRight className="h-3 w-3" />
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* OPTION 2 DETAILS: DIRECT MPESA */}
+                {paymentMethod === 'MPESA' && (
+                  <div className="space-y-1.5 rounded-xl border border-slate-300 bg-slate-50 p-3">
+                    <label className="block text-[11px] font-bold text-slate-900 flex items-center gap-1.5">
+                      <PhoneIcon className="h-3.5 w-3.5 text-slate-700" /> Mobile Number for Reservation Prompt
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="e.g. 0712345678 or 254712345678"
+                      className="input-field text-xs !py-2 bg-white border-slate-300 focus:border-slate-900 font-mono text-slate-900 font-bold"
+                      value={mpesaPhone}
+                      onChange={(e) => {
+                        setMpesaPhone(e.target.value);
+                        setPaymentError(null);
+                      }}
+                    />
+                    <p className="text-[10px] text-slate-600 font-medium">
+                      A secure M-PESA authorization prompt will be sent to your phone to confirm reservation of {formatPrice(grandTotal)}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {paymentError && (
@@ -846,40 +1089,14 @@ export default function VehicleDetail() {
               )}
 
               {/* ACTION BUTTON */}
-              {!isAvailableForHire ? (
-                hireStatus.isOnTrip ? (
-                  <button
-                    disabled
-                    className="w-full text-sm !py-3 font-bold rounded-2xl bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300 flex items-center justify-center gap-2 shadow-none"
-                  >
-                    <Lock className="h-4 w-4 text-slate-400" />
-                    Vehicle Active On Trip (Returns {hireStatus.returnDate || 'Soon'})
-                  </button>
-                ) : hireStatus.isAwaitingHandover ? (
-                  <button
-                    disabled
-                    className="w-full text-sm !py-3 font-bold rounded-2xl bg-amber-100 text-amber-900 cursor-not-allowed border border-amber-300 flex items-center justify-center gap-2 shadow-none"
-                  >
-                    <ShieldCheck className="h-4 w-4 text-amber-600" />
-                    Booked &amp; Reserved (Awaiting Handover)
-                  </button>
-                ) : (
-                  <button
-                    disabled
-                    className="w-full text-sm !py-3 font-bold rounded-2xl bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300 flex items-center justify-center gap-2 shadow-none"
-                  >
-                    <Lock className="h-4 w-4 text-slate-400" />
-                    Vehicle Unavailable for Hire at the Moment
-                  </button>
-                )
-              ) : !user ? (
+              {!user ? (
                 <div className="space-y-3">
-                  <div className="rounded-2xl border border-amber-300 bg-amber-50/90 p-3.5 text-xs text-amber-950 space-y-1 shadow-sm">
-                    <div className="flex items-center gap-2 font-bold text-amber-900">
-                      <Lock className="h-4 w-4 text-amber-700" />
+                  <div className="rounded-2xl border border-slate-300 bg-slate-100 p-3.5 text-xs text-slate-950 space-y-1 shadow-sm">
+                    <div className="flex items-center gap-2 font-bold text-slate-900">
+                      <Lock className="h-4 w-4 text-slate-700" />
                       <span>Account Required to Book</span>
                     </div>
-                    <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
+                    <p className="text-[11px] text-slate-700 leading-relaxed font-medium">
                       Please sign in or create an account to reserve this {targetVehicle.make} {targetVehicle.model}. You will return here immediately after signing in to finalize your booking.
                     </p>
                   </div>
@@ -922,6 +1139,34 @@ export default function VehicleDetail() {
                     <Lock className="h-4 w-4 text-rose-400" /> Booking Locked — Account Restricted
                   </button>
                 </div>
+              ) : paymentMethod === 'WALLET' ? (
+                hasSufficientWalletBalance ? (
+                  <button
+                    onClick={handleBooking}
+                    disabled={paymentLoading}
+                    className="btn-primary w-full text-sm !py-3.5 font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {paymentLoading ? (
+                      <>
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Deducting from Wallet...
+                      </>
+                    ) : (
+                      <>
+                        <Wallet className="h-4 w-4" />
+                        Deduct &amp; Confirm Reservation ({formatPrice(grandTotal)})
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setPaymentMethod('MPESA')}
+                    className="btn-primary w-full text-sm !py-3.5 font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <PhoneIcon className="h-4 w-4" />
+                    Pay via Direct M-Pesa ({formatPrice(grandTotal)})
+                  </button>
+                )
               ) : (
                 <MpesaLogo
                   label={`Confirm & Secure Reservation (${formatPrice(grandTotal)})`}

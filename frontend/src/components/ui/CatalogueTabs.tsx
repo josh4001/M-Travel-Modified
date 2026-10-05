@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Car, Bus, Palmtree, Home, MapPin, ArrowRight, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCurrency } from '@/context/CurrencyContext';
-import { getStoredVehicles, isVehicleLive, isBusVehicle, type StoredVehicle } from '@/lib/bookingStore';
+import { getStoredVehicles, isVehicleLive, getVehicleHireStatus, isBusVehicle, type StoredVehicle } from '@/lib/bookingStore';
+
+import { getStoredDestinations, type TravelDestinationItem } from '@/lib/destinationsStore';
 
 type TabType = 'vehicles' | 'buses' | 'tours' | 'homes';
 
@@ -20,60 +22,6 @@ interface CatalogueItem {
   specs: string[];
 }
 
-const CATALOGUE_ITEMS: CatalogueItem[] = [
-  // TOURS & TRAVEL
-  {
-    id: 't-1',
-    category: 'tours',
-    title: '3-Day Maasai Mara Great Migration Package',
-    subtitle: 'All-inclusive 4x4 game drives, luxury lodge stay, park fees & full board meals',
-    badge: 'Guided Tour',
-    priceKES: 45000,
-    priceUnit: '/ person',
-    imageUrl: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=800&q=80',
-    location: 'Maasai Mara National Reserve',
-    specs: ['3 Days / 2 Nights', 'Full Board Lodge', 'Expert Guide', 'Park Entry Paid'],
-  },
-  {
-    id: 't-2',
-    category: 'tours',
-    title: 'Swahili Diani Beach Luxury Getaway',
-    subtitle: 'Return flights, beach resort stay, glass-bottom boat tour & seafood dining',
-    badge: 'Beach Package',
-    priceKES: 38000,
-    priceUnit: '/ person',
-    imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
-    location: 'Diani Beach, South Coast',
-    specs: ['4 Days / 3 Nights', '5-Star Resort', 'Airport Transfers', 'Snorkeling'],
-  },
-
-  // HOLIDAY HOMES
-  {
-    id: 'h-1',
-    category: 'homes',
-    title: 'Mara River View Safari Lodge Villa',
-    subtitle: 'Private infinity pool, chef service, and views of wildlife crossing the river',
-    badge: 'Luxury Villa',
-    priceKES: 32000,
-    priceUnit: '/ night',
-    imageUrl: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
-    location: 'Mara Triangle Edge',
-    specs: ['4 Bedrooms', 'Private Pool', 'Personal Chef', 'High-Speed WiFi'],
-  },
-  {
-    id: 'h-2',
-    category: 'homes',
-    title: 'Diani Oceanfront Swahili Cottage',
-    subtitle: 'Direct beach access, tropical palm garden, and open-air veranda',
-    badge: 'Beach Cottage',
-    priceKES: 22000,
-    priceUnit: '/ night',
-    imageUrl: 'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=800&q=80',
-    location: 'Galu Beach, Diani',
-    specs: ['3 Bedrooms', 'Direct Ocean Access', 'Air-Conditioned', 'Housekeeping'],
-  },
-];
-
 export const CatalogueTabs: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('vehicles');
   const { formatPrice } = useCurrency();
@@ -86,15 +34,21 @@ export const CatalogueTabs: React.FC = () => {
   ];
 
   const [storedVehicles, setStoredVehicles] = useState<StoredVehicle[]>(() => getStoredVehicles());
+  const [storedDestinations, setStoredDestinations] = useState<TravelDestinationItem[]>(() => getStoredDestinations());
 
   useEffect(() => {
-    const handleUpdate = () => setStoredVehicles(getStoredVehicles());
+    const handleUpdate = () => {
+      setStoredVehicles(getStoredVehicles());
+      setStoredDestinations(getStoredDestinations());
+    };
     window.addEventListener('mt_vehicle_updated', handleUpdate);
     window.addEventListener('mt_vehicle_approved', handleUpdate);
+    window.addEventListener('mt_destinations_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     return () => {
       window.removeEventListener('mt_vehicle_updated', handleUpdate);
       window.removeEventListener('mt_vehicle_approved', handleUpdate);
+      window.removeEventListener('mt_destinations_updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
   }, []);
@@ -102,7 +56,7 @@ export const CatalogueTabs: React.FC = () => {
   const rawVehicles = storedVehicles && storedVehicles.length > 0 ? storedVehicles : getStoredVehicles();
 
   const approvedVehicles: CatalogueItem[] = rawVehicles
-    .filter((v) => v.status === 'APPROVED' && isVehicleLive(v.id))
+    .filter((v) => v.status === 'APPROVED' && (isVehicleLive(v.id) || getVehicleHireStatus(v.id).isHired))
     .map((v) => {
       const isBus = isBusVehicle(v);
       return {
@@ -119,26 +73,42 @@ export const CatalogueTabs: React.FC = () => {
       };
     });
 
+  const liveDestinations: CatalogueItem[] = storedDestinations
+    .filter((d) => d.isLive)
+    .map((d) => ({
+      id: d.id,
+      category: (d.category === 'HOLIDAY_HOME' ? 'homes' : 'tours') as TabType,
+      title: d.title,
+      subtitle: d.subtitle,
+      badge: d.badge || (d.category === 'HOLIDAY_HOME' ? 'Holiday Home' : 'Guided Tour'),
+      priceKES: d.priceKES,
+      priceUnit: d.priceUnit || (d.category === 'HOLIDAY_HOME' ? '/ night' : '/ person'),
+      imageUrl: d.imageUrl,
+      location: d.location || d.region || 'Kenya',
+      specs: d.specs || [],
+    }));
+
   const currentItems = activeTab === 'vehicles' || activeTab === 'buses'
     ? approvedVehicles.filter((item) => item.category === activeTab)
-    : CATALOGUE_ITEMS.filter((item) => item.category === activeTab);
+    : liveDestinations.filter((item) => item.category === activeTab);
 
   return (
     <section className="py-10">
       <div className="text-center max-w-3xl mx-auto mb-8">
-        <span className="inline-block rounded-full border border-amber-400/40 bg-amber-500/15 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-300">
-          Catalogue & Services
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-slate-100 px-3.5 py-1 text-xs font-mono font-bold uppercase tracking-widest text-slate-800 shadow-2xs">
+          <Sparkles className="h-3.5 w-3.5 text-slate-900" />
+          <span>Catalogue &amp; Services</span>
         </span>
-        <h2 className="mt-3 font-serif text-3xl md:text-4xl font-bold text-white">
+        <h2 className="mt-3 font-serif text-3xl md:text-4xl font-extrabold text-slate-950 tracking-tight">
           Explore Our Specialized Service Catalogues
         </h2>
-        <p className="mt-2 text-sm text-amber-100/70">
+        <p className="mt-2 text-sm text-slate-600 font-medium max-w-xl mx-auto">
           Switch tabs to preview dedicated vehicles, luxury bus coaches, safaris, and holiday stays.
         </p>
       </div>
 
-      {/* CATALOGUE TABS BAR */}
-      <div className="mx-auto max-w-4xl flex flex-wrap gap-2 justify-center rounded-2xl border border-amber-900/40 bg-[#120a05]/90 backdrop-blur-md p-2 mb-8 shadow-xl">
+      {/* CATALOGUE TABS BAR - EXECUTIVE BLACK & WHITE THEME */}
+      <div className="mx-auto max-w-4xl flex flex-wrap gap-2 justify-center rounded-2xl border border-slate-200 bg-slate-50/90 backdrop-blur-md p-2 mb-8 shadow-sm">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -146,13 +116,13 @@ export const CatalogueTabs: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 min-w-[160px] flex items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-xs font-bold transition-all duration-200 ${
+              className={`flex-1 min-w-[160px] flex items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-xs font-bold transition-all duration-200 cursor-pointer ${
                 isActive
-                  ? 'bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
-                  : 'text-amber-100/75 hover:text-white hover:bg-[#1f1209]'
+                  ? 'bg-slate-950 text-white shadow-sm border border-slate-950 scale-[1.01]'
+                  : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/70 border border-transparent'
               }`}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-600'}`} />
               <div className="text-left">
                 <span className="block font-bold leading-none">{tab.label}</span>
               </div>
@@ -172,37 +142,79 @@ export const CatalogueTabs: React.FC = () => {
           className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 items-stretch"
         >
           {currentItems.length === 0 ? (
-            <div className="col-span-full rounded-3xl bg-[#120a05]/90 border border-amber-900/40 p-12 text-center space-y-3 shadow-xl backdrop-blur-md">
-              <div className="h-12 w-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
-                {activeTab === 'buses' ? <Bus className="h-6 w-6" /> : <Car className="h-6 w-6" />}
+            <div className="col-span-full rounded-3xl bg-white border border-slate-200 p-10 md:p-14 text-center space-y-4 shadow-sm">
+              <div className="h-14 w-14 rounded-2xl bg-slate-100 border border-slate-200 text-slate-900 flex items-center justify-center mx-auto shadow-2xs">
+                {activeTab === 'tours' && <Palmtree className="h-7 w-7 text-slate-900" />}
+                {activeTab === 'homes' && <Home className="h-7 w-7 text-slate-900" />}
+                {activeTab === 'buses' && <Bus className="h-7 w-7 text-slate-900" />}
+                {activeTab === 'vehicles' && <Car className="h-7 w-7 text-slate-900" />}
               </div>
-              <h3 className="font-serif text-lg font-bold text-white">
-                {activeTab === 'buses' ? 'No buses at the moment' : 'No vehicles available at the moment'}
-              </h3>
-              <p className="text-xs text-amber-100/65 font-medium max-w-md mx-auto">
-                {activeTab === 'buses'
-                  ? 'There are currently no buses registered into the system. Admin and hosts can register buses under live fleet.'
-                  : 'Fleet hosts have not yet listed any approved vehicles for hire. Check back soon or register as a host.'}
+
+              <div>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-[11px] font-mono font-bold uppercase tracking-wider text-slate-700 mb-2">
+                  {activeTab === 'tours' && 'Tours & Travel Catalogue'}
+                  {activeTab === 'homes' && 'Holiday Homes & Stays'}
+                  {activeTab === 'buses' && 'Coach & Bus Routes'}
+                  {activeTab === 'vehicles' && 'Vehicle Hire Fleet'}
+                </span>
+                <h3 className="font-serif text-2xl font-extrabold text-slate-950 tracking-tight">
+                  {activeTab === 'tours' && 'No tours & travel available at the moment'}
+                  {activeTab === 'homes' && 'No holiday homes available at the moment'}
+                  {activeTab === 'buses' && 'No buses available at the moment'}
+                  {activeTab === 'vehicles' && 'No vehicles available at the moment'}
+                </h3>
+              </div>
+
+              <p className="text-xs text-slate-500 font-medium max-w-lg mx-auto leading-relaxed">
+                {activeTab === 'tours' &&
+                  'There are currently no tours and travel packages available at the moment since none have been uploaded yet by the admin. Curated safari expeditions and guided tours will appear here once published.'}
+                {activeTab === 'homes' &&
+                  'There are currently no holiday homes available at the moment since none have been uploaded yet by the admin. Verified luxury villas, coastal cottages, and holiday stays will appear here once published.'}
+                {activeTab === 'buses' &&
+                  'There are currently no bus coaches registered into the system. Admin and fleet hosts can register buses under the fleet management portal.'}
+                {activeTab === 'vehicles' &&
+                  'Fleet hosts have not yet listed any approved vehicles for hire. Check back soon or register as a host.'}
               </p>
-              <div className="pt-2">
-                <Link to="/register" className="btn-primary !py-2 !px-4 text-xs font-bold text-white shadow-sm inline-flex items-center gap-1.5">
-                  <Sparkles className="h-4 w-4" /> Register as Fleet Host
-                </Link>
+
+              <div className="pt-3 flex flex-wrap items-center justify-center gap-3">
+                {activeTab === 'tours' || activeTab === 'homes' ? (
+                  <>
+                    <Link
+                      to="/catalogue?category=vehicles"
+                      className="rounded-xl bg-slate-950 hover:bg-black text-white py-2.5 px-5 text-xs font-bold shadow-sm inline-flex items-center gap-1.5 transition border border-slate-900 cursor-pointer"
+                    >
+                      <Car className="h-4 w-4" /> Explore Available Vehicles
+                    </Link>
+                    <Link
+                      to="/contact"
+                      className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 py-2.5 px-5 text-xs font-bold transition border border-slate-200 cursor-pointer"
+                    >
+                      Contact Concierge
+                    </Link>
+                  </>
+                ) : (
+                  <Link
+                    to="/register"
+                    className="rounded-xl bg-slate-950 hover:bg-black text-white py-2.5 px-5 text-xs font-bold shadow-sm inline-flex items-center gap-1.5 transition border border-slate-900 cursor-pointer"
+                  >
+                    <Sparkles className="h-4 w-4" /> Register as Fleet Host
+                  </Link>
+                )}
               </div>
             </div>
           ) : currentItems.map((item) => (
             <div
               key={item.id}
-              className="overflow-hidden rounded-3xl border border-amber-900/40 bg-gradient-to-b from-[#140c07]/90 to-[#0c0704]/95 backdrop-blur-md shadow-xl hover:shadow-[0_12px_36px_rgba(217,119,6,0.15)] hover:border-amber-500/40 transition-all duration-300 group flex flex-col md:flex-row hover:-translate-y-1 h-full"
+              className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm hover:shadow-xl hover:border-slate-400 transition-all duration-300 group flex flex-col md:flex-row hover:-translate-y-1 h-full text-slate-900"
             >
               {/* SPECIFIC CATALOGUE IMAGE */}
-              <div className="relative h-60 md:h-auto md:w-1/2 overflow-hidden bg-slate-950 shrink-0">
+              <div className="relative h-60 md:h-auto md:w-1/2 overflow-hidden bg-slate-100 shrink-0 border-b md:border-b-0 md:border-r border-slate-200">
                 <img
                   src={item.imageUrl}
                   alt={item.title}
                   className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
-                <span className="absolute top-3 left-3 rounded-full bg-black/85 backdrop-blur-md border border-amber-400/40 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-300 shadow-sm">
+                <span className="absolute top-3 left-3 rounded-full bg-slate-950 text-white font-mono text-[10px] font-bold px-3 py-1 border border-slate-850 uppercase tracking-wider shadow-sm">
                   {item.badge}
                 </span>
               </div>
@@ -210,13 +222,13 @@ export const CatalogueTabs: React.FC = () => {
               {/* DETAILS */}
               <div className="p-6 flex flex-col justify-between flex-1">
                 <div>
-                  <span className="flex items-center gap-1 text-xs text-amber-400 font-semibold mb-1">
-                    <MapPin className="h-3.5 w-3.5 text-amber-400" /> {item.location}
+                  <span className="flex items-center gap-1 text-xs text-slate-500 font-semibold mb-1">
+                    <MapPin className="h-3.5 w-3.5 text-slate-900" /> {item.location}
                   </span>
-                  <h3 className="font-serif text-xl font-bold text-white group-hover:text-amber-400 transition-colors">
+                  <h3 className="font-serif text-xl font-extrabold text-slate-950 group-hover:text-black transition-colors">
                     {item.title}
                   </h3>
-                  <p className="mt-1.5 text-xs text-amber-100/70 leading-relaxed">
+                  <p className="mt-1.5 text-xs text-slate-600 leading-relaxed font-normal">
                     {item.subtitle}
                   </p>
 
@@ -225,7 +237,7 @@ export const CatalogueTabs: React.FC = () => {
                     {item.specs.map((spec) => (
                       <span
                         key={spec}
-                        className="rounded-lg bg-black/40 border border-amber-900/40 px-2.5 py-1 text-[10px] font-medium text-amber-200/80"
+                        className="rounded-lg bg-slate-100 border border-slate-200 px-2.5 py-1 text-[10px] font-semibold text-slate-700"
                       >
                         {spec}
                       </span>
@@ -233,18 +245,18 @@ export const CatalogueTabs: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mt-6 flex items-center justify-between border-t border-amber-900/30 pt-4">
+                <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
                   <div>
-                    <span className="text-[10px] text-amber-300/50 uppercase tracking-widest block font-bold">Rate</span>
-                    <span className="text-xl font-bold text-white">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-widest block font-mono font-bold">Rate</span>
+                    <span className="text-xl font-extrabold text-slate-950">
                       {formatPrice(item.priceKES)}
-                      <span className="text-xs font-normal text-amber-200/60">{item.priceUnit}</span>
+                      <span className="text-xs font-normal text-slate-500 ml-1">{item.priceUnit}</span>
                     </span>
                   </div>
 
                   <Link
-                    to={`/catalogue?category=${activeTab}`}
-                    className="btn-primary !px-4 !py-2 text-xs flex items-center gap-1.5 font-bold shadow-md shadow-amber-500/20"
+                    to={activeTab === 'tours' || activeTab === 'homes' ? '/holidays-and-tours' : `/catalogue?category=${activeTab}`}
+                    className="rounded-xl bg-slate-950 hover:bg-black text-white px-4 py-2.5 text-xs flex items-center gap-1.5 font-bold shadow-sm transition active:scale-[0.99] border border-slate-900 cursor-pointer"
                   >
                     Select Catalogue <ArrowRight className="h-3.5 w-3.5" />
                   </Link>

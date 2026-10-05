@@ -22,6 +22,7 @@ import {
   deleteBooking,
   bulkDeleteBookings,
   isTripBooking,
+  isBusVehicle,
   type StoredBooking,
 } from '@/lib/bookingStore';
 
@@ -56,14 +57,14 @@ export interface UnifiedBooking {
 type FilterTab = 'ALL' | 'ACTIVE' | 'UPCOMING' | 'COMPLETED' | 'CANCELLED';
 
 const STATUS_STYLES: Record<string, string> = {
-  IN_PROGRESS: 'bg-emerald-50 text-emerald-700 border border-emerald-300 animate-pulse font-bold',
-  CONFIRMED:   'bg-teal/10 text-teal border border-teal/30 font-bold',
-  PAID:        'bg-teal/15 text-teal border border-teal/30 font-bold',
+  IN_PROGRESS: 'bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold animate-pulse',
+  CONFIRMED:   'bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold',
+  PAID:        'bg-teal-50 text-teal-800 border border-teal-300 font-bold',
   PENDING:     'bg-amber-50 text-amber-800 border border-amber-300 font-bold',
-  COMPLETED:   'bg-slate-100 text-slate-700 border border-slate-300 font-bold',
-  CANCELLED:   'bg-red-50 text-red-700 border border-red-300 font-bold',
+  COMPLETED:   'bg-slate-100 text-slate-700 border border-slate-200 font-bold',
+  CANCELLED:   'bg-rose-50 text-rose-700 border border-rose-200 font-bold',
   ACCEPTED:    'bg-blue-50 text-blue-700 border border-blue-200 font-bold',
-  REJECTED:    'bg-red-50 text-red-700 border border-red-200 font-bold',
+  REJECTED:    'bg-rose-50 text-rose-700 border border-rose-200 font-bold',
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -100,18 +101,20 @@ function SpendingStrip({ bookings, formatPrice }: { bookings: UnifiedBooking[]; 
   const active    = bookings.filter(b => b.status === 'IN_PROGRESS').length;
   const completed = bookings.filter(b => b.status === 'COMPLETED').length;
   return (
-    <div className="grid grid-cols-3 gap-3 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
       {[
-        { label: 'This Month', value: formatPrice(monthSpend), icon: TrendingUp,   color: 'text-amber-700' },
-        { label: 'Active Trips', value: String(active),         icon: Zap,          color: 'text-emerald-700' },
-        { label: 'Completed',   value: String(completed),      icon: CheckCircle2, color: 'text-teal' },
-      ].map(({ label, value, icon: Icon, color }) => (
-        <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <Icon className={`h-4 w-4 ${color}`} />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">{label}</span>
+        { label: 'This Month',   value: formatPrice(monthSpend), icon: TrendingUp,   color: 'text-amber-600',  bg: 'bg-amber-50 border border-amber-200' },
+        { label: 'Active Trips', value: String(active),         icon: Zap,          color: 'text-emerald-600', bg: 'bg-emerald-50 border border-emerald-200' },
+        { label: 'Completed',    value: String(completed),      icon: CheckCircle2, color: 'text-purple-700',  bg: 'bg-purple-50 border border-purple-200' },
+      ].map(({ label, value, icon: Icon, color, bg }) => (
+        <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm text-slate-900">
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className={`p-1.5 rounded-lg ${bg}`}>
+              <Icon className={`h-3.5 w-3.5 ${color}`} />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</span>
           </div>
-          <span className={`font-display text-2xl font-bold ${color}`}>{value}</span>
+          <span className={`font-mono text-xl sm:text-2xl font-bold ${color}`}>{value}</span>
         </div>
       ))}
     </div>
@@ -350,23 +353,23 @@ function BookingCard({
           onClose={() => setShowReceipt(false)}
         />
       )}
-      <div className={`rounded-2xl border overflow-hidden transition-all duration-300 card-luxe bg-white ${
-        isActive ? 'border-emerald-500/50 shadow-md ring-1 ring-emerald-400/30' : (isSelected ? 'border-amber-500 ring-2 ring-amber-400/30 shadow-md' : 'border-slate-200 shadow-sm')
+      <div className={`rounded-2xl border overflow-hidden transition-all duration-300 bg-white ${
+        isActive ? 'border-emerald-500 shadow-md ring-1 ring-emerald-500/20' : (isSelected ? 'border-slate-950 ring-2 ring-slate-950/20 shadow-md' : 'border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300')
       }`}>
         {b.vehicleImage && (
-          <div className="relative h-36 overflow-hidden bg-slate-100">
+          <div className="relative h-36 overflow-hidden bg-slate-900">
             <img src={b.vehicleImage} alt={b.vehicleName} className="w-full h-full object-cover opacity-90" />
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/70 via-slate-950/30 to-transparent" />
-            {isActive && <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/40 to-transparent" />}
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/40 to-transparent" />
+            {isActive && <div className="absolute inset-0 bg-gradient-to-r from-emerald-950/60 to-transparent" />}
             <div className="absolute bottom-3 left-4 text-white">
-              <span className="font-mono text-xs text-amber-400 font-bold tracking-wider">{b.vehicleMake}</span>
-              <h4 className="font-display font-bold text-base drop-shadow-sm">{b.vehicleName}</h4>
+              <span className="font-mono text-xs text-slate-300 font-bold tracking-wider">{b.vehicleMake}</span>
+              <h4 className="font-sans font-bold text-base drop-shadow-sm">{b.vehicleName}</h4>
             </div>
           </div>
         )}
         <div className="p-6 space-y-4">
           {/* Header */}
-          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-4">
+          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 pb-4">
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 {onToggleSelect && (
@@ -374,32 +377,32 @@ function BookingCard({
                     type="checkbox"
                     checked={Boolean(isSelected)}
                     onChange={() => onToggleSelect(b.id)}
-                    className="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400 cursor-pointer"
+                    className="h-4 w-4 rounded border-slate-300 bg-white text-slate-950 focus:ring-slate-950 cursor-pointer"
                     title="Select for bulk actions"
                   />
                 )}
-                <span className="font-mono text-xs font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded border border-amber-200">Ref: {ref}</span>
-                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase ${STATUS_STYLES[status] ?? 'bg-slate-100 text-slate-700 border border-slate-300'}`}>
+                <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">Ref: {ref}</span>
+                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase ${STATUS_STYLES[status] ?? 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
                   {STATUS_LABEL[status] ?? status}
                 </span>
                 {isActive && <EtaChip />}
               </div>
-              <h3 className="mt-1 font-display text-xl font-bold text-slate-900">{b.vehicleName}</h3>
+              <h3 className="mt-1 font-sans text-xl font-bold text-slate-900">{b.vehicleName}</h3>
             </div>
             <div className="text-right">
-              <span className="font-mono text-2xl font-bold text-amber-700">{formatPrice(amount)}</span>
+              <span className="font-mono text-2xl font-bold text-slate-950">{formatPrice(amount)}</span>
               <span className="block text-[10px] text-slate-500 font-semibold">{nights} day(s) · {b.paymentStatus === 'PAID' ? 'M-Pesa Verified' : 'Payment Required'}</span>
             </div>
           </div>
 
           {/* Info */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-700 font-medium">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-600 font-medium">
             <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-amber-600 shrink-0" />
+              <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
               <span>{start} – {end}</span>
             </div>
             <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-teal shrink-0" />
+              <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
               <span>{b.pickupLocation || 'Nairobi ➔ Safari National Reserve'}</span>
             </div>
             <div className="flex items-center gap-2">
@@ -419,12 +422,12 @@ function BookingCard({
 
             if (isDriverPkg) {
               return (
-                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-300 bg-emerald-50/60 p-3 shadow-sm">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-amber-500 to-amber-700 font-bold text-white text-lg shrink-0 shadow-sm">
+                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 shadow-sm text-slate-800">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 font-bold text-white text-lg shrink-0 shadow-sm">
                     D
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-slate-900 text-sm">Driver <span className="text-xs font-semibold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md ml-1.5">Station Chauffeur</span></p>
+                    <p className="font-bold text-slate-900 text-sm">Driver <span className="text-xs font-semibold text-slate-700 bg-slate-200/70 border border-slate-300 px-2 py-0.5 rounded-md ml-1.5">Station Chauffeur</span></p>
                     <div className="flex items-center gap-1 text-xs text-slate-600 font-medium mt-0.5">
                       <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> 4.9 · Verified Safari Chauffeur Included
                     </div>
@@ -438,12 +441,12 @@ function BookingCard({
             const initial = travelerName.trim().charAt(0).toUpperCase() || 'T';
 
             return (
-              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-300 bg-emerald-50/60 p-3 shadow-sm">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-teal to-emerald-700 font-bold text-white text-lg shrink-0 shadow-sm">
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 shadow-sm text-slate-800">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 font-bold text-white text-lg shrink-0 shadow-sm">
                   {initial}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-slate-900 text-sm">{travelerName} <span className="text-xs font-semibold text-emerald-800 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md ml-1.5">Self-Drive Hirer</span></p>
+                  <p className="font-bold text-slate-900 text-sm">{travelerName} <span className="text-xs font-semibold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-md ml-1.5">Self-Drive Hirer</span></p>
                   <div className="flex items-center gap-1 text-xs text-slate-600 font-medium mt-0.5">
                     <UserCheck className="h-3.5 w-3.5 text-emerald-600" /> Verified Primary Driver &amp; Hirer
                   </div>
@@ -460,8 +463,8 @@ function BookingCard({
           )}
 
           {/* Actions */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
-            <span className="text-xs text-slate-600 font-medium">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+            <span className="text-xs text-slate-500 font-medium">
               {isActive
                 ? (Boolean(b.raw?.hasDriver || (b as any).hasDriver)
                     ? 'Real-time driver GPS & telemetry live'
@@ -490,8 +493,8 @@ function BookingCard({
                   disabled={isCancelling}
                   className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold transition shadow-sm ${
                     confirmCancel
-                      ? 'border-red-500 bg-red-600 text-white animate-pulse'
-                      : 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-400'
+                      ? 'border-rose-600 bg-rose-600 text-white animate-pulse'
+                      : 'border-rose-200 bg-white text-rose-600 hover:bg-rose-50'
                   }`}
                 >
                   {isCancelling ? (
@@ -506,7 +509,7 @@ function BookingCard({
                     </>
                   ) : (
                     <>
-                      <X className="h-3.5 w-3.5 text-red-600" />
+                      <X className="h-3.5 w-3.5 text-rose-600" />
                       <span>Cancel Booking</span>
                     </>
                   )}
@@ -516,24 +519,24 @@ function BookingCard({
               {/* Delete button — only for already cancelled/rejected */}
               {isDeletable && (
                 <button onClick={handleDeleteClick}
-                  className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition ${confirmDelete ? 'border-red-500 bg-red-100 text-red-700 animate-pulse' : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-red-400 hover:text-red-700 hover:bg-red-50'}`}>
+                  className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition ${confirmDelete ? 'border-rose-600 bg-rose-600 text-white animate-pulse' : 'border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:text-rose-600 hover:bg-rose-50'}`}>
                   <Trash2 className="h-3.5 w-3.5" /> {confirmDelete ? 'Confirm Delete?' : 'Delete'}
                 </button>
               )}
 
               {isCompleted && (
                 <>
-                  <button onClick={() => setShowMemory(true)} className="flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 transition shadow-sm">
-                    <Heart className="h-3.5 w-3.5 text-amber-600" /> Trip Memory
+                  <button onClick={() => setShowMemory(true)} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-100 transition shadow-sm">
+                    <Heart className="h-3.5 w-3.5 text-rose-500" /> Trip Memory
                   </button>
-                  <Link to={`/vehicles/${b.vehicleId}?rebook=1`} className="flex items-center gap-1.5 rounded-xl border border-teal/30 bg-teal/10 px-3 py-2 text-xs font-bold text-teal hover:bg-teal/20 transition shadow-sm">
+                  <Link to={`/vehicles/${b.vehicleId}?rebook=1`} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-100 transition shadow-sm">
                     <RotateCcw className="h-3.5 w-3.5" /> Re-Book
                   </Link>
                   <button
                     onClick={() => setShowReceipt(true)}
-                    className="flex items-center gap-1.5 rounded-xl border border-amber-400/40 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 transition shadow-sm"
+                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-100 transition shadow-sm"
                   >
-                    <Download className="h-3.5 w-3.5 text-amber-600" /> Official Receipt
+                    <Download className="h-3.5 w-3.5 text-slate-700" /> Official Receipt
                   </button>
                 </>
               )}
@@ -541,8 +544,8 @@ function BookingCard({
               {(() => {
                 const isTrip = isTripBooking(b.raw || b);
                 return (
-                  <button onClick={() => onTrack(b)} className="btn-primary text-xs !py-2.5 !px-5 flex items-center gap-2 shadow-sm font-bold text-white">
-                    {isTrip ? <Palmtree className="h-4 w-4" /> : <Car className="h-4 w-4" />}
+                  <button onClick={() => onTrack(b)} className="flex items-center gap-2 rounded-xl bg-slate-950 px-5 py-2.5 text-xs font-bold text-white hover:bg-slate-800 transition shadow-sm">
+                    {isTrip ? <Palmtree className="h-4 w-4 text-amber-400" /> : <Car className="h-4 w-4" />}
                     {isTrip ? 'View Destination Details' : 'View Ride Details'}
                     <ChevronRight className="h-3 w-3" />
                   </button>
@@ -862,6 +865,7 @@ export default function MyBookings() {
 
 
   const handleDownloadVoucher = (b: UnifiedBooking) => {
+    const isBus = isBusVehicle(b);
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
     printWindow.document.write(`
@@ -895,10 +899,16 @@ export default function MyBookings() {
 
           <div class="notice-box">
             <div class="notice-title">⚠️ Mandatory Vehicle Handover Document Requirements</div>
-            <p style="font-size:13px; margin:0;">Please bring the following original identity credentials to the M-TRAVEL station at pickup for physical inspection by our fleet agents:</p>
+            <p style="font-size:13px; margin:0;">
+              ${isBus
+                ? 'Please bring your original identity credentials to the M-TRAVEL station at pickup for physical inspection. (Charter includes a certified company coach captain; no driving license required from the traveler):'
+                : 'Please bring the following original identity credentials to the M-TRAVEL station at pickup for physical inspection by our fleet agents:'}
+            </p>
             <ul class="notice-list">
-              <li>Original National ID Card or Valid International Passport (Mandatory for all renters)</li>
-              <li>Valid National Driving License (Mandatory for Self-Drive vehicle hires)</li>
+              <li>Original National ID Card or Valid International Passport (Mandatory for identity verification)</li>
+              ${isBus
+                ? '<li style="color:#047857; font-weight:bold;">Company-Designated Driver Included — No Driving License required from traveler</li>'
+                : '<li>Valid National Driving License (Mandatory for Self-Drive vehicle hires)</li>'}
             </ul>
             <div style="font-size:11px; color:#92400e; font-style:italic;">Key release and vehicle activation are strictly contingent on physical document verification.</div>
           </div>
@@ -948,292 +958,306 @@ export default function MyBookings() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
-      {/* ── VEHICLE RIDE & RENTAL DETAILS MODAL (NO GPS TRACKER) ── */}
-      {activeTrackingBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md font-display">
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl text-slate-800 space-y-4">
-            <button
-              onClick={() => setActiveTrackingBooking(null)}
-              className="absolute right-4 top-4 rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200 transition"
-            >
-              <X className="h-4 w-4" />
-            </button>
+    <div className="min-h-screen bg-white text-slate-900 relative overflow-hidden font-sans pb-16">
+      <div className="mx-auto max-w-5xl px-4 py-8 space-y-6">
+        {/* ── VEHICLE RIDE & RENTAL DETAILS MODAL ── */}
+        {activeTrackingBooking && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md font-sans">
+            <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl text-slate-900 space-y-4">
+              <button
+                onClick={() => setActiveTrackingBooking(null)}
+                className="absolute right-4 top-4 rounded-full bg-slate-100 border border-slate-200 p-2 text-slate-500 hover:text-black hover:bg-slate-200 transition"
+              >
+                <X className="h-4 w-4" />
+              </button>
 
-            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                <Car className="h-5 w-5" />
-              </div>
-              <div>
-                <span className="text-[10px] uppercase font-mono font-bold text-amber-700">Booked Vehicle &amp; Ride Details</span>
-                <h3 className="font-display text-lg font-bold text-slate-900">{activeTrackingBooking.vehicleName}</h3>
-              </div>
-            </div>
-
-            {activeTrackingBooking.vehicleImage && (
-              <div className="relative h-44 w-full overflow-hidden rounded-2xl bg-slate-100 border border-slate-200">
-                <img src={activeTrackingBooking.vehicleImage} alt={activeTrackingBooking.vehicleName} className="h-full w-full object-cover" />
-                <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg">
-                  Ref: {activeTrackingBooking.bookingRef}
+              <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-900 border border-slate-200">
+                  <Car className="h-5 w-5" />
                 </div>
-                <div className="absolute bottom-3 right-3 bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border border-emerald-400">
-                  {activeTrackingBooking.status === 'IN_PROGRESS' ? 'Active Trip' : activeTrackingBooking.status}
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="rounded-xl bg-slate-50 p-3 border border-slate-200">
-                <p className="text-[10px] font-bold uppercase text-slate-400">Rental Period</p>
-                <p className="font-semibold text-slate-800 mt-1">{activeTrackingBooking.startDate}</p>
-                <p className="text-[11px] text-slate-500">to {activeTrackingBooking.endDate}</p>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-3 border border-slate-200">
-                <p className="text-[10px] font-bold uppercase text-slate-400">Total Amount</p>
-                <p className="font-mono font-bold text-amber-700 text-base mt-0.5">{formatPrice(activeTrackingBooking.totalAmount)}</p>
-                <p className="text-[10px] text-emerald-700 font-bold">Payment Verified</p>
-              </div>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <div className="flex items-start gap-2 text-slate-700">
-                <MapPin className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                 <div>
-                  <strong>Pickup Location:</strong> {activeTrackingBooking.pickupLocation || 'Westlands Fleet Hub, Nairobi'}
+                  <span className="text-[10px] uppercase font-mono font-bold text-slate-500">Booked Vehicle &amp; Ride Details</span>
+                  <h3 className="font-sans text-lg font-bold text-slate-900">{activeTrackingBooking.vehicleName}</h3>
                 </div>
               </div>
-              <div className="flex items-start gap-2 text-slate-700">
-                <MapPin className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <strong>Dropoff Destination:</strong> {activeTrackingBooking.dropoffLocation || 'Maasai Mara / Reserved Station'}
+
+              {activeTrackingBooking.vehicleImage && (
+                <div className="relative h-44 w-full overflow-hidden rounded-2xl bg-slate-100 border border-slate-200">
+                  <img src={activeTrackingBooking.vehicleImage} alt={activeTrackingBooking.vehicleName} className="h-full w-full object-cover" />
+                  <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-slate-900 border border-slate-200 text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg shadow-sm">
+                    Ref: {activeTrackingBooking.bookingRef}
+                  </div>
+                  <div className="absolute bottom-3 right-3 bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border border-emerald-400">
+                    {activeTrackingBooking.status === 'IN_PROGRESS' ? 'Active Trip' : activeTrackingBooking.status}
+                  </div>
                 </div>
-              </div>
-            </div>
-
-
-
-            {/* MANDATORY HANDOVER DOCUMENT VERIFICATION NOTICE */}
-            <div className="rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-50/90 via-amber-100/50 to-orange-50 p-4 text-xs space-y-2 shadow-sm">
-              <div className="flex items-center gap-2 font-display font-bold text-amber-900 uppercase tracking-wider text-[11px] border-b border-amber-200 pb-1.5">
-                <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
-                <span>Mandatory Handover Document Notice</span>
-              </div>
-              <p className="text-slate-800 text-[11px] leading-relaxed font-semibold">
-                Please present the following physical documents to the M-TRAVEL representative at vehicle pickup for identity verification &amp; fleet security:
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-bold text-slate-900 pt-1">
-                <div className="flex items-center gap-2 bg-white/80 p-2 rounded-xl border border-amber-200/80">
-                  <FileText className="h-4 w-4 text-amber-600 shrink-0" />
-                  <span>National ID or International Passport</span>
-                </div>
-                <div className="flex items-center gap-2 bg-white/80 p-2 rounded-xl border border-amber-200/80">
-                  <Car className="h-4 w-4 text-emerald-600 shrink-0" />
-                  <span>Valid Driving License (Self-Drive)</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-[11px] text-emerald-900 flex items-center gap-2">
-              <Shield className="h-4 w-4 text-emerald-600 shrink-0" />
-              <span>Full Comprehensive Insurance &amp; 24/7 Roadside Assistance Included.</span>
-            </div>
-
-            <button
-              onClick={() => handleDownloadVoucher(activeTrackingBooking)}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 py-2.5 text-xs font-bold shadow-sm transition"
-            >
-              <Download className="h-4 w-4" /> Download Official Verification Voucher &amp; Receipt (PDF)
-            </button>
-
-            <button
-              onClick={() => setActiveTrackingBooking(null)}
-              className="w-full rounded-xl bg-slate-900 text-white py-2.5 text-xs font-bold hover:bg-slate-800 transition"
-            >
-              Close Details
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Destination Voucher Modal */}
-      {selectedDestVoucher && (
-        <DestinationVoucherModal
-          booking={selectedDestVoucher}
-          onClose={() => setSelectedDestVoucher(null)}
-        />
-      )}
-
-      {/* M-Pesa STK Push Payment Modal */}
-      {showMpesa && mpesaBooking && (
-        <MpesaStkPushModal
-          onClose={() => {
-            setShowMpesa(false);
-            setMpesaBooking(null);
-          }}
-          amount={mpesaBooking.totalAmount}
-          bookingRef={mpesaBooking.bookingRef}
-          vehicleName={mpesaBooking.vehicleName}
-          touristPhone={mpesaBooking.touristPhone || user?.phone || '0712345678'}
-          onSuccess={(receipt) => {
-            updateBookingStatus(mpesaBooking.id, 'PAID', receipt);
-            loadAllBookings();
-            setShowMpesa(false);
-            setMpesaBooking(null);
-          }}
-        />
-      )}
-
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-6 mb-6">
-        <div>
-          <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-teal">
-            <Car className="h-3.5 w-3.5" /> Traveler Reservations &amp; Telemetry
-          </span>
-          <h1 className="mt-1 font-display text-3xl font-bold text-slate-900">My Bookings &amp; Rides</h1>
-          {user && (
-            <p className="mt-1 text-sm text-slate-600 font-medium">
-              Welcome back, <span className="text-amber-700 font-bold">{user.firstName || user.email}</span>
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            to="/catalogue?category=vehicles"
-            className="flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 text-xs font-bold shadow-sm transition"
-          >
-            <Car className="h-3.5 w-3.5" /> Explore Fleet
-          </Link>
-          <button
-            onClick={() => loadAllBookings()}
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:border-slate-300 hover:text-slate-900 hover:bg-slate-50 transition shadow-sm"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 text-amber-600 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
-          </button>
-        </div>
-      </div>
-
-      {/* Spending Strip */}
-      <SpendingStrip bookings={displayBookings} formatPrice={formatPrice} />
-
-      {/* Filter Tabs */}
-      <div className="mb-6 flex gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-slate-100/80 p-1">
-        {TABS.map(({ key, label, count }) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-1.5 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-              activeTab === key ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white'
-            }`}
-          >
-            {label}
-            {count > 0 && (
-              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${activeTab === key ? 'bg-slate-950/15 text-slate-950' : 'bg-slate-200 text-slate-700'}`}>
-                {count}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Loading Skeleton */}
-      {isLoading && displayBookings.length === 0 && (
-        <div className="rounded-2xl bg-white border border-slate-200/80 p-12 text-center shadow-sm">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
-          <p className="mt-3 text-sm text-slate-500 font-medium">Synchronizing your reservations…</p>
-        </div>
-      )}
-
-      {/* Bulk Action Bar */}
-      {!isLoading && filtered.length > 0 && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 hover:text-slate-900 select-none">
-              <input
-                type="checkbox"
-                checked={filtered.length > 0 && selectedIds.length === filtered.length}
-                onChange={toggleSelectAll}
-                className="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400 cursor-pointer"
-              />
-              Select All ({filtered.length})
-            </label>
-            {selectedIds.length > 0 && (
-              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800 border border-amber-200">
-                {selectedIds.length} selected
-              </span>
-            )}
-          </div>
-          {selectedIds.length > 0 && (
-            <div className="flex items-center gap-2">
-              {showBulkConfirm ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-red-600 animate-pulse">Delete {selectedIds.length} booking(s)?</span>
-                  <button
-                    onClick={handleBulkDelete}
-                    disabled={isBulkDeleting}
-                    className="flex items-center gap-1 rounded-xl bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700 transition shadow-sm"
-                  >
-                    {isBulkDeleting ? 'Deleting...' : 'Yes, Delete All'}
-                  </button>
-                  <button
-                    onClick={() => setShowBulkConfirm(false)}
-                    className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 transition"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowBulkConfirm(true)}
-                  className="flex items-center gap-1.5 rounded-xl border border-red-300 bg-red-50 px-3.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 hover:border-red-400 transition shadow-sm"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete Selected ({selectedIds.length})
-                </button>
               )}
-            </div>
-          )}
-        </div>
-      )}
 
-      {/* Cards List */}
-      <div className="space-y-4">
-        {!isLoading && filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white py-16 text-center shadow-sm">
-            <Clock className="h-12 w-12 text-slate-300 mb-3" />
-            <p className="font-display text-lg font-bold text-slate-700">No bookings in this category</p>
-            <p className="text-sm text-slate-500 mt-1 font-medium max-w-sm">
-              {activeTab === 'ALL'
-                ? 'You do not have any vehicle reservations under this account yet. Discover our inspected safari fleet and private chauffeurs.'
-                : 'Switch tabs or browse our luxury vehicles to make a reservation.'}
-            </p>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="rounded-xl bg-slate-50 p-3 border border-slate-200">
+                  <p className="text-[10px] font-bold uppercase text-slate-500">Rental Period</p>
+                  <p className="font-semibold text-slate-900 mt-1">{activeTrackingBooking.startDate}</p>
+                  <p className="text-[11px] text-slate-500">to {activeTrackingBooking.endDate}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3 border border-slate-200">
+                  <p className="text-[10px] font-bold uppercase text-slate-500">Total Amount</p>
+                  <p className="font-mono font-bold text-slate-950 text-base mt-0.5">{formatPrice(activeTrackingBooking.totalAmount)}</p>
+                  <p className="text-[10px] text-emerald-600 font-bold">Payment Verified</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 text-xs">
+                <div className="flex items-start gap-2 text-slate-700">
+                  <MapPin className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="text-slate-900">Pickup Location:</strong> {activeTrackingBooking.pickupLocation || 'Westlands Fleet Hub, Nairobi'}
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 text-slate-700">
+                  <MapPin className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="text-slate-900">Dropoff Destination:</strong> {activeTrackingBooking.dropoffLocation || 'Maasai Mara / Reserved Station'}
+                  </div>
+                </div>
+              </div>
+
+              {/* MANDATORY HANDOVER DOCUMENT VERIFICATION NOTICE */}
+              {(() => {
+                const isBus = activeTrackingBooking ? isBusVehicle(activeTrackingBooking) : false;
+                return (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs space-y-2 shadow-sm">
+                    <div className="flex items-center gap-2 font-sans font-bold text-slate-900 uppercase tracking-wider text-[11px] border-b border-slate-200 pb-1.5">
+                      <ShieldCheck className="h-4 w-4 text-slate-900 shrink-0" />
+                      <span>{isBus ? 'Mandatory Handover Verification Notice (ID Only)' : 'Mandatory Handover Document Notice'}</span>
+                    </div>
+                    <p className="text-slate-600 text-[11px] leading-relaxed font-semibold">
+                      {isBus
+                        ? 'Please present your original identity document to the M-TRAVEL representative at vehicle pickup for verification. (A certified company coach captain is assigned to pilot the bus; no driver\'s license needed from traveler):'
+                        : 'Please present the following physical documents to the M-TRAVEL representative at vehicle pickup for identity verification & fleet security:'}
+                    </p>
+                    <div className={`grid ${isBus ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'} gap-2 text-[11px] font-bold text-slate-900 pt-1`}>
+                      <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200">
+                        <FileText className="h-4 w-4 text-slate-900 shrink-0" />
+                        <span>National ID or International Passport ({isBus ? 'Charter Hirer ID' : 'Mandatory for All Renters'})</span>
+                      </div>
+                      {isBus ? (
+                        <div className="flex items-center gap-2 bg-emerald-50 p-2 rounded-xl border border-emerald-200 text-emerald-800">
+                          <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                          <span>Company Driver Included (No License Needed)</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200">
+                          <Car className="h-4 w-4 text-slate-900 shrink-0" />
+                          <span>Valid Driving License (Self-Drive)</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-[11px] text-slate-700 flex items-center gap-2">
+                <Shield className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span>Full Comprehensive Insurance &amp; 24/7 Roadside Assistance Included.</span>
+              </div>
+
+              <button
+                onClick={() => handleDownloadVoucher(activeTrackingBooking)}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-white py-2.5 text-xs font-bold shadow-sm transition"
+              >
+                <Download className="h-4 w-4" /> Download Official Verification Voucher &amp; Receipt (PDF)
+              </button>
+
+              <button
+                onClick={() => setActiveTrackingBooking(null)}
+                className="w-full rounded-xl bg-slate-100 border border-slate-200 text-slate-700 py-2.5 text-xs font-bold hover:bg-slate-200 transition"
+              >
+                Close Details
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Destination Voucher Modal */}
+        {selectedDestVoucher && (
+          <DestinationVoucherModal
+            booking={selectedDestVoucher}
+            onClose={() => setSelectedDestVoucher(null)}
+          />
+        )}
+
+        {/* M-Pesa STK Push Payment Modal */}
+        {showMpesa && mpesaBooking && (
+          <MpesaStkPushModal
+            onClose={() => {
+              setShowMpesa(false);
+              setMpesaBooking(null);
+            }}
+            amount={mpesaBooking.totalAmount}
+            bookingRef={mpesaBooking.bookingRef}
+            vehicleName={mpesaBooking.vehicleName}
+            touristPhone={mpesaBooking.touristPhone || user?.phone || '0712345678'}
+            onSuccess={(receipt) => {
+              updateBookingStatus(mpesaBooking.id, 'PAID', receipt);
+              loadAllBookings();
+              setShowMpesa(false);
+              setMpesaBooking(null);
+            }}
+          />
+        )}
+
+        {/* Header */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-6 mb-6">
+          <div>
+            <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-slate-500">
+              <Car className="h-3.5 w-3.5" /> Traveler Reservations &amp; Telemetry
+            </span>
+            <h1 className="mt-1 font-sans text-3xl font-bold text-slate-900">My Bookings &amp; Rides</h1>
+            {user && (
+              <p className="mt-1 text-sm text-slate-500 font-medium">
+                Welcome back, <span className="text-slate-900 font-bold">{user.firstName || user.email}</span>
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
             <Link
               to="/catalogue?category=vehicles"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-sm transition"
+              className="flex items-center gap-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-white px-4 py-2 text-xs font-bold shadow-sm transition"
             >
-              <Car className="h-3.5 w-3.5" /> Browse Luxury Fleet <ArrowRight className="h-3.5 w-3.5" />
+              <Car className="h-3.5 w-3.5" /> Explore Fleet
             </Link>
+            <button
+              onClick={() => loadAllBookings()}
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-900 hover:bg-slate-50 transition shadow-sm"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 text-slate-900 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
+            </button>
           </div>
-        ) : (
-          filtered.map((b) => (
-            <BookingCard
-              key={b.id}
-              b={b}
-              isSelected={selectedIds.includes(b.id)}
-              onToggleSelect={toggleSelect}
-              onTrack={(item) => {
-                if (isTripBooking(item.raw || item)) {
-                  setSelectedDestVoucher((item.raw || item) as StoredBooking);
-                } else {
-                  setActiveTrackingBooking(item);
-                }
-              }}
-              onPayNow={handlePayNow}
-              onCancel={handleCancelBooking}
-              onDelete={handleDeleteBooking}
-              formatPrice={formatPrice}
-            />
-          ))
+        </div>
+
+        {/* Spending Strip */}
+        <SpendingStrip bookings={displayBookings} formatPrice={formatPrice} />
+
+        {/* Filter Tabs */}
+        <div className="mb-6 flex gap-1.5 overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50 p-1.5">
+          {TABS.map(({ key, label, count }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`flex items-center gap-1.5 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                activeTab === key ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/60'
+              }`}
+            >
+              {label}
+              {count > 0 && (
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${activeTab === key ? 'bg-slate-800 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Loading Skeleton */}
+        {isLoading && displayBookings.length === 0 && (
+          <div className="rounded-2xl bg-white border border-slate-200 p-12 text-center shadow-sm">
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-950 border-t-transparent" />
+            <p className="mt-3 text-sm text-slate-500 font-medium">Synchronizing your reservations…</p>
+          </div>
         )}
+
+        {/* Bulk Action Bar */}
+        {!isLoading && filtered.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm text-slate-900">
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 hover:text-black select-none">
+                <input
+                  type="checkbox"
+                  checked={filtered.length > 0 && selectedIds.length === filtered.length}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 rounded border-slate-300 bg-white text-slate-950 focus:ring-slate-950 cursor-pointer"
+                />
+                Select All ({filtered.length})
+              </label>
+              {selectedIds.length > 0 && (
+                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-800 border border-slate-200">
+                  {selectedIds.length} selected
+                </span>
+              )}
+            </div>
+            {selectedIds.length > 0 && (
+              <div className="flex items-center gap-2">
+                {showBulkConfirm ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-rose-600 animate-pulse">Delete {selectedIds.length} booking(s)?</span>
+                    <button
+                      onClick={handleBulkDelete}
+                      disabled={isBulkDeleting}
+                      className="flex items-center gap-1 rounded-xl bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition shadow-sm"
+                    >
+                      {isBulkDeleting ? 'Deleting...' : 'Yes, Delete All'}
+                    </button>
+                    <button
+                      onClick={() => setShowBulkConfirm(false)}
+                      className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowBulkConfirm(true)}
+                    className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-100 transition shadow-sm"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete Selected ({selectedIds.length})
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Cards List */}
+        <div className="space-y-4">
+          {!isLoading && filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white py-16 text-center shadow-sm">
+              <Clock className="h-12 w-12 text-slate-300 mb-3" />
+              <p className="font-sans text-lg font-bold text-slate-900">No bookings in this category</p>
+              <p className="text-sm text-slate-500 mt-1 font-medium max-w-sm">
+                {activeTab === 'ALL'
+                  ? 'You do not have any vehicle reservations under this account yet. Discover our inspected safari fleet and private chauffeurs.'
+                  : 'Switch tabs or browse our luxury vehicles to make a reservation.'}
+              </p>
+              <Link
+                to="/catalogue?category=vehicles"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-slate-950 hover:bg-slate-800 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition"
+              >
+                <Car className="h-3.5 w-3.5" /> Browse Luxury Fleet <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          ) : (
+            filtered.map((b) => (
+              <BookingCard
+                key={b.id}
+                b={b}
+                isSelected={selectedIds.includes(b.id)}
+                onToggleSelect={toggleSelect}
+                onTrack={(item) => {
+                  if (isTripBooking(item.raw || item)) {
+                    setSelectedDestVoucher((item.raw || item) as StoredBooking);
+                  } else {
+                    setActiveTrackingBooking(item);
+                  }
+                }}
+                onPayNow={handlePayNow}
+                onCancel={handleCancelBooking}
+                onDelete={handleDeleteBooking}
+                formatPrice={formatPrice}
+              />
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

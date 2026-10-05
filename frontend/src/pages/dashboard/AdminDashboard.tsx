@@ -3,8 +3,16 @@ import {
   Users, Car, Bus, Shield, DollarSign, Activity, CheckCircle,
   RefreshCw, BarChart3, TrendingUp, AlertTriangle, ArrowDownLeft, ArrowUpRight, FileCheck, Landmark,
   XCircle, Trash2, Server, Wifi, HardDrive, Clock, MapPin, Lock,
-  Palmtree, Plus, Edit2, Check, ExternalLink, Sparkles, ShieldCheck, Upload
+  Palmtree, Plus, Edit2, Check, ExternalLink, Sparkles, ShieldCheck, Upload,
+  Download, ChevronDown, FileText, X
 } from 'lucide-react';
+import {
+  downloadAuditTrailPdf,
+  downloadBookingsLedgerPdf,
+  downloadTreasuryLedgerPdf,
+  downloadFleetManifestPdf,
+  downloadIncidentsReportPdf
+} from '@/lib/adminPdfService';
 import { supabase } from '@/lib/supabaseClient';
 import { useCurrency } from '@/context/CurrencyContext';
 import { sendNotification } from '@/lib/notificationService';
@@ -19,6 +27,7 @@ import { syncUsersFromSupabase } from '@/lib/authService';
 import {
   getStoredDestinations, saveDestination, updateDestination,
   deleteDestination as deleteDestinationInStore, toggleDestinationLiveStatus,
+  toggleDestinationServicesFeatured,
   type TravelDestinationItem, type HolidayOrTourCategory
 } from '@/lib/destinationsStore';
 import { VehicleStatusBadge, ChauffeurServiceBadge } from '@/components/ui/LuxuryVehicleBadges';
@@ -31,6 +40,7 @@ import { getLocalAccounts, updateUserStatus, createAdminAccountByManagement } fr
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { DestinationVoucherModal } from '@/components/ui/DestinationVoucherModal';
+import { FactoryResetModal } from '@/components/admin/FactoryResetModal';
 import { VehicleInspectionModal } from '@/components/admin/VehicleInspectionModal';
 import { VehicleHandoverModal } from '@/components/handover/VehicleHandoverModal';
 import { VehicleReturnInspectionModal } from '@/components/handover/VehicleReturnInspectionModal';
@@ -93,6 +103,23 @@ export default function AdminDashboard() {
 
   // Authenticated Admin User
   const currentUser = useSelector((s: RootState) => s.auth.user);
+  const activeAdmin = currentUser || (() => {
+    try {
+      const raw = localStorage.getItem('mt_user');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const [showFactoryResetModal, setShowFactoryResetModal] = useState(false);
+  const [showPdfExportDropdown, setShowPdfExportDropdown] = useState(false);
+
+  const adminName = activeAdmin?.firstName
+    ? `${activeAdmin.firstName} ${activeAdmin.lastName || ''}`.trim()
+    : (activeAdmin?.name || 'Administrator');
+  const adminEmail = activeAdmin?.email || 'admin@mtravel.co.ke';
+  const adminRole = activeAdmin?.role || 'SUPER_ADMIN';
 
   // Provision New Admin / Staff Modal
   const [showCreateAdminModal, setShowCreateAdminModal] = useState(false);
@@ -184,6 +211,7 @@ export default function AdminDashboard() {
     itinerary: 'Day 1: Transfer from Nairobi & afternoon safari\nDay 2: Full day wildlife safari with bush picnic\nDay 3: Sunrise game drive & return journey',
     isLive: true,
     featured: true,
+    featuredInServices: true,
   });
 
   const [alerts] = useState<any[]>([]);
@@ -534,6 +562,7 @@ export default function AdminDashboard() {
       itinerary: 'Day 1: Transfer from Nairobi & afternoon safari\nDay 2: Full day wildlife safari with bush picnic\nDay 3: Sunrise game drive & return journey',
       isLive: true,
       featured: true,
+      featuredInServices: destinationsList.filter(d => d.featuredInServices).length < 6,
     });
     setIsDestModalOpen(true);
   };
@@ -557,6 +586,7 @@ export default function AdminDashboard() {
       itinerary: item.details.scheduleOrItinerary ? item.details.scheduleOrItinerary.join('\n') : '',
       isLive: item.isLive,
       featured: item.featured || false,
+      featuredInServices: item.featuredInServices || false,
     });
     setIsDestModalOpen(true);
   };
@@ -584,6 +614,7 @@ export default function AdminDashboard() {
         specs: specsArray,
         isLive: destForm.isLive,
         featured: destForm.featured,
+        featuredInServices: destForm.featuredInServices,
         details: {
           overview: destForm.overview,
           highlights: highlightsArray,
@@ -608,6 +639,7 @@ export default function AdminDashboard() {
         reviews: 1,
         isLive: destForm.isLive,
         featured: destForm.featured,
+        featuredInServices: destForm.featuredInServices,
         details: {
           overview: destForm.overview,
           highlights: highlightsArray.length ? highlightsArray : ['Luxury Accommodation', 'Full Concierge Support'],
@@ -625,6 +657,17 @@ export default function AdminDashboard() {
   const handleToggleDestLive = (id: string) => {
     toggleDestinationLiveStatus(id);
     setDestinationsList(getStoredDestinations());
+  };
+
+  const handleToggleServicesFeatured = (id: string) => {
+    const res = toggleDestinationServicesFeatured(id);
+    if (!res.success && res.error) {
+      alert(res.error);
+      return;
+    }
+    setDestinationsList(getStoredDestinations());
+    setApprovalMsg(res.featured ? 'Featured on public Services page ("Tourism Vibe & Experiences").' : 'Removed from Services page.');
+    setTimeout(() => setApprovalMsg(''), 4000);
   };
 
   const handleDeleteDest = (id: string) => {
@@ -691,12 +734,14 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 space-y-7 font-display text-slate-900">
+    <div className="mx-auto max-w-7xl px-4 py-8 space-y-7 font-sans text-slate-900">
       {/* ── BILLION-DOLLAR ENTERPRISE EXECUTIVE COMMAND HEADER ── */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6 sm:p-8 text-white border border-slate-800 shadow-2xl">
-        {/* Ambient luxury glow overlay */}
-        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-amber-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute left-1/3 -bottom-20 h-64 w-64 rounded-full bg-teal-500/10 blur-3xl" />
+      <div className="relative rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6 sm:p-8 text-white border border-slate-800 shadow-2xl z-30">
+        {/* Ambient luxury glow overlay clipped within rounded card boundary */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+          <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-amber-500/10 blur-3xl" />
+          <div className="absolute left-1/3 -bottom-20 h-64 w-64 rounded-full bg-teal-500/10 blur-3xl" />
+        </div>
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="space-y-2">
@@ -710,7 +755,7 @@ export default function AdminDashboard() {
               </span>
             </div>
 
-            <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white">
               Operations &amp; Expedition Command
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 max-w-2xl font-normal leading-relaxed">
@@ -720,6 +765,239 @@ export default function AdminDashboard() {
 
           <div className="flex flex-wrap items-center gap-3">
             <button
+              type="button"
+              onClick={() => setShowFactoryResetModal(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 px-3.5 py-2.5 text-xs font-bold text-white backdrop-blur-md transition shadow-sm cursor-pointer"
+              title="Open Factory Reset Authorization Console"
+            >
+              <Trash2 className="h-4 w-4 text-white" />
+              <span>Factory Reset</span>
+            </button>
+
+            {/* Executive PDF Reports Export Menu */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowPdfExportDropdown(prev => !prev)}
+                className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition shadow-sm cursor-pointer border ${
+                  showPdfExportDropdown
+                    ? 'bg-white text-slate-950 border-white ring-2 ring-white/20'
+                    : 'bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-md'
+                }`}
+                title="Download Executive PDF Reports"
+              >
+                <Download className={`h-4 w-4 ${showPdfExportDropdown ? 'text-slate-950' : 'text-white'}`} />
+                <span>Export PDF Reports</span>
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showPdfExportDropdown ? 'rotate-180 text-slate-950' : 'text-slate-300'}`} />
+              </button>
+
+              {showPdfExportDropdown && (
+                <>
+                  {/* Subtle backdrop overlay for clear focus and click-outside dismissal */}
+                  <div
+                    className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px]"
+                    onClick={() => setShowPdfExportDropdown(false)}
+                  />
+
+                  {/* High-visibility executive black & white dropdown popover */}
+                  <div className="absolute right-0 mt-2.5 w-[calc(100vw-2rem)] sm:w-[580px] max-w-[580px] rounded-2xl bg-white border border-slate-200 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35)] z-50 text-xs animate-in fade-in slide-in-from-top-2 duration-150 ring-1 ring-slate-950/10 overflow-hidden">
+                    {/* Header */}
+                    <div className="px-4 py-3 bg-slate-50 border-b border-slate-200/90 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-7 w-7 rounded-lg bg-slate-950 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <FileText className="h-3.5 w-3.5" />
+                        </div>
+                        <div>
+                          <span className="text-[11px] font-bold text-slate-950 uppercase tracking-wider block">
+                            Official Executive PDF Reports
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-medium block">
+                            Cryptographically timestamped compliance &amp; operational dossiers
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="hidden sm:inline-block text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-950 text-white shadow-xs">
+                          Instant PDF
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowPdfExportDropdown(false)}
+                          className="h-7 w-7 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-black flex items-center justify-center transition cursor-pointer"
+                          title="Close PDF Reports Menu"
+                          aria-label="Close"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Report Selection Grid */}
+                    <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-white">
+                      {/* 1. Audit Trail Dossier */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPdfExportDropdown(false);
+                          downloadAuditTrailPdf({
+                            logs: auditLogsList,
+                            adminName,
+                            adminEmail,
+                            adminRole
+                          });
+                        }}
+                        className="group flex items-start gap-2.5 p-3 rounded-xl border border-slate-200/90 bg-slate-50/50 hover:bg-slate-100/80 hover:border-slate-950 transition-all text-left cursor-pointer"
+                      >
+                        <div className="h-8 w-8 rounded-lg bg-slate-950 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-all shadow-xs mt-0.5">
+                          <FileCheck className="h-4 w-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-bold text-slate-950 text-xs group-hover:text-black">Audit Trail Dossier</span>
+                            <Download className="h-3 w-3 text-slate-400 group-hover:text-slate-950 shrink-0 transition-colors" />
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5">
+                            {auditLogsList.length} immutable events logged
+                          </p>
+                        </div>
+                      </button>
+
+                      {/* 2. Bookings Master Ledger */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPdfExportDropdown(false);
+                          downloadBookingsLedgerPdf({
+                            bookings,
+                            adminName,
+                            adminEmail,
+                            adminRole
+                          });
+                        }}
+                        className="group flex items-start gap-2.5 p-3 rounded-xl border border-slate-200/90 bg-slate-50/50 hover:bg-slate-100/80 hover:border-slate-950 transition-all text-left cursor-pointer"
+                      >
+                        <div className="h-8 w-8 rounded-lg bg-slate-950 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-all shadow-xs mt-0.5">
+                          <Clock className="h-4 w-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-bold text-slate-950 text-xs group-hover:text-black">Bookings Master Ledger</span>
+                            <Download className="h-3 w-3 text-slate-400 group-hover:text-slate-950 shrink-0 transition-colors" />
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5">
+                            {bookings.length} reservations recorded
+                          </p>
+                        </div>
+                      </button>
+
+                      {/* 3. Treasury & Financial Report */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPdfExportDropdown(false);
+                          downloadTreasuryLedgerPdf({
+                            transactions,
+                            totalRevenue,
+                            totalPlatformFees,
+                            totalWithdrawals: totalOwnerWithdrawals,
+                            pendingEscrow: pendingAdminEscrow,
+                            adminName,
+                            adminEmail,
+                            adminRole
+                          });
+                        }}
+                        className="group flex items-start gap-2.5 p-3 rounded-xl border border-slate-200/90 bg-slate-50/50 hover:bg-slate-100/80 hover:border-slate-950 transition-all text-left cursor-pointer"
+                      >
+                        <div className="h-8 w-8 rounded-lg bg-slate-950 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-all shadow-xs mt-0.5">
+                          <Landmark className="h-4 w-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-bold text-slate-950 text-xs group-hover:text-black">Treasury &amp; Financials</span>
+                            <Download className="h-3 w-3 text-slate-400 group-hover:text-slate-950 shrink-0 transition-colors" />
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5">
+                            Revenue, platform fees &amp; escrow
+                          </p>
+                        </div>
+                      </button>
+
+                      {/* 4. Fleet Telematics Manifest */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPdfExportDropdown(false);
+                          downloadFleetManifestPdf({
+                            vehicles,
+                            adminName,
+                            adminEmail,
+                            adminRole
+                          });
+                        }}
+                        className="group flex items-start gap-2.5 p-3 rounded-xl border border-slate-200/90 bg-slate-50/50 hover:bg-slate-100/80 hover:border-slate-950 transition-all text-left cursor-pointer"
+                      >
+                        <div className="h-8 w-8 rounded-lg bg-slate-950 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-all shadow-xs mt-0.5">
+                          <Car className="h-4 w-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-bold text-slate-950 text-xs group-hover:text-black">Fleet Manifest</span>
+                            <Download className="h-3 w-3 text-slate-400 group-hover:text-slate-950 shrink-0 transition-colors" />
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5">
+                            {vehicles.length} registered 4x4s &amp; tour buses
+                          </p>
+                        </div>
+                      </button>
+
+                      {/* 5. Safety Incidents Log */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPdfExportDropdown(false);
+                          downloadIncidentsReportPdf({
+                            incidents: incidentsList,
+                            adminName,
+                            adminEmail,
+                            adminRole
+                          });
+                        }}
+                        className="sm:col-span-2 group flex items-start gap-2.5 p-3 rounded-xl border border-slate-200/90 bg-slate-50/50 hover:bg-slate-100/80 hover:border-slate-950 transition-all text-left cursor-pointer"
+                      >
+                        <div className="h-8 w-8 rounded-lg bg-slate-950 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-all shadow-xs mt-0.5">
+                          <AlertTriangle className="h-4 w-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-bold text-slate-950 text-xs group-hover:text-black">Safety Incidents &amp; Risk Log</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-bold">
+                                {incidentsList.filter(i => i.status !== 'RESOLVED').length} Active
+                              </span>
+                              <Download className="h-3 w-3 text-slate-400 group-hover:text-slate-950 shrink-0 transition-colors" />
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5">
+                            {incidentsList.length} incident reports recorded across operational hubs
+                          </p>
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="px-4 py-2 bg-slate-50 border-t border-slate-200/90 flex items-center justify-between text-[10px] text-slate-500 font-medium">
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-slate-950 animate-pulse" />
+                        Official Executive M-Travel PDF Dossier
+                      </span>
+                      <span className="font-mono text-slate-400 font-bold">PDF Format</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <button
               onClick={fetchAll}
               className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2.5 text-xs font-bold text-white backdrop-blur-md transition shadow-sm cursor-pointer"
             >
@@ -727,28 +1005,7 @@ export default function AdminDashboard() {
               <span>Sync Live Telemetry</span>
             </button>
             <button
-              onClick={() => {
-                setEditingDest(null);
-                setDestForm({
-                  title: '',
-                  subtitle: '',
-                  category: 'TOUR',
-                  badge: 'Premier Safari Package',
-                  priceKES: 45000,
-                  priceUnit: '/ person',
-                  imageUrl: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1200&q=80',
-                  images: [],
-                  location: 'Maasai Mara, Kenya',
-                  region: 'Narok County',
-                  specs: '3 Days / 2 Nights, Full Board Lodge, 4x4 Cruiser, Park Entry Included',
-                  overview: 'All-inclusive guided safari with private 4x4 pop-up roof cruiser and certified safari guide.',
-                  highlights: 'Big Five game drives, Gourmet lodge dining, Cultural visit, Park entry fees',
-                  itinerary: 'Day 1: Transfer from Nairobi & afternoon safari\nDay 2: Full day wildlife safari with bush picnic\nDay 3: Sunrise game drive & return journey',
-                  isLive: true,
-                  featured: true,
-                });
-                setIsDestModalOpen(true);
-              }}
+              onClick={handleOpenCreateDest}
               className="inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2.5 text-xs font-bold text-slate-950 transition shadow-lg shadow-amber-400/20 cursor-pointer"
             >
               <Plus className="h-4 w-4 text-slate-950" />
@@ -766,7 +1023,7 @@ export default function AdminDashboard() {
               <Car className="h-6 w-6" />
             </div>
             <div>
-              <h4 className="font-serif text-base font-bold text-amber-950 flex items-center gap-2">
+              <h4 className="text-base font-bold text-amber-950 flex items-center gap-2">
                 <span>🚨</span> {pendingVehicles.length} New Vehicle Registration Request{pendingVehicles.length > 1 ? 's' : ''} Awaiting Admin Approval
               </h4>
               <p className="text-xs text-amber-900/90 font-medium mt-0.5">
@@ -993,7 +1250,7 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2.5">
-                    <h3 className="font-serif text-lg font-bold text-slate-900">
+                    <h3 className="text-lg font-bold text-slate-900">
                       Operations Exception Radar
                     </h3>
                     {attentionItems.length > 0 ? (
@@ -1413,11 +1670,11 @@ export default function AdminDashboard() {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2">
               {pendingVehicles.map(v => (
-                <div key={v.id} className="rounded-2xl bg-white border border-slate-200/90 p-5 space-y-4 shadow-sm hover:shadow-md transition">
+                <div key={v.id} className="rounded-2xl bg-white border border-slate-200/90 hover:border-amber-400/60 p-5 space-y-4 shadow-sm hover:shadow-md transition">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-amber-700">{v.type}</span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-yellow-400/40 bg-yellow-400/10 px-3 py-0.5 text-[10px] font-bold text-yellow-700">
-                      <Clock className="h-3 w-3" /> Pending Approval
+                    <span className="font-mono text-xs font-bold text-amber-800 uppercase tracking-wider">{v.type}</span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-3 py-0.5 text-[10px] font-bold text-amber-800">
+                      <Clock className="h-3 w-3 text-amber-600" /> Pending Approval
                     </span>
                   </div>
 
@@ -1425,21 +1682,21 @@ export default function AdminDashboard() {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="relative h-36 rounded-xl overflow-hidden bg-slate-900 border border-slate-200">
                       <img
-                        src={(v.images[0] && !v.images[0].includes('prado')) ? v.images[0] : (isBusVehicle(v) ? '/vehicles/isuzu-coach-front.jpg' : (v.images[0] || '/vehicles/prado-front.jpg'))}
+                        src={v.images[0] || (isBusVehicle(v) ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/prado-front.jpg')}
                         alt="Front View"
                         className="h-full w-full object-cover"
                       />
-                      <span className="absolute top-1 left-1 rounded bg-amber-500 text-slate-950 px-1.5 py-0.5 text-[9px] font-mono font-bold">
+                      <span className="absolute top-1.5 left-1.5 rounded-md bg-amber-500 text-slate-950 px-2 py-0.5 text-[9px] font-mono font-bold shadow-xs">
                         Front View
                       </span>
                     </div>
                     <div className="relative h-36 rounded-xl overflow-hidden bg-slate-900 border border-slate-200">
                       <img
-                        src={(v.images[1] && !v.images[1].includes('prado')) ? v.images[1] : (isBusVehicle(v) ? '/vehicles/isuzu-coach-rear.jpg' : (v.images[1] || v.images[0] || '/vehicles/prado-rear.jpg'))}
+                        src={v.images[1] || v.images[0] || (isBusVehicle(v) ? '/vehicles/isuzu-coach-rear.jpg' : '/vehicles/prado-rear.jpg')}
                         alt="Rear View"
                         className="h-full w-full object-cover"
                       />
-                      <span className="absolute top-1 left-1 rounded bg-teal-500 text-slate-950 px-1.5 py-0.5 text-[9px] font-mono font-bold">
+                      <span className="absolute top-1.5 left-1.5 rounded-md bg-teal-600 text-white px-2 py-0.5 text-[9px] font-mono font-bold shadow-xs">
                         Rear/Back View
                       </span>
                     </div>
@@ -1463,10 +1720,10 @@ export default function AdminDashboard() {
                     <button
                       type="button"
                       onClick={() => setInspectingVehicle(v)}
-                      className="btn-primary !py-2.5 !px-3.5 text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 text-white bg-amber-600 hover:bg-amber-500"
+                      className="rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 px-4 text-xs shadow-xs flex items-center justify-center gap-1.5 transition"
                       title="Inspect vehicle photos & specs with AI Advisor before deciding"
                     >
-                      <Sparkles className="h-4 w-4" /> Inspect
+                      <Sparkles className="h-4 w-4 text-white" /> Inspect
                     </button>
                     <button
                       type="button"
@@ -1509,11 +1766,30 @@ export default function AdminDashboard() {
       {/* ── ACCOUNTING LEDGER ── */}
       {!loading && activeTab === 'accounting' && (
         <div className="space-y-6">
-          <div>
-            <h2 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">
-              <Landmark className="h-5 w-5 text-emerald-600" /> Platform Financial Ledger & Audit
-            </h2>
-            <p className="text-xs text-slate-600 mt-0.5 font-medium">Complete accounting: total deposits, withdrawals, and platform revenue.</p>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">
+                <Landmark className="h-5 w-5 text-emerald-600" /> Platform Financial Ledger &amp; Audit
+              </h2>
+              <p className="text-xs text-slate-600 mt-0.5 font-medium">Complete accounting: total deposits, withdrawals, and platform revenue.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => downloadTreasuryLedgerPdf({
+                transactions,
+                totalRevenue,
+                totalPlatformFees,
+                totalWithdrawals: totalOwnerWithdrawals,
+                pendingEscrow: pendingAdminEscrow,
+                adminName,
+                adminEmail,
+                adminRole
+              })}
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-950 hover:bg-black text-white px-3.5 py-2 text-xs font-bold shadow-sm transition cursor-pointer border border-slate-800"
+            >
+              <Download className="h-4 w-4" />
+              <span>Download Financial Report (PDF)</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1713,12 +1989,27 @@ export default function AdminDashboard() {
                 <h2 className="font-display text-xl font-bold text-slate-900">All Platform Vehicles ({vehicles.length})</h2>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">Toggle live marketplace status upon host request or oversee vehicle availability.</p>
               </div>
-              <a
-                href={`/catalogue?category=${fleetCategoryFilter}`}
-                className="btn-secondary !py-2 !px-3 text-xs font-bold text-purple-700 bg-purple-50 border-purple-200 hover:bg-purple-100 flex items-center gap-1.5"
-              >
-                {fleetCategoryFilter === 'buses' ? <Bus className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />} View Live Marketplace ({fleetCategoryFilter === 'buses' ? 'Buses' : 'Vehicles'})
-              </a>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => downloadFleetManifestPdf({
+                    vehicles,
+                    adminName,
+                    adminEmail,
+                    adminRole
+                  })}
+                  className="inline-flex items-center gap-2 rounded-xl bg-slate-950 hover:bg-black text-white px-3.5 py-2 text-xs font-bold shadow-sm transition cursor-pointer border border-slate-800"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download Fleet Manifest (PDF)</span>
+                </button>
+                <a
+                  href={`/catalogue?category=${fleetCategoryFilter}`}
+                  className="btn-secondary !py-2 !px-3 text-xs font-bold text-slate-900 bg-slate-100 border-slate-300 hover:bg-slate-200 flex items-center gap-1.5"
+                >
+                  {fleetCategoryFilter === 'buses' ? <Bus className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />} View Live Marketplace ({fleetCategoryFilter === 'buses' ? 'Buses' : 'Vehicles'})
+                </a>
+              </div>
             </div>
 
             {/* CATEGORY FILTER SUB-TABS */}
@@ -1753,7 +2044,7 @@ export default function AdminDashboard() {
                   {fleetCategoryFilter === 'buses' ? <Bus className="h-8 w-8 stroke-[1.75]" /> : <Car className="h-8 w-8 stroke-[1.75]" />}
                 </div>
                 <div className="space-y-1 max-w-md mx-auto">
-                  <h3 className="font-serif text-xl font-bold text-slate-900">
+                  <h3 className="text-xl font-bold text-slate-900">
                     {fleetCategoryFilter === 'buses' ? 'No buses at the moment' : 'No vehicles available at the moment'}
                   </h3>
                   <p className="text-xs md:text-sm text-slate-500 font-medium leading-relaxed">
@@ -1783,7 +2074,7 @@ export default function AdminDashboard() {
 
                     <div className="relative h-36 rounded-xl overflow-hidden bg-slate-900">
                       <img
-                        src={(v.images[0] && !v.images[0].includes('prado')) ? v.images[0] : (isBusVehicle(v) ? '/vehicles/isuzu-coach-front.jpg' : (v.images[0] || '/vehicles/prado-front.jpg'))}
+                        src={v.images[0] || (isBusVehicle(v) ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/prado-front.jpg')}
                         alt={`${v.make} ${v.model}`}
                         className="h-full w-full object-cover"
                       />
@@ -1811,7 +2102,7 @@ export default function AdminDashboard() {
                           <button
                             type="button"
                             onClick={() => setInspectingVehicle(v)}
-                            className="btn-secondary !py-1.5 !px-2.5 text-xs flex items-center justify-center gap-1 font-bold shadow-xs border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
+                            className="rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 !py-1.5 !px-2.5 text-xs flex items-center justify-center gap-1 font-bold shadow-xs transition"
                             title="Inspect vehicle photos & specs"
                           >
                             <Sparkles className="h-3.5 w-3.5 text-amber-600" /> Inspect
@@ -1901,7 +2192,30 @@ export default function AdminDashboard() {
       {/* ── BOOKINGS ── */}
       {!loading && activeTab === 'bookings' && (
         <div className="space-y-4">
-          <h2 className="font-display text-xl font-bold text-slate-900">All Platform Bookings ({bookings.length})</h2>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="font-display text-xl font-bold text-slate-900 flex items-center gap-2">
+                <Clock className="h-5 w-5 text-amber-600" />
+                All Platform Bookings Ledger ({bookings.length})
+              </h2>
+              <p className="text-xs text-slate-600 font-medium">
+                Comprehensive reservations ledger covering private safari vehicles, tour buses, guided expeditions, and holiday stays.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => downloadBookingsLedgerPdf({
+                bookings,
+                adminName,
+                adminEmail,
+                adminRole
+              })}
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-950 hover:bg-black text-white px-3.5 py-2 text-xs font-bold shadow-sm transition cursor-pointer border border-slate-800"
+            >
+              <Download className="h-4 w-4" />
+              <span>Download Bookings Ledger (PDF)</span>
+            </button>
+          </div>
           <div className="overflow-x-auto rounded-2xl bg-white border border-slate-200/90 shadow-sm">
             <table className="w-full text-xs text-left text-slate-800">
               <thead className="border-b border-slate-200 bg-slate-50 text-slate-600 uppercase font-bold tracking-wider">
@@ -2085,7 +2399,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Quick Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Listings</span>
               <p className="text-2xl font-bold font-mono text-slate-900 mt-1">{destinationsList.length}</p>
@@ -2106,6 +2420,14 @@ export default function AdminDashboard() {
               <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Live on Marketplace</span>
               <p className="text-2xl font-bold font-mono text-emerald-600 mt-1">
                 {destinationsList.filter(d => d.isLive).length}
+              </p>
+            </div>
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+              <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider flex items-center gap-1">
+                <Sparkles className="h-3.5 w-3.5" /> Services Vibes (Max 6)
+              </span>
+              <p className="text-2xl font-bold font-mono text-amber-600 mt-1">
+                {destinationsList.filter(d => d.featuredInServices).length} / 6
               </p>
             </div>
           </div>
@@ -2160,6 +2482,7 @@ export default function AdminDashboard() {
                   <th className="px-4 py-3">Location</th>
                   <th className="px-4 py-3">Pricing</th>
                   <th className="px-4 py-3 text-center">Marketplace Status</th>
+                  <th className="px-4 py-3 text-center">Services Vibe (Max 6)</th>
                   <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -2217,6 +2540,21 @@ export default function AdminDashboard() {
                         {item.isLive ? 'Live on Site' : 'Offline / Hidden'}
                       </button>
                     </td>
+                    <td className="px-4 py-3.5 text-center">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleServicesFeatured(item.id)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold transition shadow-2xs cursor-pointer ${
+                          item.featuredInServices
+                            ? 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200'
+                            : 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-200'
+                        }`}
+                        title={item.featuredInServices ? 'Click to remove from Services page Tourism Vibe & Experiences' : 'Click to feature in Services page Tourism Vibe & Experiences (max 6)'}
+                      >
+                        <Sparkles className={`h-3 w-3 ${item.featuredInServices ? 'text-amber-600 fill-amber-500' : 'text-slate-400'}`} />
+                        <span>{item.featuredInServices ? 'Featured in Services' : 'Feature in Services'}</span>
+                      </button>
+                    </td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
@@ -2266,25 +2604,41 @@ export default function AdminDashboard() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs font-bold">
-              {(['ALL', 'ACTIVE', 'RESOLVED'] as const).map(f => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setIncidentFilter(f)}
-                  className={`px-3 py-1.5 rounded-xl transition ${
-                    incidentFilter === f
-                      ? 'bg-purple-600 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {f === 'ALL'
-                    ? `All (${incidentsList.length})`
-                    : f === 'ACTIVE'
-                    ? `Active (${incidentsList.filter(i => i.status !== 'RESOLVED').length})`
-                    : `Resolved (${incidentsList.filter(i => i.status === 'RESOLVED').length})`}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => downloadIncidentsReportPdf({
+                  incidents: incidentsList,
+                  adminName,
+                  adminEmail,
+                  adminRole
+                })}
+                className="inline-flex items-center gap-2 rounded-xl bg-slate-950 hover:bg-black text-white px-3.5 py-2 text-xs font-bold shadow-sm transition cursor-pointer border border-slate-800"
+              >
+                <Download className="h-4 w-4" />
+                <span>Download Incident Log (PDF)</span>
+              </button>
+
+              <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs font-bold">
+                {(['ALL', 'ACTIVE', 'RESOLVED'] as const).map(f => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setIncidentFilter(f)}
+                    className={`px-3 py-1.5 rounded-xl transition ${
+                      incidentFilter === f
+                        ? 'bg-purple-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {f === 'ALL'
+                      ? `All (${incidentsList.length})`
+                      : f === 'ACTIVE'
+                      ? `Active (${incidentsList.filter(i => i.status !== 'RESOLVED').length})`
+                      : `Resolved (${incidentsList.filter(i => i.status === 'RESOLVED').length})`}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -2515,14 +2869,30 @@ export default function AdminDashboard() {
               </p>
             </div>
 
-            <div className="w-full sm:w-64">
-              <input
-                type="text"
-                value={auditSearch}
-                onChange={e => setAuditSearch(e.target.value)}
-                placeholder="Search audit trail..."
-                className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-purple-600 focus:outline-hidden"
-              />
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => downloadAuditTrailPdf({
+                  logs: auditLogsList,
+                  adminName,
+                  adminEmail,
+                  adminRole
+                })}
+                className="inline-flex items-center gap-2 rounded-xl bg-slate-950 hover:bg-black text-white px-3.5 py-2 text-xs font-bold shadow-sm transition cursor-pointer border border-slate-800"
+              >
+                <Download className="h-4 w-4" />
+                <span>Download Audit Trail (PDF)</span>
+              </button>
+
+              <div className="w-full sm:w-64">
+                <input
+                  type="text"
+                  value={auditSearch}
+                  onChange={e => setAuditSearch(e.target.value)}
+                  placeholder="Search audit trail..."
+                  className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-purple-600 focus:outline-hidden"
+                />
+              </div>
             </div>
           </div>
 
@@ -3107,7 +3477,7 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              <div className="flex items-center gap-6 py-2">
+              <div className="flex flex-wrap items-center gap-4 py-2">
                 <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-800">
                   <input
                     type="checkbox"
@@ -3126,6 +3496,27 @@ export default function AdminDashboard() {
                     className="rounded border-slate-300 text-amber-600 focus:ring-amber-500 h-4 w-4"
                   />
                   Featured Listing
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-amber-950 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-300">
+                  <input
+                    type="checkbox"
+                    checked={destForm.featuredInServices}
+                    onChange={e => {
+                      const willBeChecked = e.target.checked;
+                      const currentCount = destinationsList.filter(d => d.featuredInServices && d.id !== editingDest?.id).length;
+                      if (willBeChecked && currentCount >= 6) {
+                        alert('Maximum 6 destinations or tour packages can be featured in the Services page "Tourism Vibe & Experiences" section. Please uncheck another destination first.');
+                        return;
+                      }
+                      setDestForm({ ...destForm, featuredInServices: willBeChecked });
+                    }}
+                    className="rounded border-amber-400 text-amber-600 focus:ring-amber-500 h-4 w-4"
+                  />
+                  <span className="flex items-center gap-1">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                    Feature in Services ("Tourism Vibe &amp; Experiences" · Max 6)
+                  </span>
                 </label>
               </div>
 
@@ -3380,6 +3771,18 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* ── FACTORY RESET AUTHORIZATION CONSOLE MODAL ── */}
+      <FactoryResetModal
+        isOpen={showFactoryResetModal}
+        onClose={() => setShowFactoryResetModal(false)}
+        adminEmail={activeAdmin?.email || 'admin@mtravel.co.ke'}
+        adminName={`${activeAdmin?.firstName || ''} ${activeAdmin?.lastName || ''}`.trim() || activeAdmin?.name || 'Admin'}
+        adminRole={activeAdmin?.role || 'ADMIN'}
+        onResetCompleted={() => {
+          fetchAll();
+        }}
+      />
     </div>
   );
 }

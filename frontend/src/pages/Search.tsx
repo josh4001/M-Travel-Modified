@@ -2,13 +2,17 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Users, Fuel, Gauge, SlidersHorizontal, LayoutGrid, Box, Sparkles,
-  MapPin, Car, Bus, Truck, Compass,
+  MapPin, Car, Bus, Truck, Compass, Lock,
 } from 'lucide-react';
 import type { Vehicle } from '@/types';
 import { Card3D } from '@/components/ui/Card3D';
 import { useCurrency } from '@/context/CurrencyContext';
 import { getVehicleFallbackImage } from '@/lib/supabaseClient';
-import { getStoredVehicles, syncVehiclesFromSupabase, isDemoVehicle, type StoredVehicle } from '@/lib/bookingStore';
+import {
+  getStoredVehicles, syncVehiclesFromSupabase, isDemoVehicle,
+  isVehicleLive, getVehicleHireStatus, type StoredVehicle
+} from '@/lib/bookingStore';
+import { VehicleStatusBadge } from '@/components/ui/LuxuryVehicleBadges';
 
 const TYPES = ['CAR', 'SUV', 'VAN', 'PICKUP'];
 
@@ -78,7 +82,7 @@ export default function Search() {
   const [viewMode, setViewMode] = useState<'grid' | 'card3d'>('card3d');
   const [vehicles, setVehicles] = useState<Vehicle[]>(() => {
     return getStoredVehicles()
-      .filter((v) => v.status === 'APPROVED' && v.isLive !== false && !isDemoVehicle(v))
+      .filter((v) => v.status === 'APPROVED' && (isVehicleLive(v.id) || getVehicleHireStatus(v.id).isHired) && !isDemoVehicle(v))
       .map(mapStoredToVehicle);
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -154,7 +158,7 @@ export default function Search() {
 
         // Read synchronized stored vehicles (strict host fleet parity with Catalogue)
         const stored = getStoredVehicles()
-          .filter((v) => v.status === 'APPROVED' && v.isLive !== false && !isDemoVehicle(v))
+          .filter((v) => v.status === 'APPROVED' && (isVehicleLive(v.id) || getVehicleHireStatus(v.id).isHired) && !isDemoVehicle(v))
           .map(mapStoredToVehicle);
 
         let combined = stored;
@@ -173,7 +177,7 @@ export default function Search() {
       } catch (err) {
         console.warn('Error loading search vehicles:', err);
         const fallbackStored = getStoredVehicles()
-          .filter((v) => v.status === 'APPROVED' && v.isLive !== false && !isDemoVehicle(v))
+          .filter((v) => v.status === 'APPROVED' && (isVehicleLive(v.id) || getVehicleHireStatus(v.id).isHired) && !isDemoVehicle(v))
           .map(mapStoredToVehicle);
         let filtered = fallbackStored;
         if (type) filtered = filtered.filter((v) => v.type?.toUpperCase() === type.toUpperCase());
@@ -223,12 +227,12 @@ export default function Search() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-12 font-display">
-      {/* ── TRAVELER GPS LOCATION BANNER (UBER-STYLE PROXIMITY) ── */}
-      <div className="mb-6 rounded-3xl bg-slate-950 text-white p-5 sm:p-6 border border-white/10 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
-        <div className="absolute -right-20 -top-20 w-60 h-60 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-white text-slate-900 relative overflow-hidden font-sans py-12">
+      <div className="mx-auto max-w-7xl px-6">
+        {/* ── TRAVELER GPS LOCATION BANNER (UBER-STYLE PROXIMITY) ── */}
+        <div className="mb-6 rounded-3xl bg-slate-950 text-white p-5 sm:p-6 border border-slate-800 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
         <div className="flex items-center gap-3.5 relative z-10">
-          <div className="h-12 w-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
+          <div className="h-12 w-12 rounded-2xl bg-white/10 text-white flex items-center justify-center shrink-0 border border-white/20">
             <MapPin className="h-6 w-6" />
           </div>
           <div>
@@ -246,7 +250,7 @@ export default function Search() {
                 : 'Grant location permission to see vehicles near your pickup location (e.g. Nairobi CBD).'}
             </p>
             {locPermissionError && (
-              <p className="text-[11px] text-amber-300 font-medium mt-1">{locPermissionError}</p>
+              <p className="text-[11px] text-slate-300 font-medium mt-1">{locPermissionError}</p>
             )}
           </div>
         </div>
@@ -256,7 +260,7 @@ export default function Search() {
             <button
               onClick={requestLocation}
               disabled={isLocating}
-              className="btn-primary !px-5 !py-2.5 text-xs font-bold whitespace-nowrap flex items-center gap-2 shadow-lg shadow-amber-500/20"
+              className="btn-primary !px-5 !py-2.5 text-xs font-bold whitespace-nowrap flex items-center gap-2 shadow-sm"
             >
               <Compass className={`h-4 w-4 ${isLocating ? 'animate-spin' : ''}`} />
               <span>{isLocating ? 'Detecting Location…' : 'Allow Location'}</span>
@@ -266,20 +270,20 @@ export default function Search() {
               onClick={requestLocation}
               className="rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 px-3 py-2 text-xs font-bold text-white flex items-center gap-1.5 transition"
             >
-              <Compass className="h-3.5 w-3.5 text-amber-400" /> Refresh Location
+              <Compass className="h-3.5 w-3.5 text-white" /> Refresh Location
             </button>
           )}
         </div>
       </div>
 
       {/* HEADER & FILTERS */}
-      <div className="card-luxe bg-white border border-slate-200/90 p-6 md:p-8 rounded-3xl shadow-sm">
+      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm text-slate-900 p-6 md:p-8">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-6">
           <div>
-            <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-amber-700 font-display">
+            <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-slate-500 font-sans">
               <SlidersHorizontal className="h-3.5 w-3.5" /> Tourism Vehicle Fleet
             </span>
-            <h1 className="mt-1 font-display text-3xl font-bold md:text-4xl text-slate-900">Browse Available Vehicles</h1>
+            <h1 className="mt-1 font-serif text-3xl font-bold md:text-4xl text-slate-950">Browse Available Vehicles</h1>
           </div>
 
           <div className="flex items-center gap-2">
@@ -288,7 +292,7 @@ export default function Search() {
               <button
                 onClick={() => setHireMode('ALL')}
                 className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${
-                  hireMode === 'ALL' ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  hireMode === 'ALL' ? 'bg-slate-950 text-white font-extrabold shadow-xs' : 'text-slate-600 hover:text-slate-950'
                 }`}
               >
                 All
@@ -296,7 +300,7 @@ export default function Search() {
               <button
                 onClick={() => setHireMode('WITH_DRIVER')}
                 className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${
-                  hireMode === 'WITH_DRIVER' ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  hireMode === 'WITH_DRIVER' ? 'bg-slate-950 text-white shadow-xs' : 'text-slate-600 hover:text-slate-950'
                 }`}
               >
                 With Driver
@@ -304,7 +308,7 @@ export default function Search() {
               <button
                 onClick={() => setHireMode('SELF_DRIVE')}
                 className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${
-                  hireMode === 'SELF_DRIVE' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  hireMode === 'SELF_DRIVE' ? 'bg-slate-950 text-white shadow-xs' : 'text-slate-600 hover:text-slate-950'
                 }`}
               >
                 Self-Drive
@@ -315,7 +319,7 @@ export default function Search() {
               <button
                 onClick={() => setViewMode('card3d')}
                 className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                  viewMode === 'card3d' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950'
+                  viewMode === 'card3d' ? 'bg-slate-950 text-white font-extrabold shadow-sm' : 'text-slate-600 hover:text-slate-950'
                 }`}
               >
                 <Box className="h-3.5 w-3.5" /> Card View
@@ -323,7 +327,7 @@ export default function Search() {
               <button
                 onClick={() => setViewMode('grid')}
                 className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                  viewMode === 'grid' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950'
+                  viewMode === 'grid' ? 'bg-slate-950 text-white font-extrabold shadow-sm' : 'text-slate-600 hover:text-slate-950'
                 }`}
               >
                 <LayoutGrid className="h-3.5 w-3.5" /> Grid
@@ -336,13 +340,13 @@ export default function Search() {
         <div className="mt-6 flex flex-wrap items-end gap-4">
           {/* LOCATION SEARCH */}
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1.5">Location / Area</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Location / Area</label>
             <div className="relative">
-              <MapPin className="absolute left-3.5 top-3.5 h-4 w-4 text-amber-600" />
+              <MapPin className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="e.g. Westlands, Karen, CBD…"
-                className="input-field pl-10 text-slate-900 placeholder:text-slate-400 border-slate-300"
+                className="input-field pl-10 bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-950 shadow-inner"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
@@ -351,13 +355,13 @@ export default function Search() {
 
           {/* VEHICLE TYPE */}
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1.5">Vehicle Type</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Vehicle Type</label>
             <div className="relative">
-              <Car className="absolute left-3.5 top-3.5 h-4 w-4 text-teal-600" />
-              <select className="input-field pl-10 text-slate-900 border-slate-300 font-medium" value={type} onChange={(e) => setType(e.target.value)}>
-                <option value="">All Vehicles ({vehicles.length} available)</option>
+              <Car className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+              <select className="input-field pl-10 bg-slate-50 border-slate-200 text-slate-900 font-medium focus:bg-white focus:border-slate-950" value={type} onChange={(e) => setType(e.target.value)}>
+                <option value="" className="bg-white text-slate-900">All Vehicles ({vehicles.length} available)</option>
                 {TYPES.map((t) => (
-                  <option key={t} value={t}>
+                  <option key={t} value={t} className="bg-white text-slate-900">
                     {TYPE_LABELS[t]}
                   </option>
                 ))}
@@ -367,11 +371,11 @@ export default function Search() {
 
           {/* MAX BUDGET */}
           <div className="flex-1 min-w-[160px]">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1.5">Max Budget (KES/day)</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Max Budget (KES/day)</label>
             <input
               type="number"
               placeholder="e.g. 12,000"
-              className="input-field text-slate-900 placeholder:text-slate-400 border-slate-300"
+              className="input-field bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-950 shadow-inner"
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
             />
@@ -380,7 +384,7 @@ export default function Search() {
           {(type || maxPrice || location) && (
             <button
               onClick={() => { setType(''); setMaxPrice(''); setLocation(''); }}
-              className="btn-secondary text-xs !px-4 !py-3 font-bold border-slate-200 text-slate-700 hover:text-slate-900"
+              className="btn-secondary text-xs !px-4 !py-3 font-bold border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-950"
             >
               Reset
             </button>
@@ -397,8 +401,8 @@ export default function Search() {
                 onClick={() => setType(type === t ? '' : t)}
                 className={`rounded-full px-4 py-1.5 text-xs font-bold border transition inline-flex items-center gap-1.5 ${
                   type === t
-                    ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
-                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-amber-500 hover:text-amber-800 hover:bg-white'
+                    ? 'bg-slate-950 text-white border-slate-950 font-extrabold shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-900 hover:text-slate-950 hover:bg-slate-50'
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -413,21 +417,21 @@ export default function Search() {
       <div className="mt-10">
         {isLoading && (
           <div className="flex items-center justify-center py-20 text-slate-600 gap-3 font-medium">
-            <span className="h-5 w-5 animate-spin rounded-full border-2 border-amber-600 border-t-transparent" />
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-900 border-t-transparent" />
             Loading vehicles…
           </div>
         )}
 
         {!isLoading && displayed.length === 0 && (
-          <div className="card-luxe bg-white border border-slate-200/90 p-12 md:p-16 text-center rounded-3xl shadow-sm space-y-4">
-            <div className="h-16 w-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mx-auto">
+          <div className="rounded-3xl border border-slate-200 bg-white p-12 md:p-16 text-center shadow-sm space-y-4">
+            <div className="h-16 w-16 rounded-2xl bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center mx-auto">
               <Car className="h-8 w-8 stroke-[1.75]" />
             </div>
             <div className="space-y-1.5 max-w-md mx-auto">
-              <h3 className="font-serif text-2xl font-bold text-slate-900">
+              <h3 className="font-serif text-2xl font-bold text-slate-950">
                 {vehicles.length === 0 ? 'No vehicles available at the moment' : 'No vehicles match your filters'}
               </h3>
-              <p className="text-xs md:text-sm text-slate-500 font-medium leading-relaxed">
+              <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed">
                 {vehicles.length === 0
                   ? 'There are currently no approved fleet vehicles listed for hire. Check back soon or register as a fleet host to list your vehicle.'
                   : 'Try adjusting your vehicle type, budget, or location filters to see more results.'}
@@ -444,7 +448,7 @@ export default function Search() {
                 <div className="pt-2">
                   <button
                     onClick={() => { setType(''); setMaxPrice(''); setLocation(''); }}
-                    className="btn-secondary !py-2 !px-4 text-xs font-bold border-slate-200 text-slate-700 hover:text-slate-900"
+                    className="btn-secondary !py-2 !px-4 text-xs font-bold border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-950"
                   >
                     Reset All Filters
                   </button>
@@ -457,104 +461,155 @@ export default function Search() {
         {!isLoading && displayed.length > 0 && (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {displayed.map((v) => {
-            const distKm = userCoords
-              ? calculateDistanceKm(userCoords[0], userCoords[1], v.latitude || -1.2921, v.longitude || 36.8219)
-              : null;
+              const distKm = userCoords
+                ? calculateDistanceKm(userCoords[0], userCoords[1], v.latitude || -1.2921, v.longitude || 36.8219)
+                : null;
+              const hireStatus = getVehicleHireStatus(v.id);
+              const isLive = isVehicleLive(v.id);
 
-            return (
-              <Link key={v.id} to={`/vehicles/${v.id}`} className="block group h-full">
-                {viewMode === 'card3d' ? (
-                  <Card3D intensity={10} className="p-0 overflow-hidden bg-white border border-slate-200/90 shadow-sm hover:shadow-md transition h-full flex flex-col justify-between">
-                    <div className="relative flex h-52 items-center justify-center bg-slate-900 overflow-hidden shrink-0">
-                      {v.images[0]?.url ? (
-                        <img
-                          src={v.images[0].url}
-                          alt={`${v.make} ${v.model}`}
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                      ) : (
-                        <span className="font-display text-lg text-white/50">{v.make} {v.model}</span>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
-
-                      {/* TOP BADGES */}
-                      <span className="absolute top-3 left-3 rounded-full bg-slate-950/80 px-2.5 py-1 text-[10px] uppercase font-mono font-bold text-teal-300 border border-white/20 flex items-center gap-1">
-                        <Car className="h-3 w-3 text-teal-400" /> {v.type}
-                      </span>
-
-                      {/* BOTTOM DISTANCE & LOCATION */}
-                      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
-                        {v.address && (
-                          <span className="flex items-center gap-1 text-[11px] text-white font-medium truncate drop-shadow-sm">
-                            <MapPin className="h-3 w-3 text-amber-400 shrink-0" /> {v.address}
-                          </span>
+              return (
+                <Link key={v.id} to={`/vehicles/${v.id}`} className="block group h-full">
+                  {viewMode === 'card3d' ? (
+                    <Card3D intensity={10} className="p-0 overflow-hidden bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:border-slate-900 transition-all duration-300 h-full flex flex-col justify-between rounded-3xl">
+                      <div className="relative flex h-52 items-center justify-center bg-slate-950 overflow-hidden shrink-0">
+                        {v.images[0]?.url ? (
+                          <img
+                            src={v.images[0].url}
+                            alt={`${v.make} ${v.model}`}
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <span className="font-display text-lg text-white/50">{v.make} {v.model}</span>
                         )}
-                        {distKm !== null && (
-                          <span className="shrink-0 rounded-full bg-amber-500/90 text-slate-950 px-2.5 py-0.5 text-[10px] font-mono font-bold shadow-md">
-                            {distKm} km away
-                          </span>
-                        )}
-                      </div>
-                    </div>
 
-                    <div className="p-5 bg-white flex-1 flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <h3 className="font-display text-xl font-bold text-slate-900 truncate">
-                            {v.make} {v.model}{' '}
-                            <span className="text-slate-400 text-sm font-normal">'{String(v.year).slice(-2)}</span>
-                          </h3>
+                        {/* TOP BADGES */}
+                        <span className="absolute top-3 left-3 rounded-full bg-slate-950/85 backdrop-blur-md px-2.5 py-1 text-[10px] uppercase font-mono font-bold text-white border border-white/20 flex items-center gap-1 shadow-sm">
+                          <Car className="h-3 w-3 text-slate-300" /> {v.type}
+                        </span>
+
+                        {/* OPERATIONAL STATUS BADGE */}
+                        <div className="absolute top-3 right-3">
+                          <VehicleStatusBadge
+                            isHired={hireStatus.isOnTrip}
+                            isOnTrip={hireStatus.isOnTrip}
+                            isAwaitingHandover={hireStatus.isAwaitingHandover}
+                            isLive={isLive}
+                            variant="overlay"
+                            labelOverride={
+                              hireStatus.isOnTrip
+                                ? 'On Trip'
+                                : hireStatus.isAwaitingHandover
+                                ? 'Booked & Reserved'
+                                : undefined
+                            }
+                          />
                         </div>
 
-                        {/* HIRE TYPE BADGE */}
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-900 border-amber-200/80 shadow-xs">
-                            ✓ Self-Drive or With Driver
-                          </span>
-                          {v.hasInsurance && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                              Insured
+                        {/* BOTTOM DISTANCE & LOCATION */}
+                        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
+                          {v.address && (
+                            <span className="flex items-center gap-1 text-[11px] text-white font-medium truncate drop-shadow-sm">
+                              <MapPin className="h-3 w-3 text-slate-300 shrink-0" /> {v.address}
+                            </span>
+                          )}
+                          {distKm !== null && (
+                            <span className="shrink-0 rounded-full bg-white text-slate-950 px-2.5 py-0.5 text-[10px] font-mono font-bold shadow-md">
+                              {distKm} km away
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <div className="mt-4 flex items-center gap-4 text-xs text-slate-600 font-medium border-t border-slate-100 pt-3">
-                        <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5 text-teal-600" /> {v.seats} Seats</span>
-                        <span className="flex items-center gap-1"><Fuel className="h-3.5 w-3.5 text-teal-600" /> {v.fuelType}</span>
-                        <span className="flex items-center gap-1"><Gauge className="h-3.5 w-3.5 text-teal-600" /> {v.transmission}</span>
-                      </div>
+                      <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <h3 className="font-serif text-xl font-bold text-slate-950 group-hover:text-slate-700 transition-colors truncate">
+                              {v.make} {v.model}{' '}
+                              <span className="text-slate-400 text-sm font-normal">'{String(v.year).slice(-2)}</span>
+                            </h3>
+                          </div>
 
-                      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-                        <p className="font-mono text-lg font-bold text-amber-700">
-                          {formatPrice(v.pricePerDay)}
-                          <span className="text-xs text-slate-500 font-sans font-normal"> / day</span>
-                        </p>
-                        <span className="text-xs font-bold text-teal-700 group-hover:translate-x-1 transition-transform flex items-center gap-1 font-display uppercase tracking-wider">
-                          Book now <Sparkles className="h-3 w-3" />
-                        </span>
+                          {/* HIRE TYPE BADGE */}
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border bg-slate-100 text-slate-700 border-slate-200 shadow-xs">
+                              ✓ Self-Drive or With Driver
+                            </span>
+                            {v.hasInsurance && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                Insured
+                              </span>
+                            )}
+                          </div>
+
+                          {/* UNAVAILABILITY & HIRED NOTICES */}
+                          {hireStatus.isHired && (
+                            <div className="mt-2 p-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-900 text-[11px] font-medium leading-snug">
+                              <strong className="text-slate-950 block">Active Passenger Journey</strong>
+                              On trip with traveler until {hireStatus.returnDate || 'return'}. Cannot be hired until returned.
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="mt-4 flex items-center gap-4 text-xs text-slate-600 font-medium border-t border-slate-100 pt-3">
+                          <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5 text-slate-700" /> {v.seats} Seats</span>
+                          <span className="flex items-center gap-1"><Fuel className="h-3.5 w-3.5 text-slate-700" /> {v.fuelType}</span>
+                          <span className="flex items-center gap-1"><Gauge className="h-3.5 w-3.5 text-slate-700" /> {v.transmission}</span>
+                        </div>
+
+                        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+                          <p className="font-mono text-lg font-bold text-slate-950">
+                            {formatPrice(v.pricePerDay)}
+                            <span className="text-xs text-slate-500 font-sans font-normal"> / day</span>
+                          </p>
+                          {hireStatus.isHired ? (
+                            <span className="text-xs font-bold text-slate-500 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-none">
+                              <Lock className="h-3 w-3 text-slate-400" />
+                              Currently In Use
+                            </span>
+                          ) : !isLive ? (
+                            <span className="text-xs font-bold text-slate-500 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-none">
+                              <Lock className="h-3 w-3 text-slate-400" />
+                              Unavailable
+                            </span>
+                          ) : (
+                            <span className="text-xs font-bold text-slate-950 group-hover:text-slate-700 group-hover:translate-x-1 transition-transform flex items-center gap-1 font-sans uppercase tracking-wider">
+                              Book now <Sparkles className="h-3 w-3 text-slate-900" />
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </Card3D>
+                  ) : (
+                    <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden p-5 transition hover:border-slate-900 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-serif text-lg font-bold text-slate-950">{v.make} {v.model}</h3>
+                        {distKm !== null && (
+                          <span className="text-xs font-mono font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                            {distKm} km away
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs text-slate-600 font-medium">{v.address}</p>
+                      <div className="mt-3 flex items-center justify-between">
+                        <p className="font-mono text-slate-950 font-bold">{formatPrice(v.pricePerDay)} / day</p>
+                        {hireStatus.isHired ? (
+                          <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 flex items-center gap-1">
+                            <Lock className="h-3 w-3" /> In Use
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-bold text-slate-950 flex items-center gap-1">
+                            Available <Sparkles className="h-3 w-3 text-slate-900" />
+                          </span>
+                        )}
                       </div>
                     </div>
-                  </Card3D>
-                ) : (
-                  <div className="rounded-2xl bg-white border border-slate-200/90 overflow-hidden p-5 transition hover:border-amber-500/50 shadow-sm hover:shadow-md">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-display text-lg font-bold text-slate-900">{v.make} {v.model}</h3>
-                      {distKm !== null && (
-                        <span className="text-xs font-mono font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full">
-                          {distKm} km away
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-1 text-xs text-slate-500 font-medium">{v.address}</p>
-                    <p className="mt-2 font-mono text-amber-700 font-bold">{formatPrice(v.pricePerDay)} / day</p>
-                  </div>
-                )}
-              </Link>
-            );
-          })}
-        </div>
-      )}
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   </div>
 );

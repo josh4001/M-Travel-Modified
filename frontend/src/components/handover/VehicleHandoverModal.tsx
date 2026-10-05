@@ -3,7 +3,7 @@ import {
   X, CheckSquare, ShieldCheck, Gauge, Fuel,
   FileCheck, Camera, Sparkles
 } from 'lucide-react';
-import { StoredBooking, StoredVehicle, isTripBooking } from '@/lib/bookingStore';
+import { StoredBooking, StoredVehicle, isTripBooking, isBusVehicle } from '@/lib/bookingStore';
 import { executeHandover, VehicleHandover } from '@/lib/rentalLifecycleStore';
 
 interface VehicleHandoverModalProps {
@@ -41,6 +41,7 @@ export const VehicleHandoverModal: React.FC<VehicleHandoverModalProps> = ({
       </div>
     );
   }
+  const isBus = isBusVehicle(vehicle) || isBusVehicle(booking);
   const [odometerReading, setOdometerReading] = useState<number>(45280);
   const [fuelLevelPercent, setFuelLevelPercent] = useState<number>(100);
   const [exteriorOk, setExteriorOk] = useState(true);
@@ -78,6 +79,16 @@ export const VehicleHandoverModal: React.FC<VehicleHandoverModalProps> = ({
     e.preventDefault();
     if (!digitalAgreementSigned) {
       alert('The digital agreement must be accepted prior to releasing the vehicle.');
+      return;
+    }
+
+    if (!idVerified) {
+      alert('Original National ID Card or Passport must be physically verified prior to vehicle release.');
+      return;
+    }
+
+    if (!isBus && !licenseVerified) {
+      alert('Valid Driving License must be verified for self-drive vehicle release.');
       return;
     }
 
@@ -246,12 +257,16 @@ export const VehicleHandoverModal: React.FC<VehicleHandoverModalProps> = ({
                 <ShieldCheck className="w-4 h-4 text-amber-600" />
                 Mandatory Traveler Identity &amp; Document Verification
               </span>
-              <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded">Executive Inspection</span>
+              <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded">
+                {isBus ? 'Bus Charter Verification (ID Only)' : 'Executive Inspection'}
+              </span>
             </h4>
             <p className="text-xs text-amber-800 font-medium">
-              Confirm physical original documents have been manually inspected &amp; verified by M-TRAVEL agents before key release:
+              {isBus
+                ? 'Confirm original identity credentials have been manually inspected & verified before vehicle release. (Note: Bus reservations include a designated company coach driver — no driving license required from the traveler):'
+                : 'Confirm physical original documents have been manually inspected & verified by M-TRAVEL agents before key release:'}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs font-semibold">
+            <div className={`grid ${isBus ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'} gap-2.5 text-xs font-semibold`}>
               <label className="flex items-center space-x-2.5 cursor-pointer p-2.5 rounded-lg bg-white border border-amber-200 hover:border-amber-400">
                 <input
                   type="checkbox"
@@ -259,18 +274,29 @@ export const VehicleHandoverModal: React.FC<VehicleHandoverModalProps> = ({
                   onChange={e => setIdVerified(e.target.checked)}
                   className="rounded text-amber-600 focus:ring-amber-500 w-4 h-4"
                 />
-                <span className="text-gray-800">Original National ID Card or Passport Verified</span>
+                <span className="text-gray-800">
+                  Original National ID Card or Valid Passport Verified ({isBus ? 'Charter Hirer ID' : 'Mandatory for all renters'})
+                </span>
               </label>
 
-              <label className="flex items-center space-x-2.5 cursor-pointer p-2.5 rounded-lg bg-white border border-amber-200 hover:border-amber-400">
-                <input
-                  type="checkbox"
-                  checked={licenseVerified}
-                  onChange={e => setLicenseVerified(e.target.checked)}
-                  className="rounded text-amber-600 focus:ring-amber-500 w-4 h-4"
-                />
-                <span className="text-gray-800">Valid Driving License Verified (Self-Drive)</span>
-              </label>
+              {!isBus ? (
+                <label className="flex items-center space-x-2.5 cursor-pointer p-2.5 rounded-lg bg-white border border-amber-200 hover:border-amber-400">
+                  <input
+                    type="checkbox"
+                    checked={licenseVerified}
+                    onChange={e => setLicenseVerified(e.target.checked)}
+                    className="rounded text-amber-600 focus:ring-amber-500 w-4 h-4"
+                  />
+                  <span className="text-gray-800">Valid Driving License Verified (Self-Drive)</span>
+                </label>
+              ) : (
+                <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-medium">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>
+                    <strong>Company-Designated Coach Captain Included:</strong> Bus charters are strictly piloted by certified company drivers. No driver's license required from traveler.
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -386,10 +412,21 @@ export const VehicleHandoverModal: React.FC<VehicleHandoverModalProps> = ({
               M-TRAVEL Digital Rental Agreement Terms
             </h5>
             <ul className="list-disc pl-5 space-y-1 text-gray-600">
-              <li><strong>Authorized Driver:</strong> Vehicle shall be piloted solely by the verified registered hirer.</li>
-              <li><strong>Speed Compliance:</strong> Hirer adheres strictly to Kenyan highway regulations (100 km/h ceiling).</li>
-              <li><strong>Clean Return &amp; Damage Liability:</strong> Vehicles returned in clean, undamaged condition incur KES 0 damage fees. The hirer is held legally &amp; financially liable for any new damage or missing equipment assessed during return inspection.</li>
-              <li><strong>Safety & Check-ins:</strong> Hirer affirms periodic possession check-ins and emergency SOS reporting.</li>
+              {isBus ? (
+                <>
+                  <li><strong>Designated Company Captain:</strong> Bus is piloted solely by the certified M-TRAVEL coach captain. Self-drive is not permitted; no driver's license required from traveler.</li>
+                  <li><strong>Charter Identification:</strong> Hirer verified via original National ID / Passport for group charter accountability.</li>
+                  <li><strong>Charter Condition &amp; Conduct:</strong> Hirer is held responsible for onboard conduct, cleanliness, and returning the vehicle in good order.</li>
+                  <li><strong>Safety &amp; Compliance:</strong> Coach captain strictly adheres to Kenyan highway regulations, passenger transit guidelines, and speed governors.</li>
+                </>
+              ) : (
+                <>
+                  <li><strong>Authorized Driver:</strong> Vehicle shall be piloted solely by the verified registered hirer.</li>
+                  <li><strong>Speed Compliance:</strong> Hirer adheres strictly to Kenyan highway regulations (100 km/h ceiling).</li>
+                  <li><strong>Clean Return &amp; Damage Liability:</strong> Vehicles returned in clean, undamaged condition incur KES 0 damage fees. The hirer is held legally &amp; financially liable for any new damage or missing equipment assessed during return inspection.</li>
+                  <li><strong>Safety &amp; Check-ins:</strong> Hirer affirms periodic possession check-ins and emergency SOS reporting.</li>
+                </>
+              )}
             </ul>
 
             <label className="flex items-start space-x-2.5 cursor-pointer pt-2 border-t border-amber-200 font-medium text-amber-950">

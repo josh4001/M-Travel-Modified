@@ -181,8 +181,8 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
               onClick={() => setActiveTab('PHOTOS')}
               className={`rounded-xl px-3.5 py-2 text-xs font-bold transition flex items-center gap-1.5 ${
                 activeTab === 'PHOTOS'
-                  ? 'bg-amber-500 text-slate-950 shadow-sm'
-                  : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
+                  : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800 hover:text-white'
               }`}
             >
               <Eye className="h-3.5 w-3.5" />
@@ -194,8 +194,8 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
               onClick={() => setActiveTab('DOCUMENTS')}
               className={`rounded-xl px-3.5 py-2 text-xs font-bold transition flex items-center gap-1.5 ${
                 activeTab === 'DOCUMENTS'
-                  ? 'bg-amber-500 text-slate-950 shadow-sm'
-                  : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
+                  : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800 hover:text-white'
               }`}
             >
               <FileText className="h-3.5 w-3.5" />
@@ -211,7 +211,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
               className={`rounded-xl px-3.5 py-2 text-xs font-bold transition flex items-center gap-1.5 ${
                 activeTab === 'REJECT_REASONS'
                   ? 'bg-rose-600 text-white shadow-sm'
-                  : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800'
+                  : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800 hover:text-white'
               }`}
             >
               <ShieldAlert className="h-3.5 w-3.5 text-rose-400" />
@@ -223,8 +223,8 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
               onClick={() => setActiveTab('WHATSAPP_PREVIEW')}
               className={`rounded-xl px-3.5 py-2 text-xs font-bold transition flex items-center gap-1.5 ${
                 activeTab === 'WHATSAPP_PREVIEW'
-                  ? 'bg-[#25D366] text-slate-950 shadow-sm'
-                  : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800'
+                  ? 'bg-[#25D366] text-slate-950 shadow-sm font-bold'
+                  : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800 hover:text-white'
               }`}
             >
               <MessageSquare className="h-3.5 w-3.5 text-emerald-400" />
@@ -248,7 +248,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
               />
 
               {/* PERSPECTIVE BADGE */}
-              <div className="absolute top-3 left-3 rounded-full bg-black/70 backdrop-blur-xs px-3 py-1 text-[11px] font-mono font-bold text-amber-400 border border-white/10">
+              <div className="absolute top-3 left-3 rounded-full bg-black/80 backdrop-blur-xs px-3 py-1 text-[11px] font-mono font-bold text-amber-400 border border-white/20">
                 {selectedPhotoIndex === 0 ? 'Front View' : selectedPhotoIndex === 1 ? 'Back / Rear View' : `Photo #${selectedPhotoIndex + 1}`}
               </div>
 
@@ -256,7 +256,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsPhotoZoomed(!isPhotoZoomed)}
-                className="absolute top-3 right-3 rounded-xl bg-black/70 hover:bg-black/90 p-2 text-white/80 hover:text-white transition flex items-center gap-1.5 text-xs font-bold"
+                className="absolute top-3 right-3 rounded-xl bg-black/80 hover:bg-black/95 p-2 text-white transition flex items-center gap-1.5 text-xs font-bold border border-white/20"
               >
                 <ZoomIn className="h-4 w-4 text-amber-400" />
                 <span>{isPhotoZoomed ? 'Reset Zoom' : 'Zoom 125%'}</span>
@@ -268,14 +268,14 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setSelectedPhotoIndex(prev => prev === 0 ? vehicleImages.length - 1 : prev - 1)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/60 hover:bg-black/80 p-2 text-white transition"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/60 hover:bg-black/80 p-2 text-white transition border border-white/10"
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedPhotoIndex(prev => prev === vehicleImages.length - 1 ? 0 : prev + 1)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/60 hover:bg-black/80 p-2 text-white transition"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/60 hover:bg-black/80 p-2 text-white transition border border-white/10"
                   >
                     <ChevronRight className="h-5 w-5" />
                   </button>
@@ -295,7 +295,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
                   }`}
                 >
                   <img src={img} alt={`Thumb ${idx}`} className="h-full w-full object-cover" />
-                  <span className="absolute bottom-0 inset-x-0 bg-black/70 text-[9px] font-mono text-center text-white py-0.5 truncate">
+                  <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[9px] font-mono text-center text-white py-0.5 truncate">
                     {idx === 0 ? 'Front' : idx === 1 ? 'Rear' : `Extra ${idx - 1}`}
                   </span>
                 </button>
@@ -307,7 +307,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('DOCUMENTS')}
-                className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1"
+                className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 underline underline-offset-4"
               >
                 <span>Proceed to Documents ➔</span>
               </button>
@@ -398,7 +398,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
                           <p className="text-xs text-slate-400">Comprehensive Chauffeur/Hire Cover</p>
                         </div>
                       </div>
-                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${insDoc ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'}`}>
+                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${insDoc ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`}>
                         {insDoc?.isRealUpload ? '✓ Authentic Upload' : insDoc ? 'Attached' : 'Unattached'}
                       </span>
                     </div>
@@ -657,7 +657,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="rounded-xl bg-amber-500/10 p-2 text-amber-400 shrink-0">
+                <div className="rounded-xl bg-amber-500/15 p-2 text-amber-400 shrink-0">
                   <FileText className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">

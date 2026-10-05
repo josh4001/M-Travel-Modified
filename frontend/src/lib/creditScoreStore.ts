@@ -31,48 +31,19 @@ export interface TravelerCreditProfile {
 
 const CREDIT_PROFILES_KEY = 'mt_traveler_credit_profiles_v1';
 
-// Seed default profiles for Sarah Ochieng and demo users
-const DEFAULT_PROFILES: TravelerCreditProfile[] = [
-  {
-    userId: 'user-tourist-1',
-    touristName: 'Sarah Ochieng',
-    touristEmail: 'sarah.ochieng@gmail.com',
-    touristPhone: '0712345678',
-    score: 795,
-    tier: 'VIP Renter (A+)',
-    isRestricted: false,
-    completedTrips: 4,
-    cleanHandovers: 4,
-    lateReturns: 0,
-    damagesCount: 0,
-    documentsVerified: {
-      nationalId: true,
-      drivingLicense: true,
-    },
-    historyLogs: [
-      {
-        id: 'log-1',
-        date: new Date(Date.now() - 86400000 * 5).toISOString(),
-        action: 'Account Onboarding & Document Verification',
-        scoreDelta: 45,
-        newScore: 795,
-        note: 'Verified National ID & Driving License upon initial vehicle hire.',
-      },
-    ],
-    updatedAt: new Date().toISOString(),
-  },
-];
+// Initial default profiles default to empty for factory reset clean state
+export const DEFAULT_PROFILES: TravelerCreditProfile[] = [];
 
 export const getStoredCreditProfiles = (): TravelerCreditProfile[] => {
   try {
     const raw = localStorage.getItem(CREDIT_PROFILES_KEY);
-    if (!raw) {
-      localStorage.setItem(CREDIT_PROFILES_KEY, JSON.stringify(DEFAULT_PROFILES));
-      return DEFAULT_PROFILES;
+    if (raw !== null) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
     }
-    return JSON.parse(raw);
+    return [];
   } catch {
-    return DEFAULT_PROFILES;
+    return [];
   }
 };
 

@@ -48,8 +48,8 @@ export const BookingSearch: React.FC = () => {
 
   return (
     <div className="w-full max-w-5xl mx-auto rounded-3xl border border-slate-200/90 bg-white p-4 md:p-6 shadow-[0_20px_50px_-15px_rgba(15,23,42,0.1),0_2px_8px_-2px_rgba(0,0,0,0.04)] relative overflow-hidden backdrop-blur-xl">
-      {/* LUXURY GOLD DECORATIVE ACCENT LINE */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gold-gradient" />
+      {/* LUXURY MONOCHROME DECORATIVE ACCENT LINE */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-slate-900" />
 
       {/* SERVICE TABS */}
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-150 pb-4">
@@ -67,15 +67,15 @@ export const BookingSearch: React.FC = () => {
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold font-display uppercase tracking-wider transition-all duration-200 ${
                 isActive
-                  ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
+                  ? 'bg-slate-950 text-white shadow-md scale-[1.01]'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
               }`}
             >
-              <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-amber-600'}`} />
+              <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-slate-600'}`} />
               <span>{tab.label}</span>
               <span
                 className={`text-[9px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                  isActive ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'
+                  isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
                 }`}
               >
                 {tab.badge}
@@ -118,9 +118,9 @@ export const BookingSearch: React.FC = () => {
       {/* SEARCH INPUTS FORM */}
       <form onSubmit={handleSearch} className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {/* PICKUP LOCATION */}
-        <div className="space-y-1.5 rounded-2xl bg-slate-50/80 p-3.5 border border-slate-200/80 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/10 focus-within:bg-white transition-all">
+        <div className="space-y-1.5 rounded-2xl bg-slate-50/80 p-3.5 border border-slate-200/80 focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-900/10 focus-within:bg-white transition-all">
           <label className="block text-[10px] uppercase font-bold tracking-widest text-slate-500 flex items-center gap-1.5">
-            <MapPin className="h-3.5 w-3.5 text-amber-600" /> Pick-Up Location
+            <MapPin className="h-3.5 w-3.5 text-slate-700" /> Pick-Up Location
           </label>
           <select
             value={pickup}
@@ -136,9 +136,9 @@ export const BookingSearch: React.FC = () => {
         </div>
 
         {/* DESTINATION LOCATION */}
-        <div className="space-y-1.5 rounded-2xl bg-slate-50/80 p-3.5 border border-slate-200/80 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/10 focus-within:bg-white transition-all">
+        <div className="space-y-1.5 rounded-2xl bg-slate-50/80 p-3.5 border border-slate-200/80 focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-900/10 focus-within:bg-white transition-all">
           <label className="block text-[10px] uppercase font-bold tracking-widest text-slate-500 flex items-center gap-1.5">
-            <MapPin className="h-3.5 w-3.5 text-amber-600" /> Destination / Drop-off
+            <MapPin className="h-3.5 w-3.5 text-slate-700" /> Destination / Drop-off
           </label>
           <select
             value={destination}
@@ -154,9 +154,9 @@ export const BookingSearch: React.FC = () => {
         </div>
 
         {/* DATES */}
-        <div className="space-y-1.5 rounded-2xl bg-slate-50/80 p-3.5 border border-slate-200/80 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/10 focus-within:bg-white transition-all">
+        <div className="space-y-1.5 rounded-2xl bg-slate-50/80 p-3.5 border border-slate-200/80 focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-900/10 focus-within:bg-white transition-all">
           <label className="block text-[10px] uppercase font-bold tracking-widest text-slate-500 flex items-center gap-1.5">
-            <Calendar className="h-3.5 w-3.5 text-amber-600" /> Travel Dates
+            <Calendar className="h-3.5 w-3.5 text-slate-700" /> Travel Dates
           </label>
           <div className={`grid ${tripType === 'round' ? 'grid-cols-2' : 'grid-cols-1'} gap-2 text-xs`}>
             <input
@@ -178,9 +178,9 @@ export const BookingSearch: React.FC = () => {
         </div>
 
         {/* PASSENGERS & VEHICLE TYPE */}
-        <div className="space-y-1.5 rounded-2xl bg-slate-50/80 p-3.5 border border-slate-200/80 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/10 focus-within:bg-white transition-all">
+        <div className="space-y-1.5 rounded-2xl bg-slate-50/80 p-3.5 border border-slate-200/80 focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-900/10 focus-within:bg-white transition-all">
           <label className="block text-[10px] uppercase font-bold tracking-widest text-slate-500 flex items-center gap-1.5">
-            <Users className="h-3.5 w-3.5 text-amber-600" /> Travelers & Category
+            <Users className="h-3.5 w-3.5 text-slate-700" /> Travelers & Category
           </label>
           <div className="flex items-center justify-between text-xs font-bold">
             <select
@@ -231,7 +231,7 @@ export const BookingSearch: React.FC = () => {
               onClick={() => setVehicleCategory(pill.val)}
               className={`rounded-full px-3 py-1 text-[11px] font-semibold border transition ${
                 vehicleCategory === pill.val
-                  ? 'border-amber-500 bg-amber-50 text-amber-800 font-bold'
+                  ? 'border-slate-900 bg-slate-900 text-white font-bold'
                   : 'border-slate-200 bg-slate-50/70 text-slate-600 hover:text-slate-900 hover:border-slate-300'
               }`}
             >

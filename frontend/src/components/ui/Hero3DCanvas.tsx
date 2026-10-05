@@ -1,69 +1,50 @@
-import { Suspense, useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, MeshWobbleMaterial, Points, PointMaterial } from '@react-three/drei';
-import * as THREE from 'three';
-
-function FloatingOrbs() {
-  const pointsRef = useRef<THREE.Points>(null);
-
-  // Generate 120 random particles in 3D space
-  const particleCount = 120;
-  const positions = new Float32Array(particleCount * 3);
-  for (let i = 0; i < particleCount * 3; i += 3) {
-    positions[i] = (Math.random() - 0.5) * 12;
-    positions[i + 1] = (Math.random() - 0.5) * 12;
-    positions[i + 2] = (Math.random() - 0.5) * 12;
-  }
-
-  useFrame((_, delta) => {
-    if (pointsRef.current) {
-      pointsRef.current.rotation.y += delta * 0.05;
-      pointsRef.current.rotation.x += delta * 0.02;
-    }
-  });
-
-  return (
-    <group>
-      {/* Floating 3D Geometries */}
-      <Float speed={2} rotationIntensity={1.5} floatIntensity={2}>
-        <mesh position={[-3, 1.5, -2]}>
-          <octahedronGeometry args={[0.9]} />
-          <MeshWobbleMaterial color="#F5A623" factor={0.3} speed={1.5} wireframe transparent opacity={0.6} />
-        </mesh>
-      </Float>
-
-      <Float speed={1.8} rotationIntensity={2} floatIntensity={1.8}>
-        <mesh position={[3.5, -1, -1]}>
-          <torusGeometry args={[0.8, 0.25, 16, 32]} />
-          <meshStandardMaterial color="#17A398" wireframe transparent opacity={0.4} />
-        </mesh>
-      </Float>
-
-      <Float speed={2.5} rotationIntensity={1} floatIntensity={2.5}>
-        <mesh position={[2, 2.2, -3]}>
-          <icosahedronGeometry args={[0.7, 1]} />
-          <meshStandardMaterial color="#FF6B5E" wireframe transparent opacity={0.5} />
-        </mesh>
-      </Float>
-
-      {/* Ambient Particle Cloud */}
-      <Points ref={pointsRef} positions={positions} stride={3}>
-        <PointMaterial color="#F5A623" size={0.05} sizeAttenuation depthWrite={false} transparent opacity={0.7} />
-      </Points>
-    </group>
-  );
-}
-
+/**
+ * M-TRAVEL Ambient Luxury Radiance & Minimalist Topographic Pattern.
+ * Enriches the white background with subtle Savannah Gold and Kenyan Emerald radiance
+ * plus whisper-delicate architectural expedition patterns that do not overwhelm.
+ */
 export function Hero3DCanvas() {
   return (
-    <div className="absolute inset-0 -z-10 pointer-events-none opacity-80" aria-hidden="true">
-      <Canvas camera={{ position: [0, 0, 7], fov: 50 }} dpr={[1, 1.5]}>
-        <Suspense fallback={null}>
-          <ambientLight intensity={0.8} />
-          <directionalLight position={[10, 10, 5]} intensity={1} />
-          <FloatingOrbs />
-        </Suspense>
-      </Canvas>
+    <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden select-none" aria-hidden="true">
+      {/* ── MINIMALIST ARCHITECTURAL EXPEDITION GRID PATTERN ── */}
+      <div 
+        className="absolute inset-0 opacity-[0.04] [mask-image:radial-gradient(ellipse_at_center,black_50%,transparent_90%)]"
+        style={{
+          backgroundImage: `
+            radial-gradient(circle, #0f172a 1px, transparent 1px),
+            linear-gradient(to right, #0f172a 0.5px, transparent 0.5px),
+            linear-gradient(to bottom, #0f172a 0.5px, transparent 0.5px)
+          `,
+          backgroundSize: '32px 32px, 96px 96px, 96px 96px',
+        }}
+      />
+
+      {/* ── SUBTLE WHISPER TOPOGRAPHIC ELEVATION LINES (KENYA TRANSECT) ── */}
+      <svg
+        viewBox="0 0 1440 600"
+        fill="none"
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-auto stroke-amber-900/[0.04] stroke-[0.75] [mask-image:radial-gradient(ellipse_at_center,black_60%,transparent_100%)]"
+      >
+        <path d="M 0 120 Q 360 40, 720 100 T 1440 60" />
+        <path d="M 0 160 Q 360 80, 720 140 T 1440 100" strokeDasharray="3 4" />
+        <path d="M 0 220 Q 400 160, 720 200 T 1440 160" />
+        <path d="M 0 300 Q 320 260, 720 280 T 1440 240" strokeDasharray="4 6" />
+      </svg>
+
+      {/* ── SAVANNAH GOLD AMBIENT RADIANCE (M-TRAVEL SIGNATURE GOLD) ── */}
+      <div 
+        className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[720px] h-[520px] rounded-full bg-gradient-to-b from-amber-300/20 via-amber-200/10 to-transparent blur-3xl opacity-75 will-change-transform"
+      />
+
+      {/* ── KENYAN EMERALD OASIS ACCENT ORB ── */}
+      <div 
+        className="absolute top-[28%] right-[-5%] w-[480px] h-[480px] rounded-full bg-emerald-300/15 blur-3xl opacity-50 will-change-transform"
+      />
+
+      {/* ── GROUNDING CHAMPAGNE IVORY WARMTH ── */}
+      <div 
+        className="absolute bottom-[-5%] left-[-5%] w-[520px] h-[420px] rounded-full bg-amber-200/15 blur-3xl opacity-60 will-change-transform"
+      />
     </div>
   );
 }

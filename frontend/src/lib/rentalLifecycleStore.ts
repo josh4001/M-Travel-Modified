@@ -159,29 +159,8 @@ const CHECKINS_KEY = 'mt_trip_checkins_v1';
 const INCIDENTS_KEY = 'mt_incidents_v1';
 const AUDIT_LOGS_KEY = 'mt_audit_logs_v1';
 
-// Initial default audit log entries for immediate demonstration
-const DEFAULT_AUDIT_LOGS: AuditLogEntry[] = [
-  {
-    id: 'audit-001',
-    entityName: 'Vehicle',
-    entityId: 'KBZ 892M',
-    action: 'INSPECTION_APPROVED',
-    actorName: 'Amos (Admin)',
-    actorRole: 'ADMIN',
-    details: 'Logbook and Commercial Insurance verified. Vehicle moved to AVAILABLE.',
-    timestamp: new Date(Date.now() - 3600 * 48 * 1000).toISOString()
-  },
-  {
-    id: 'audit-002',
-    entityName: 'Booking',
-    entityId: 'MT-BKG-8831',
-    action: 'BOOKING_RESERVED',
-    actorName: 'System Gateway',
-    actorRole: 'SYSTEM',
-    details: 'Payment confirmed via M-Pesa. Awaiting Admin Executive Handover verification.',
-    timestamp: new Date(Date.now() - 3600 * 24 * 1000).toISOString()
-  }
-];
+// Initial default audit log entries for factory reset clean state
+export const DEFAULT_AUDIT_LOGS: AuditLogEntry[] = [];
 
 // ==========================================
 // 3. STORAGE GETTERS & HELPERS
@@ -257,9 +236,13 @@ export const getIncidentsByBookingId = (bookingId: string): IncidentReport[] => 
 export const getAllAuditLogs = (): AuditLogEntry[] => {
   try {
     const raw = localStorage.getItem(AUDIT_LOGS_KEY);
-    return raw ? JSON.parse(raw) : DEFAULT_AUDIT_LOGS;
+    if (raw !== null) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+    return [];
   } catch {
-    return DEFAULT_AUDIT_LOGS;
+    return [];
   }
 };
 
@@ -393,10 +376,10 @@ export const executeHandover = async (
     console.warn('[executeHandover] updateBookingStatus notice:', err);
   }
 
-  // 3. Update Vehicle operational status to active rental (locked from new searches)
+  // 3. Vehicle operational status remains active/live in fleet catalogue so other travelers can see it is on active trip
   try {
     if (fullHandover.vehicleId) {
-      toggleVehicleLiveStatus(fullHandover.vehicleId, false);
+      toggleVehicleLiveStatus(fullHandover.vehicleId, true);
     }
   } catch (err) {
     console.warn('[executeHandover] toggleVehicleLiveStatus notice:', err);

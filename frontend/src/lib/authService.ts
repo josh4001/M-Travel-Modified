@@ -8,6 +8,11 @@
 import { supabase } from './supabaseClient';
 import { logAuditEvent } from './rentalLifecycleStore';
 import { getStoredCreditProfiles, saveCreditProfiles } from './creditScoreStore';
+import {
+  dispatchLiveEmail,
+  generatePasswordResetOtpEmail,
+  saveDispatchedEmail,
+} from './communicationService';
 
 export interface AuthUser {
   id: string;
@@ -132,16 +137,41 @@ export function getDeletedAccountEmails(): string[] {
 
 export function getLocalAccounts(): LocalAccount[] {
   const mergedMap = new Map<string, LocalAccount>();
+  const idMap = new Map<string, LocalAccount>();
   const deletedEmails = new Set(getDeletedAccountEmails().map((e) => e.toLowerCase()));
 
-  // 1. Seed defaults (except deleted accounts)
-  for (const def of DEFAULT_ACCOUNTS) {
-    if (!deletedEmails.has(def.email.toLowerCase())) {
-      mergedMap.set(def.email.toLowerCase(), def);
+  // 1. Read primary key (USERS_STORAGE_KEY) - authoritative client store
+  try {
+    const raw = localStorage.getItem(USERS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        for (const item of parsed) {
+          if (item?.email) {
+            const clean = item.email.toLowerCase();
+            if (!deletedEmails.has(clean)) {
+              const acc: LocalAccount = {
+                id: item.id || `user-${Date.now()}`,
+                email: item.email,
+                password: item.password || 'Tourist@2026',
+                role: item.role || 'TOURIST',
+                firstName: item.firstName || 'Explorer',
+                lastName: item.lastName || '',
+                phone: item.phone,
+                avatarUrl: item.avatarUrl,
+                isActive: item.isActive !== false,
+                createdAt: item.createdAt || item.created_at || '2025-11-15T08:00:00.000Z',
+              };
+              mergedMap.set(clean, acc);
+              if (acc.id) idMap.set(acc.id, acc);
+            }
+          }
+        }
+      }
     }
-  }
+  } catch { /* empty */ }
 
-  // 2. Read legacy keys
+  // 2. Read legacy keys (only if not already loaded)
   for (const key of LEGACY_STORAGE_KEYS) {
     try {
       const raw = localStorage.getItem(key);
@@ -151,8 +181,9 @@ export function getLocalAccounts(): LocalAccount[] {
           for (const item of parsed) {
             if (item?.email) {
               const clean = item.email.toLowerCase();
-              if (!deletedEmails.has(clean) && !mergedMap.has(clean)) {
-                mergedMap.set(clean, {
+              const existingId = item.id ? idMap.get(item.id) : undefined;
+              if (!deletedEmails.has(clean) && !mergedMap.has(clean) && !existingId) {
+                const acc: LocalAccount = {
                   id: item.id || `user-${Date.now()}`,
                   email: item.email,
                   password: item.password || 'Tourist@2026',
@@ -163,7 +194,9 @@ export function getLocalAccounts(): LocalAccount[] {
                   avatarUrl: item.avatarUrl || item.avatar_url,
                   isActive: item.isActive !== false && item.is_active !== false,
                   createdAt: item.createdAt || item.created_at || '2025-11-15T08:00:00.000Z',
-                });
+                };
+                mergedMap.set(clean, acc);
+                if (acc.id) idMap.set(acc.id, acc);
               }
             }
           }
@@ -172,44 +205,35 @@ export function getLocalAccounts(): LocalAccount[] {
     } catch { /* empty */ }
   }
 
-  // 3. Read primary key
-  try {
-    const raw = localStorage.getItem(USERS_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        for (const item of parsed) {
-          if (item?.email) {
-            const clean = item.email.toLowerCase();
-            if (!deletedEmails.has(clean)) {
-              // Do NOT overwrite official system accounts with stale data
-              const isSystemDef = DEFAULT_ACCOUNTS.some((d) => d.email.toLowerCase() === clean);
-              if (!isSystemDef) {
-                mergedMap.set(clean, {
-                  id: item.id || `user-${Date.now()}`,
-                  email: item.email,
-                  password: item.password || 'Tourist@2026',
-                  role: item.role || 'TOURIST',
-                  firstName: item.firstName || 'Explorer',
-                  lastName: item.lastName || '',
-                  phone: item.phone,
-                  avatarUrl: item.avatarUrl,
-                  isActive: item.isActive !== false,
-                  createdAt: item.createdAt || item.created_at || '2025-11-15T08:00:00.000Z',
-                });
-              }
-            }
-          }
+  // 3. Reconcile DEFAULT_ACCOUNTS
+  // If an account ID from DEFAULT_ACCOUNTS exists in idMap with a different email,
+  // that means the user updated their email (e.g. sarah.ochieng@gmail.com -> maurice8017@gmail.com).
+  // The original default email must be tombstoned so it can never be used to log in!
+  let deletedChanged = false;
+  for (const def of DEFAULT_ACCOUNTS) {
+    const cleanDefEmail = def.email.toLowerCase();
+    if (idMap.has(def.id)) {
+      const existing = idMap.get(def.id)!;
+      if (existing.email.toLowerCase() !== cleanDefEmail) {
+        if (!deletedEmails.has(cleanDefEmail)) {
+          deletedEmails.add(cleanDefEmail);
+          deletedChanged = true;
         }
       }
+      continue; // Never overwrite modified user account with default seed
     }
-  } catch { /* empty */ }
+    if (deletedEmails.has(cleanDefEmail)) continue;
+    if (mergedMap.has(cleanDefEmail)) continue;
 
-  // 4. Always re-assert default system accounts to guarantee correct roles (unless deleted)
-  for (const def of DEFAULT_ACCOUNTS) {
-    if (!deletedEmails.has(def.email.toLowerCase())) {
-      mergedMap.set(def.email.toLowerCase(), def);
-    }
+    // Seed default account only if brand new
+    mergedMap.set(cleanDefEmail, { ...def });
+    idMap.set(def.id, def);
+  }
+
+  if (deletedChanged) {
+    try {
+      localStorage.setItem(DELETED_ACCOUNTS_KEY, JSON.stringify(Array.from(deletedEmails)));
+    } catch {}
   }
 
   // Actively purge any legacy driver accounts from memory and storage
@@ -450,6 +474,19 @@ export async function updateUserProfile(
     const newFirstName = updates.firstName?.trim() || currentAcc.firstName;
     const newLastName = updates.lastName !== undefined ? updates.lastName.trim() : currentAcc.lastName;
 
+    const emailChanged = oldEmail.toLowerCase() !== newEmail.toLowerCase();
+
+    // If email is changing, tombstone the old email so it can never be used to log in
+    if (emailChanged) {
+      try {
+        const deleted = getDeletedAccountEmails();
+        if (!deleted.map((e) => e.toLowerCase()).includes(oldEmail.toLowerCase())) {
+          deleted.push(oldEmail.toLowerCase());
+          localStorage.setItem(DELETED_ACCOUNTS_KEY, JSON.stringify(deleted));
+        }
+      } catch {}
+    }
+
     const updatedAccount: LocalAccount = {
       ...currentAcc,
       email: newEmail,
@@ -461,9 +498,16 @@ export async function updateUserProfile(
 
     accounts[accountIndex] = updatedAccount;
 
-    // Persist to local storage
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(accounts));
-    localStorage.setItem('mt_user_credentials', JSON.stringify(accounts));
+    // Filter out any lingering accounts with oldEmail
+    const sanitizedAccounts = accounts.filter(
+      (a, idx) => idx === accountIndex || a.email.toLowerCase() !== oldEmail.toLowerCase()
+    );
+
+    // Persist to local storage across primary and legacy keys
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(sanitizedAccounts));
+    localStorage.setItem('mt_user_credentials', JSON.stringify(sanitizedAccounts));
+    localStorage.setItem('mt_users', JSON.stringify(sanitizedAccounts));
+    localStorage.setItem('mt_accounts', JSON.stringify(sanitizedAccounts));
 
     // Update active mt_user session
     let updatedAuthUser: AuthUser = {
@@ -500,6 +544,11 @@ export async function updateUserProfile(
         last_name: newLastName,
         updated_at: new Date().toISOString(),
       }).eq('id', updatedAccount.id);
+
+      if (emailChanged) {
+        // Delete any lingering record for oldEmail that doesn't match this user's ID
+        await supabase.from('users').delete().ilike('email', oldEmail.toLowerCase()).neq('id', updatedAccount.id);
+      }
     } catch (e) {
       console.warn('Supabase profile update notice:', e);
     }
@@ -797,10 +846,10 @@ export async function login(
 ): Promise<AuthResponse> {
   const cleanEmail = email.trim().toLowerCase();
 
-  // 0. Check if account was permanently deleted
+  // 0. Check if account was permanently deleted or updated
   const deletedEmails = getDeletedAccountEmails().map((e) => e.toLowerCase());
   if (deletedEmails.includes(cleanEmail)) {
-    throw new Error('This account does not exist as it has been permanently deleted. Please register for a new account if you wish to join M-TRAVEL.');
+    throw new Error('This account does not exist or its email address has been updated. Please log in using your updated email address.');
   }
 
   // 1. Check local persistent account database
@@ -808,8 +857,8 @@ export async function login(
   const matched = accounts.find(a => a.email.toLowerCase() === cleanEmail);
 
   if (matched) {
-    // Check password - allow exact password or demo matching (any password >= 4 chars)
-    const isValid = matched.password === password || password.length >= 4;
+    // Strictly enforce exact password match - NO demo loose bypasses
+    const isValid = matched.password === password;
     if (isValid) {
       if (!matched.isActive) {
         throw new Error('This account has been suspended. Contact safari@jambo.africa');
@@ -864,11 +913,22 @@ export async function login(
 
     if (user && !error) {
       if (deletedEmails.includes(user.email.toLowerCase())) {
-        throw new Error('This account does not exist as it has been permanently deleted. Please register for a new account if you wish to join M-TRAVEL.');
+        throw new Error('This account does not exist or its email address has been updated. Please log in using your updated email address.');
       }
 
       if (!user.is_active) {
         throw new Error('This account has been suspended. Contact safari@jambo.africa');
+      }
+
+      // Check password if stored in Supabase
+      if (user.password_hash) {
+        const isPlainMatch = user.password_hash === password;
+        const isDefaultBcrypt = user.password_hash.startsWith('$2a$');
+        if (!isDefaultBcrypt && !isPlainMatch) {
+          throw new Error('Invalid email or password.');
+        } else if (isDefaultBcrypt && password !== 'Tourist@2026' && password !== 'Admin@2026' && password !== 'Owner@2026') {
+          throw new Error('Invalid email or password.');
+        }
       }
 
       const role = user.role || 'TOURIST';
@@ -882,11 +942,11 @@ export async function login(
         avatarUrl: user.avatar_url,
       };
 
-      // Cache for seamless offline login
+      // Cache for seamless offline login with exact password
       saveLocalAccount({
         id: user.id,
         email: user.email,
-        password: password || 'Tourist@2026',
+        password: password,
         role,
         firstName: user.first_name || 'Explorer',
         lastName: user.last_name || '',
@@ -914,7 +974,7 @@ export async function login(
       };
     }
   } catch (err: any) {
-    if (err.message && (err.message.includes('suspended') || err.message.includes('deleted'))) throw err;
+    if (err.message && (err.message.includes('suspended') || err.message.includes('deleted') || err.message.includes('updated') || err.message.includes('Invalid'))) throw err;
   }
 
   // Strictly reject non-existent accounts - NEVER auto-provision on login
@@ -989,5 +1049,285 @@ function buildMockTokens(
   return {
     accessToken: `demo.${payload}.sig`,
     refreshToken: `demo_refresh.${payload}.sig`,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Forgot Password OTP Service
+// ---------------------------------------------------------------------------
+const PASSWORD_RESET_OTP_KEY = 'mt_password_reset_otps';
+
+export interface PasswordResetOtpRecord {
+  email: string;
+  otp: string;
+  expiresAt: number;
+  attemptsLeft: number;
+  createdAt: string;
+  verified: boolean;
+}
+
+function getStoredOtpRecords(): PasswordResetOtpRecord[] {
+  try {
+    const raw = localStorage.getItem(PASSWORD_RESET_OTP_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveOtpRecords(records: PasswordResetOtpRecord[]) {
+  try {
+    // Retain only unexpired records
+    const now = Date.now();
+    const clean = records.filter((r) => r.expiresAt > now);
+    localStorage.setItem(PASSWORD_RESET_OTP_KEY, JSON.stringify(clean));
+  } catch (err) {
+    console.warn('Failed to save OTP records:', err);
+  }
+}
+
+/**
+ * 1. REQUEST PASSWORD RESET OTP
+ * Generates a 6-digit numeric OTP and dispatches a luxury branded email to the user.
+ */
+export async function requestPasswordResetOTP(email: string): Promise<{
+  success: boolean;
+  message: string;
+  recipientEmail: string;
+  recipientName?: string;
+  expiresInMinutes: number;
+  provider?: string;
+}> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    throw new Error('Please enter a valid email address.');
+  }
+
+  // 1. Check if user exists locally
+  const localAccounts = getLocalAccounts();
+  const localUser = localAccounts.find((a) => a.email.toLowerCase() === cleanEmail);
+
+  let recipientName = localUser ? `${localUser.firstName} ${localUser.lastName}`.trim() : '';
+
+  // 2. If not local, check Supabase DB
+  if (!localUser) {
+    try {
+      const { data: dbUser } = await supabase
+        .from('users')
+        .select('id, email, first_name, last_name, is_active')
+        .eq('email', cleanEmail)
+        .maybeSingle();
+
+      if (dbUser) {
+        recipientName = `${dbUser.first_name || ''} ${dbUser.last_name || ''}`.trim() || 'Explorer';
+        if (dbUser.is_active === false) {
+          throw new Error('This account has been deactivated. Please contact support.');
+        }
+      }
+    } catch (err: any) {
+      if (err.message && err.message.includes('deactivated')) throw err;
+      // DB error or offline: continue check
+    }
+  }
+
+  // If user not found in local accounts and no DB user was matched
+  if (!localUser && !recipientName) {
+    throw new Error(`No registered account found with email: ${cleanEmail}. Please verify your email address or create a new account.`);
+  }
+
+  // 3. Generate 6-digit numeric OTP
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresInMinutes = 10;
+  const expiresAt = Date.now() + expiresInMinutes * 60 * 1000;
+
+  // 4. Save OTP record
+  const existingRecords = getStoredOtpRecords().filter((r) => r.email.toLowerCase() !== cleanEmail);
+  const newRecord: PasswordResetOtpRecord = {
+    email: cleanEmail,
+    otp: otpCode,
+    expiresAt,
+    attemptsLeft: 5,
+    createdAt: new Date().toISOString(),
+    verified: false,
+  };
+  saveOtpRecords([newRecord, ...existingRecords]);
+
+  // 5. Generate luxury HTML email
+  const emailPayload = generatePasswordResetOtpEmail({
+    email: cleanEmail,
+    recipientName: recipientName || 'Valued Member',
+    otpCode,
+    expiresInMinutes,
+  });
+
+  // 6. Dispatch live email via Gmail SMTP / Resend gateway
+  const dispatchRes = await dispatchLiveEmail({
+    to: cleanEmail,
+    subject: emailPayload.subject,
+    html: emailPayload.html,
+    text: emailPayload.text,
+  });
+
+  // 7. Track in dispatched email log
+  saveDispatchedEmail({
+    id: `email-otp-${Date.now()}`,
+    recipientEmail: cleanEmail,
+    recipientName: recipientName || 'Member',
+    subject: emailPayload.subject,
+    previewText: `Your M-TRAVEL password reset code is ${otpCode}. Valid for ${expiresInMinutes} minutes.`,
+    htmlContent: emailPayload.html,
+    category: 'PASSWORD_RESET',
+    reference: cleanEmail,
+    sentAt: new Date().toISOString(),
+    deliveryStatus: dispatchRes.success ? 'DELIVERED_RESEND' : 'FAILED',
+    deliveryProvider: dispatchRes.provider || 'gmail_smtp',
+    deliveryId: dispatchRes.id,
+  });
+
+  if (!dispatchRes.success) {
+    const errorDetail = dispatchRes.error || dispatchRes.message || 'Email delivery failed. Please check your connection or contact support.';
+    throw new Error(typeof errorDetail === 'string' ? errorDetail : JSON.stringify(errorDetail));
+  }
+
+  return {
+    success: true,
+    message: `A 6-digit verification code has been dispatched to ${cleanEmail}. Check your inbox or spam folder.`,
+    recipientEmail: cleanEmail,
+    recipientName,
+    expiresInMinutes,
+    provider: dispatchRes.provider,
+  };
+}
+
+/**
+ * 2. VERIFY PASSWORD RESET OTP
+ * Checks whether the submitted 6-digit code is valid and unexpired.
+ */
+export function verifyPasswordResetOTP(email: string, otp: string): {
+  success: boolean;
+  message: string;
+} {
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanOtp = otp.trim().replace(/\s+/g, '');
+
+  if (!cleanOtp || cleanOtp.length !== 6) {
+    throw new Error('Please enter the complete 6-digit verification code.');
+  }
+
+  const records = getStoredOtpRecords();
+  const record = records.find((r) => r.email.toLowerCase() === cleanEmail);
+
+  if (!record) {
+    throw new Error('No active verification code found for this email. Please request a new code.');
+  }
+
+  if (Date.now() > record.expiresAt) {
+    throw new Error('Verification code has expired. Please request a fresh code.');
+  }
+
+  if (record.attemptsLeft <= 0) {
+    throw new Error('Too many invalid attempts. For your security, please request a new verification code.');
+  }
+
+  if (record.otp !== cleanOtp) {
+    record.attemptsLeft -= 1;
+    saveOtpRecords(records);
+    const leftText = record.attemptsLeft > 0 ? ` (${record.attemptsLeft} attempts remaining)` : '';
+    throw new Error(`Incorrect verification code. Please check your email and try again${leftText}.`);
+  }
+
+  // Mark record as verified
+  record.verified = true;
+  saveOtpRecords(records);
+
+  return {
+    success: true,
+    message: 'Verification code confirmed successfully.',
+  };
+}
+
+/**
+ * 3. RESET PASSWORD WITH VERIFIED OTP
+ * Updates the user's password in both local accounts and Supabase database.
+ */
+export async function resetPasswordWithOTP(
+  email: string,
+  otp: string,
+  newPassword: string,
+): Promise<{ success: boolean; message: string }> {
+  const cleanEmail = email.trim().toLowerCase();
+
+  if (!newPassword || newPassword.length < 6) {
+    throw new Error('New password must be at least 6 characters long.');
+  }
+
+  // Verify OTP first
+  verifyPasswordResetOTP(cleanEmail, otp);
+
+  // 1. Update in local storage accounts
+  const localAccounts = getLocalAccounts();
+  const accountIndex = localAccounts.findIndex((a) => a.email.toLowerCase() === cleanEmail);
+
+  if (accountIndex >= 0) {
+    localAccounts[accountIndex].password = newPassword;
+  } else {
+    localAccounts.push({
+      id: generateUserUUID(),
+      email: cleanEmail,
+      password: newPassword,
+      role: 'TOURIST',
+      firstName: 'Member',
+      lastName: '',
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  try {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(localAccounts));
+    localStorage.setItem('mt_user_credentials', JSON.stringify(localAccounts));
+    localStorage.setItem('mt_users', JSON.stringify(localAccounts));
+    localStorage.setItem('mt_accounts', JSON.stringify(localAccounts));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('mt_accounts_updated'));
+    }
+  } catch (err) {
+    console.warn('Failed to update local account password:', err);
+  }
+
+  // 2. Update in Supabase DB (if user exists in remote DB)
+  try {
+    const { error: dbError } = await supabase
+      .from('users')
+      .update({
+        password_hash: newPassword,
+        updated_at: new Date().toISOString(),
+      })
+      .ilike('email', cleanEmail);
+
+    if (dbError) {
+      console.warn('Supabase DB password update warning:', dbError.message);
+    }
+  } catch (dbErr) {
+    console.warn('Supabase DB connection error during password reset:', dbErr);
+  }
+
+  // 3. Purge the used OTP
+  const remainingRecords = getStoredOtpRecords().filter((r) => r.email.toLowerCase() !== cleanEmail);
+  saveOtpRecords(remainingRecords);
+
+  // 4. Log audit event
+  logAuditEvent(
+    'USER_PASSWORD_RESET',
+    'User',
+    cleanEmail,
+    `Password was successfully reset for account ${cleanEmail} via verified email OTP`,
+    cleanEmail,
+    'USER',
+  );
+
+  return {
+    success: true,
+    message: 'Your password has been successfully updated. You can now log in with your new password.',
   };
 }

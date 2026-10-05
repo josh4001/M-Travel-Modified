@@ -11,7 +11,7 @@ import { supabase, cancelBookingInSupabase } from '@/lib/supabaseClient';
 import { useCurrency } from '@/context/CurrencyContext';
 import { fetchNotifications, type AppNotification } from '@/lib/notificationService';
 import {
-  getStoredBookings, syncBookingsFromSupabase, updateBookingStatus, isTripBooking,
+  getStoredBookings, syncBookingsFromSupabase, updateBookingStatus, isTripBooking, isBusVehicle,
   type StoredBooking
 } from '@/lib/bookingStore';
 import { MpesaStkPushModal } from '@/components/ui/MpesaStkPushModal';
@@ -200,33 +200,28 @@ export default function TouristDashboard() {
   };
 
   return (
-    /* ── LIGHT PAGE SHELL ─────────────────────────────────────── */
-    <div className="min-h-screen bg-[#F8F7F4] font-display text-slate-800 pb-16">
+    <div className="min-h-screen bg-white text-slate-900 relative overflow-hidden font-sans pb-16">
       <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
 
         {/* ── WELCOME HEADER ──────────────────────────────────── */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-mtravel-burgundy via-mtravel-darkBurgundy to-mtravel-obsidian p-8 shadow-xl">
-          {/* decorative glow blobs */}
-          <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-mtravel-gold/20 blur-3xl" />
-          <div className="pointer-events-none absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-mtravel-gold/10 blur-2xl" />
-
+        <div className="relative overflow-hidden rounded-3xl bg-slate-950 border border-slate-800 p-8 shadow-2xl text-white">
           <div className="relative">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-mtravel-gold/40 bg-mtravel-gold/10 px-3.5 py-1 text-[11px] font-bold uppercase tracking-widest text-mtravel-lightGold">
-              <Sparkles className="h-3 w-3 text-mtravel-lightGold" />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-[11px] font-bold uppercase tracking-widest text-amber-300">
+              <Sparkles className="h-3 w-3 text-amber-300" />
               <span>Tourist Portal</span>
             </span>
             <h1 className="mt-3 font-serif text-3xl font-bold text-white">
               Welcome back, {user?.firstName ?? 'Traveler'}
             </h1>
-            <p className="mt-1.5 text-sm text-white/70">
-              Explore Kenya's finest vehicles and unforgettable experiences.
+            <p className="mt-1.5 text-sm text-slate-300 font-normal">
+              Explore Kenya's finest vehicles and bespoke safari experiences.
             </p>
 
             {pending.length > 0 && (
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   onClick={() => handlePayNow(pending[0])}
-                  className="inline-flex items-center gap-2 rounded-full border border-amber-300/60 bg-amber-400/20 px-6 py-2.5 text-sm font-bold text-amber-300 transition hover:bg-amber-400/30"
+                  className="inline-flex items-center gap-2 rounded-full border border-amber-400/50 bg-amber-500/20 px-6 py-2.5 text-sm font-bold text-amber-300 transition hover:bg-amber-500/30"
                 >
                   <Smartphone className="h-4 w-4" /> Pay Now via M-Pesa ({pending.length})
                 </button>
@@ -238,23 +233,20 @@ export default function TouristDashboard() {
         {/* ── STATS ROW ────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
-            { label: 'Total Bookings',  value: allStoreBookings.length + dbBookings.length, icon: Calendar,    accent: '#5C0632', light: '#FDF2F5' },
-            { label: 'Active Trips',    value: active.length,                               icon: Car,         accent: '#17A398', light: '#F0FAFA' },
-            { label: 'Trips Completed', value: completed.length + dbCompleted,              icon: CheckCircle, accent: '#059669', light: '#F0FDF4' },
-            { label: 'Total Spent',     value: formatPrice(spent + dbSpent),                icon: TrendingUp,  accent: '#B45309', light: '#FFFBEB' },
+            { label: 'Total Bookings',  value: allStoreBookings.length + dbBookings.length, icon: Calendar,    accent: '#D97706' },
+            { label: 'Active Trips',    value: active.length,                               icon: Car,         accent: '#059669' },
+            { label: 'Trips Completed', value: completed.length + dbCompleted,              icon: CheckCircle, accent: '#10B981' },
+            { label: 'Total Spent',     value: formatPrice(spent + dbSpent),                icon: TrendingUp,  accent: '#B45309' },
           ].map(s => (
             <div
               key={s.label}
-              className="rounded-2xl bg-white border border-slate-200/80 p-5 shadow-sm hover:shadow-md transition-shadow"
+              className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm hover:border-slate-400 hover:shadow-md transition-all text-slate-900"
             >
-              <div
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl"
-                style={{ backgroundColor: s.light }}
-              >
+              <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 border border-slate-200">
                 <s.icon className="h-5 w-5" style={{ color: s.accent }} />
               </div>
-              <p className="mt-3 font-mono text-xl font-bold text-slate-800">{s.value}</p>
-              <p className="mt-0.5 text-xs text-slate-500">{s.label}</p>
+              <p className="mt-3 font-mono text-2xl font-bold text-slate-950">{s.value}</p>
+              <p className="mt-0.5 text-xs text-slate-500 font-medium">{s.label}</p>
             </div>
           ))}
         </div>
@@ -286,28 +278,28 @@ export default function TouristDashboard() {
           {/* BOOKINGS LIST ──────────────────────────────────── */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="flex items-center gap-2 font-serif text-xl font-bold text-slate-800">
-                <Calendar className="h-5 w-5 text-mtravel-burgundy" /> My Bookings
+              <h2 className="flex items-center gap-2 font-sans text-xl font-bold text-slate-900">
+                <Calendar className="h-5 w-5 text-slate-900" /> My Bookings
               </h2>
               <Link
                 to="/dashboard/bookings"
-                className="text-xs font-semibold text-mtravel-burgundy hover:underline flex items-center gap-1"
+                className="text-xs font-semibold text-slate-700 hover:text-black hover:underline flex items-center gap-1"
               >
                 View All <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
 
             {loading && (
-              <div className="rounded-2xl bg-white border border-slate-200/80 p-8 text-center shadow-sm">
-                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-mtravel-burgundy border-t-transparent" />
+              <div className="rounded-2xl bg-white border border-slate-200 p-8 text-center shadow-sm">
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-950 border-t-transparent" />
                 <p className="mt-3 text-sm text-slate-500">Loading your bookings…</p>
               </div>
             )}
 
             {!loading && allStoreBookings.length === 0 && dbBookings.length === 0 && (
-              <div className="rounded-2xl bg-white border border-slate-200/80 p-10 text-center shadow-sm">
+              <div className="rounded-2xl bg-white border border-slate-200 p-10 text-center shadow-sm">
                 <Car className="mx-auto h-12 w-12 text-slate-300" />
-                <p className="mt-4 font-serif text-lg text-slate-700">No bookings yet</p>
+                <p className="mt-4 font-sans font-bold text-lg text-slate-900">No bookings yet</p>
                 <p className="mt-1 text-sm text-slate-500">Start your East African adventure today.</p>
               </div>
             )}
@@ -320,10 +312,10 @@ export default function TouristDashboard() {
               return (
                 <div
                   key={b.id}
-                  className="flex gap-4 overflow-hidden rounded-2xl bg-white border border-slate-200/80 p-4 shadow-sm transition hover:shadow-md hover:border-slate-300"
+                  className="flex gap-4 overflow-hidden rounded-2xl bg-white border border-slate-200 p-4 shadow-sm transition hover:shadow-md hover:border-slate-900"
                 >
                   {/* Vehicle thumbnail */}
-                  <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                  <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-slate-100 border border-slate-200">
                     {b.vehicleImage ? (
                       <img src={b.vehicleImage} alt="vehicle" className="h-full w-full object-cover" />
                     ) : (
@@ -336,7 +328,7 @@ export default function TouristDashboard() {
                   <div className="flex flex-1 flex-col justify-between min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="font-display font-bold text-slate-900">{b.vehicleName}</p>
+                        <p className="font-sans font-bold text-slate-900 text-base">{b.vehicleName}</p>
                         <p className="text-xs text-slate-500 font-mono">{b.bookingRef}</p>
                       </div>
                       <span className={`flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold whitespace-nowrap ${cfg.color}`}>
@@ -346,18 +338,22 @@ export default function TouristDashboard() {
 
                     <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-2">
                       <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" />
+                        <Clock className="h-3.5 w-3.5 text-slate-400" />
                         {b.startDate} — {b.endDate}
                       </span>
-                      <span className="ml-auto font-mono font-bold text-mtravel-burgundy text-sm">
+                      <span className="ml-auto font-mono font-bold text-slate-950 text-base">
                         {formatPrice(b.totalAmount)}
                       </span>
                     </div>
 
                     {!isDest && ['CONFIRMED', 'PAID', 'ACCEPTED'].includes(b.status) && (
-                      <div className="mt-2 rounded-xl bg-amber-50 border border-amber-200/90 p-2.5 text-xs text-amber-900 font-medium flex items-center gap-2">
-                        <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
-                        <span>Executive Handover Verification Required: Present your original National ID / Driving License at pickup to receive keys and start trip.</span>
+                      <div className="mt-2 rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-xs text-slate-700 font-medium flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4 text-slate-900 shrink-0" />
+                        <span>
+                          {isBusVehicle(b)
+                            ? 'Executive Handover Verification: Present your original National ID / Passport at pickup for verification. (Designated company driver provided — no driver\'s license required).'
+                            : 'Executive Handover Verification Required: Present your original National ID / Driving License at pickup to receive keys and start trip.'}
+                        </span>
                       </div>
                     )}
 
@@ -377,17 +373,17 @@ export default function TouristDashboard() {
                         isDest ? (
                           <button
                             onClick={() => setSelectedDestVoucher(b)}
-                            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-700 px-4 py-2 text-xs font-bold text-white hover:from-purple-800 hover:to-indigo-800 transition shadow"
+                            className="flex items-center gap-1.5 rounded-xl bg-slate-950 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 transition shadow"
                           >
-                            <Palmtree className="h-3.5 w-3.5 text-amber-300" />
+                            <Palmtree className="h-3.5 w-3.5 text-amber-400" />
                             View Destination
                           </button>
                         ) : (
                           <Link
                             to="/dashboard/bookings"
-                            className="flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 transition shadow"
+                            className="flex items-center gap-1.5 rounded-xl bg-white border border-slate-300 px-4 py-2 text-xs font-bold text-slate-900 hover:bg-slate-50 transition shadow-sm"
                           >
-                            <Car className="h-3.5 w-3.5 text-amber-400" />
+                            <Car className="h-3.5 w-3.5 text-slate-700" />
                             View Rental Details
                           </Link>
                         )
@@ -397,8 +393,8 @@ export default function TouristDashboard() {
                           onClick={() => handleCancelBooking(b.id)}
                           className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition shadow border ${
                             cancelConfirm === b.id
-                              ? 'bg-rose-100 border-rose-400 text-rose-700 animate-pulse'
-                              : 'bg-white border-rose-200 text-rose-500 hover:bg-rose-50'
+                              ? 'bg-rose-600 border-rose-600 text-white'
+                              : 'bg-white border-rose-200 text-rose-600 hover:bg-rose-50'
                           }`}
                         >
                           <X className="h-3.5 w-3.5" />
@@ -421,9 +417,9 @@ export default function TouristDashboard() {
               return (
                 <div
                   key={b.id}
-                  className="flex gap-4 overflow-hidden rounded-2xl bg-white border border-slate-200/80 p-4 shadow-sm transition hover:shadow-md hover:border-slate-300"
+                  className="flex gap-4 overflow-hidden rounded-2xl bg-white border border-slate-200 p-4 shadow-sm transition hover:shadow-md hover:border-slate-900"
                 >
-                  <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                  <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-slate-100 border border-slate-200">
                     {img ? (
                       <img src={img} alt="vehicle" className="h-full w-full object-cover" />
                     ) : (
@@ -436,7 +432,7 @@ export default function TouristDashboard() {
                   <div className="flex flex-1 flex-col justify-between">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="font-display font-bold text-slate-900">
+                        <p className="font-sans font-bold text-slate-900 text-base">
                           {b.vehicles ? `${b.vehicles.make} ${b.vehicles.model}` : 'Vehicle'}
                         </p>
                         <p className="text-xs text-slate-500 font-mono">{b.booking_ref}</p>
@@ -448,11 +444,11 @@ export default function TouristDashboard() {
 
                     <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1">
                       <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" />
+                        <Clock className="h-3.5 w-3.5 text-slate-400" />
                         {new Date(b.start_date).toLocaleDateString('en-KE')} — {new Date(b.end_date).toLocaleDateString('en-KE')}
                       </span>
                       <span>{nights} night{nights > 1 ? 's' : ''}</span>
-                      <span className="ml-auto font-mono font-bold text-mtravel-burgundy text-sm">
+                      <span className="ml-auto font-mono font-bold text-slate-950 text-base">
                         {formatPrice(b.total_amount)}
                       </span>
                     </div>
@@ -460,7 +456,7 @@ export default function TouristDashboard() {
                     {['CONFIRMED', 'IN_PROGRESS', 'ACCEPTED'].includes(b.status) && (
                       <Link
                         to={`/vehicles/${b.id}`}
-                        className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition shadow"
+                        className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 transition shadow"
                       >
                         <MapPin className="h-3.5 w-3.5 animate-pulse" /> Track Trip Live (GPS)
                       </Link>
@@ -475,29 +471,29 @@ export default function TouristDashboard() {
           <div className="space-y-4">
 
             {/* WALLET CARD */}
-            <div className="rounded-2xl bg-white border border-slate-200/80 p-6 shadow-sm">
-              <h3 className="flex items-center gap-2 font-serif font-bold text-slate-900">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50">
-                  <Wallet className="h-4 w-4 text-amber-600" />
+            <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm text-slate-900">
+              <h3 className="flex items-center gap-2 font-sans font-bold text-slate-900">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-900 border border-slate-200">
+                  <Wallet className="h-4 w-4 text-slate-900" />
                 </div>
                 My Wallet
               </h3>
               {wallet ? (
                 <>
-                  <p className="mt-4 font-mono text-3xl font-bold text-slate-900">
+                  <p className="mt-4 font-mono text-3xl font-bold text-slate-950">
                     {wallet.currency} {Number(wallet.balance).toLocaleString()}
                   </p>
                   <p className="mt-0.5 text-xs text-slate-500">Available balance</p>
                   <div className="mt-4 flex gap-2">
                     <Link
                       to="/dashboard/wallet"
-                      className="flex-1 rounded-xl border border-slate-200 bg-slate-50 py-2 text-center text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
+                      className="flex-1 rounded-xl border border-slate-900 bg-slate-950 py-2 text-center text-xs font-semibold text-white hover:bg-slate-800 transition shadow-sm"
                     >
                       Top Up
                     </Link>
                     <Link
                       to="/dashboard/wallet"
-                      className="flex-1 rounded-xl border border-mtravel-burgundy/20 bg-mtravel-burgundy/5 py-2 text-center text-xs font-semibold text-mtravel-burgundy hover:bg-mtravel-burgundy/10 transition"
+                      className="flex-1 rounded-xl border border-slate-200 bg-slate-100 py-2 text-center text-xs font-semibold text-slate-800 hover:bg-slate-200 transition"
                     >
                       Transactions
                     </Link>
@@ -511,10 +507,10 @@ export default function TouristDashboard() {
             </div>
 
             {/* M-PESA CARD */}
-            <div className="rounded-2xl bg-white border border-emerald-100 p-5 shadow-sm">
+            <div className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm text-slate-900">
               <div className="flex items-center gap-2 mb-3">
                 <MpesaLogo variant="badge" size="sm" />
-                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Lipa Na M-Pesa</span>
+                <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Lipa Na M-Pesa</span>
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
                 Pay securely with M-Pesa STK Push. An instant prompt will appear on your phone for PIN confirmation.
@@ -531,23 +527,23 @@ export default function TouristDashboard() {
 
             {/* ACCOUNT ALERTS & NOTIFICATIONS (Strictly isolated) */}
             {notifications.length > 0 && (
-              <div className="rounded-2xl bg-white border border-slate-200/80 p-5 shadow-sm space-y-3">
+              <div className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm space-y-3 text-slate-900">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50">
-                      <Bell className="h-4 w-4 text-amber-600" />
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-900 border border-slate-200">
+                      <Bell className="h-4 w-4 text-slate-900" />
                     </div>
-                    <h3 className="font-display font-bold text-slate-900 text-sm">Account Alerts</h3>
+                    <h3 className="font-sans font-bold text-slate-900 text-sm">Account Alerts</h3>
                   </div>
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                  <span className="rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700">
                     {notifications.length}
                   </span>
                 </div>
                 <div className="space-y-2 max-h-56 overflow-y-auto pr-1 divide-y divide-slate-100">
                   {notifications.map((n) => (
                     <div key={n.id} className="pt-2 first:pt-0">
-                      <p className="text-xs font-bold text-slate-800 leading-tight">{n.title}</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{n.message}</p>
+                      <p className="text-xs font-bold text-slate-900 leading-tight">{n.title}</p>
+                      <p className="text-[11px] text-slate-600 mt-0.5 leading-snug">{n.message}</p>
                       <p className="text-[9px] text-slate-400 mt-1 font-mono">{new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                   ))}
@@ -556,47 +552,47 @@ export default function TouristDashboard() {
             )}
 
             {/* QUICK ACTIONS */}
-            <div className="rounded-2xl bg-white border border-slate-200/80 p-5 shadow-sm">
-              <h3 className="font-display font-semibold text-slate-500 text-xs uppercase tracking-wider mb-3">Quick Actions</h3>
+            <div className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm text-slate-900">
+              <h3 className="font-sans font-semibold text-slate-500 text-xs uppercase tracking-wider mb-3">Quick Actions</h3>
               {[
-                { to: '/dashboard/bookings', icon: Calendar, label: 'All Bookings & Rides', accent: '#F5A623' },
-                { to: '/dashboard/wallet',   icon: Wallet,   label: 'Wallet & Payments',  accent: '#059669' },
-                { to: '/contact',            icon: Star,     label: 'Contact Support',    accent: '#5C0632' },
+                { to: '/dashboard/bookings', icon: Calendar, label: 'All Bookings & Rides', accent: '#0f172a' },
+                { to: '/dashboard/wallet',   icon: Wallet,   label: 'Wallet & Payments',  accent: '#10B981' },
+                { to: '/contact',            icon: Star,     label: 'Contact Support',    accent: '#D97706' },
               ].map(a => (
                 <Link
                   key={a.to}
                   to={a.to}
                   className="flex items-center gap-3 rounded-xl p-2.5 hover:bg-slate-50 transition group"
                 >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 group-hover:bg-slate-200/60 transition shadow-sm">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 border border-slate-200 group-hover:border-slate-400 transition shadow-sm">
                     <a.icon className="h-4 w-4" style={{ color: a.accent }} />
                   </div>
-                  <span className="text-sm text-slate-700 group-hover:text-slate-900 transition">{a.label}</span>
-                  <ArrowRight className="ml-auto h-4 w-4 text-slate-300 group-hover:text-slate-600 transition" />
+                  <span className="text-sm text-slate-700 group-hover:text-black font-medium transition">{a.label}</span>
+                  <ArrowRight className="ml-auto h-4 w-4 text-slate-400 group-hover:text-slate-900 transition" />
                 </Link>
               ))}
             </div>
 
             {/* TRAVEL TIPS */}
-            <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/60 p-5">
-              <p className="text-xs font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
+            <div className="rounded-2xl bg-slate-950 border border-slate-800 p-5 shadow-2xl text-white">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5 font-sans">
                 <MapPin className="h-3.5 w-3.5" /> Travel Tips
               </p>
-              <ul className="mt-3 space-y-2.5 text-xs text-slate-700 font-medium">
+              <ul className="mt-3 space-y-2.5 text-xs text-slate-300 font-medium">
                 <li className="flex items-center gap-2">
-                  <Compass className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                  <Compass className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                   <span><strong>Maasai Mara:</strong> Peak safari migration July–Oct</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Mountain className="h-3.5 w-3.5 text-slate-600 shrink-0" />
+                  <Mountain className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                   <span><strong>Mount Kenya:</strong> Optimal trekking window Jan–Feb</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Trees className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <Trees className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                   <span><strong>Amboseli:</strong> Superb Kilimanjaro wildlife views</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Waves className="h-3.5 w-3.5 text-teal-600 shrink-0" />
+                  <Waves className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
                   <span><strong>Diani Beach:</strong> Calm coastal waters Nov–Apr</span>
                 </li>
               </ul>

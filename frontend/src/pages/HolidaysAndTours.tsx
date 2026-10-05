@@ -195,20 +195,14 @@ export default function HolidaysAndTours() {
   };
 
   return (
-    <div className="min-h-screen bg-[#060302] text-slate-100 relative overflow-hidden font-display">
-      {/* ATMOSPHERIC GLOWING BROWN AMBIENT RADIANCE */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[650px] bg-gradient-to-b from-amber-900/20 via-[#22140b]/35 to-transparent blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-1/4 -right-40 w-96 h-96 bg-amber-800/10 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute bottom-1/3 -left-40 w-96 h-96 bg-[#22140b]/25 rounded-full blur-3xl pointer-events-none -z-10" />
-
-      <div className="mx-auto max-w-7xl px-4 py-12 space-y-12 relative z-10 font-display">
+    <div className="min-h-screen bg-white text-slate-900 relative overflow-hidden font-sans">
+      <div className="mx-auto max-w-7xl px-4 py-12 space-y-10 relative z-10 font-sans">
         {/* HERO BANNER */}
-        <div className="relative rounded-3xl overflow-hidden border border-amber-500/25 bg-gradient-to-br from-[#1c1008]/90 via-[#100905]/95 to-black/95 p-8 md:p-12 text-white shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-xl">
-          <div className="absolute -right-20 -top-20 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative rounded-3xl overflow-hidden border border-slate-800 bg-slate-950 p-8 md:p-12 text-white shadow-2xl">
           <div className="relative z-10 max-w-3xl space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/15 px-4 py-1.5 backdrop-blur-md">
-              <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-              <span className="text-xs font-bold uppercase tracking-widest text-amber-200">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 backdrop-blur-md">
+              <Sparkles className="h-3.5 w-3.5 text-white" />
+              <span className="text-xs font-bold uppercase tracking-widest text-slate-200">
                 East Africa's Curated Holiday Sanctuaries
               </span>
             </div>
@@ -217,18 +211,18 @@ export default function HolidaysAndTours() {
               Holidays, Safaris & Private Villas
             </h1>
 
-            <p className="text-sm md:text-base text-amber-100/70 leading-relaxed max-w-2xl font-body">
+            <p className="text-sm md:text-base text-slate-300 leading-relaxed max-w-2xl font-normal">
               Handpicked African holiday escapes verified by M-TRAVEL. Choose from all-inclusive Maasai Mara safari game drives, Mount Kenya retreats, and beachfront Swahili villas with private pools & personal chefs.
             </p>
 
             {/* SEARCH BAR */}
             <div className="pt-2 max-w-xl">
               <div className="relative">
-                <Search className="absolute left-4 top-3.5 h-5 w-5 text-amber-400" />
+                <Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search safari packages, villas, beaches, or reserves..."
-                  className="input-field pl-12 bg-black/60 border-amber-900/50 text-white placeholder:text-amber-100/40 text-xs md:text-sm focus:border-amber-400 shadow-inner"
+                  className="input-field pl-12 bg-slate-900 border-slate-700 text-white placeholder:text-slate-400 text-xs md:text-sm focus:border-white shadow-inner"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -238,7 +232,7 @@ export default function HolidaysAndTours() {
         </div>
 
         {/* CATEGORY SELECTOR TABS */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-amber-900/30 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
           <div className="flex items-center gap-2">
             {[
               { id: 'ALL' as TabFilter, label: 'All Holidays & Tours', icon: Compass, count: destinations.length },
@@ -253,13 +247,13 @@ export default function HolidaysAndTours() {
                   onClick={() => handleTabChange(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 ${
                     isActive
-                      ? 'bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
-                      : 'bg-[#150d08]/80 text-amber-100/75 border border-amber-900/40 hover:bg-[#20130b] hover:text-white backdrop-blur-md'
+                      ? 'bg-slate-950 text-white border-slate-950 shadow-md scale-[1.01]'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-slate-950 hover:border-slate-900 shadow-xs'
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-slate-600'}`} />
                   <span>{tab.label}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${isActive ? 'bg-white/30 text-white' : 'bg-black/40 text-amber-300'}`}>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'}`}>
                     {tab.count}
                   </span>
                 </button>
@@ -267,22 +261,22 @@ export default function HolidaysAndTours() {
             })}
           </div>
 
-          <div className="text-xs text-amber-200/60 font-medium flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-emerald-400" />
+          <div className="text-xs text-slate-600 font-medium flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-emerald-600" />
             <span>Curated & Updated Exclusively by M-TRAVEL Administration</span>
           </div>
         </div>
 
         {/* PUBLIC TRAVELER BANNER (WHEN NOT LOGGED IN) */}
         {!user && (
-          <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-[#180e08]/95 via-[#100905]/95 to-black/95 p-4 text-xs text-amber-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-amber-500/15 border border-amber-400/30 text-amber-400 flex items-center justify-center shrink-0">
+              <div className="h-9 w-9 rounded-xl bg-slate-200 border border-slate-300 text-slate-700 flex items-center justify-center shrink-0">
                 <Lock className="h-4 w-4" />
               </div>
               <div>
-                <p className="font-bold text-white text-xs sm:text-sm">Browsing M-TRAVEL Holidays & Stays</p>
-                <p className="text-amber-100/70 text-[11px] sm:text-xs">
+                <p className="font-bold text-slate-950 text-xs sm:text-sm">Browsing M-TRAVEL Holidays & Stays</p>
+                <p className="text-slate-600 text-[11px] sm:text-xs">
                   To confirm bookings, lock travel dates, and receive official digital itineraries, please register or sign in as a traveler.
                 </p>
               </div>
@@ -297,7 +291,7 @@ export default function HolidaysAndTours() {
               </Link>
               <Link
                 to="/login?redirect=/holidays-and-tours"
-                className="btn-secondary !bg-[#1c1008] !border-amber-900/50 !text-amber-200 hover:!bg-[#28170d] !py-2 !px-3 text-xs font-semibold"
+                className="btn-secondary !bg-white !border-slate-300 !text-slate-800 hover:!bg-slate-100 !py-2 !px-3 text-xs font-semibold"
               >
                 Sign In
               </Link>
@@ -377,18 +371,24 @@ export default function HolidaysAndTours() {
 
       {/* ITEM GRID */}
       {filteredItems.length === 0 ? (
-        <div className="rounded-3xl border border-amber-900/40 bg-[#120a05]/90 p-12 text-center shadow-xl backdrop-blur-md space-y-4">
-          <Palmtree className="h-12 w-12 text-amber-500 mx-auto" />
-          <h3 className="font-serif text-xl font-bold text-white">No Holiday Packages Found</h3>
-          <p className="text-xs text-amber-100/65 max-w-sm mx-auto">
-            No active holiday destinations or safaris match your query. Try clearing your search term.
+        <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center shadow-sm space-y-4">
+          <Palmtree className="h-12 w-12 text-slate-400 mx-auto" />
+          <h3 className="font-serif text-xl font-bold text-slate-950">
+            {destinations.length === 0 ? 'No holidays or tours available at the moment' : 'No Holiday Packages Found'}
+          </h3>
+          <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
+            {destinations.length === 0
+              ? 'There are currently no safari tours or holiday homes published in the system. Administrators can create and publish new holiday packages directly from the Admin Management Portal.'
+              : 'No active holiday destinations or safaris match your search query. Try clearing your filters.'}
           </p>
-          <button
-            onClick={() => { setSearchTerm(''); setActiveCategory('ALL'); }}
-            className="btn-primary !py-2 !px-4 text-xs font-bold"
-          >
-            Reset Filters
-          </button>
+          {searchTerm && (
+            <button
+              onClick={() => { setSearchTerm(''); setActiveCategory('ALL'); }}
+              className="btn-primary !py-2 !px-4 text-xs font-bold"
+            >
+              Reset Filters
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -398,7 +398,7 @@ export default function HolidaysAndTours() {
               layout
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-3xl border border-amber-900/40 bg-gradient-to-b from-[#140c07]/90 to-[#0c0704]/95 backdrop-blur-md overflow-hidden shadow-xl hover:shadow-[0_12px_36px_rgba(217,119,6,0.15)] hover:border-amber-500/40 transition duration-300 flex flex-col justify-between group"
+              className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-xl hover:border-slate-900 transition duration-300 flex flex-col justify-between group"
             >
               <div>
                 {/* PHOTO CONTAINER */}
@@ -411,14 +411,14 @@ export default function HolidaysAndTours() {
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
 
                   {/* BADGES */}
-                  <span className="absolute top-3 left-3 rounded-full bg-slate-950/85 backdrop-blur-md px-3 py-1 text-[11px] font-bold text-amber-300 border border-white/20">
+                  <span className="absolute top-3 left-3 rounded-full bg-slate-950/85 backdrop-blur-md px-3 py-1 text-[11px] font-bold text-white border border-white/20">
                     {item.badge}
                   </span>
 
                   {/* LOCATION BAR */}
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-white">
                     <span className="flex items-center gap-1 font-medium truncate drop-shadow-sm">
-                      <MapPin className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                      <MapPin className="h-3.5 w-3.5 text-slate-300 shrink-0" />
                       {item.location}
                     </span>
                     <span className="text-[10px] text-slate-300 font-mono">
@@ -430,16 +430,16 @@ export default function HolidaysAndTours() {
                 {/* CONTENT */}
                 <div className="p-6 space-y-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-500/30">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-300">
                       {item.category === 'TOUR' ? 'Safari Package' : 'Holiday Home'}
                     </span>
                   </div>
 
-                  <h3 className="font-serif text-xl font-bold text-white group-hover:text-amber-400 transition line-clamp-2">
+                  <h3 className="font-serif text-xl font-bold text-slate-950 group-hover:text-slate-700 transition line-clamp-2">
                     {item.title}
                   </h3>
 
-                  <p className="text-xs text-amber-100/65 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed font-normal">
                     {item.subtitle}
                   </p>
 
@@ -448,7 +448,7 @@ export default function HolidaysAndTours() {
                     {item.specs.slice(0, 3).map((spec, i) => (
                       <span
                         key={i}
-                        className="rounded-lg bg-black/40 px-2.5 py-1 text-[11px] font-medium text-amber-200/80 border border-amber-900/40"
+                        className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700 border border-slate-200"
                       >
                         {spec}
                       </span>
@@ -458,27 +458,27 @@ export default function HolidaysAndTours() {
               </div>
 
               {/* FOOTER & PRICING */}
-              <div className="p-5 pt-0 border-t border-amber-900/30 mt-4 flex items-center justify-between gap-2">
+              <div className="p-5 pt-0 border-t border-slate-100 mt-4 flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <span className="block text-[10px] uppercase font-bold text-amber-300/50 truncate">All-Inclusive Rate</span>
+                  <span className="block text-[10px] uppercase font-bold text-slate-500 truncate">All-Inclusive Rate</span>
                   <div className="flex items-baseline gap-1 whitespace-nowrap">
-                    <span className="font-serif text-lg sm:text-xl font-bold text-white">
+                    <span className="font-serif text-lg sm:text-xl font-bold text-slate-950">
                       {formatPrice(item.priceKES)}
                     </span>
-                    <span className="text-[11px] text-amber-200/60 font-medium truncate">{item.priceUnit}</span>
+                    <span className="text-[11px] text-slate-500 font-medium truncate">{item.priceUnit}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => setSelectedItem(item)}
-                    className="rounded-xl border border-amber-800/40 hover:border-amber-600 bg-[#1c1008] hover:bg-[#28170d] px-2.5 py-2 text-xs font-bold text-amber-200 transition whitespace-nowrap"
+                    className="rounded-xl border border-slate-300 hover:border-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-2 text-xs font-bold text-slate-800 transition whitespace-nowrap cursor-pointer"
                   >
                     Details
                   </button>
                   <button
                     onClick={() => handleBookNow(item)}
-                    className="btn-primary !py-2 !px-3.5 text-xs font-bold shadow-md shadow-amber-500/20 whitespace-nowrap flex items-center gap-1"
+                    className="btn-primary !py-2 !px-3.5 text-xs font-bold shadow-sm whitespace-nowrap flex items-center gap-1"
                   >
                     <span>Book Now</span>
                   </button>
@@ -509,14 +509,14 @@ export default function HolidaysAndTours() {
 
               {/* MODAL HEADER */}
               <div>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-800 mb-2">
-                  <Sparkles className="h-3 w-3 text-amber-600" /> {selectedItem.badge}
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-800 mb-2">
+                  <Sparkles className="h-3 w-3 text-slate-700" /> {selectedItem.badge}
                 </span>
                 <h2 className="font-serif text-2xl md:text-3xl font-bold text-slate-950">
                   {selectedItem.title}
                 </h2>
                 <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
-                  <MapPin className="h-4 w-4 text-amber-600" />
+                  <MapPin className="h-4 w-4 text-slate-700" />
                   <span>{selectedItem.location} — {selectedItem.region}</span>
                 </p>
               </div>
@@ -545,7 +545,7 @@ export default function HolidaysAndTours() {
                           <button
                             key={idx}
                             onClick={() => setActivePhotoIdx(idx)}
-                            className={`relative h-16 w-24 shrink-0 rounded-xl overflow-hidden border-2 transition ${activePhotoIdx === idx ? 'border-amber-500 scale-105 shadow-md' : 'border-slate-200 opacity-70 hover:opacity-100'}`}
+                            className={`relative h-16 w-24 shrink-0 rounded-xl overflow-hidden border-2 transition ${activePhotoIdx === idx ? 'border-slate-900 scale-105 shadow-md' : 'border-slate-200 opacity-70 hover:opacity-100'}`}
                           >
                             <img src={p} alt={`Thumb ${idx + 1}`} className="h-full w-full object-cover" />
                           </button>
@@ -587,8 +587,8 @@ export default function HolidaysAndTours() {
                   </h4>
                   <div className="space-y-2">
                     {selectedItem.details.scheduleOrItinerary.map((step, i) => (
-                      <div key={i} className="flex items-start gap-3 text-xs text-slate-700 bg-amber-50/40 p-3 rounded-xl border border-amber-200/50">
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white font-bold text-[10px]">
+                      <div key={i} className="flex items-start gap-3 text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white font-bold text-[10px]">
                           {i + 1}
                         </span>
                         <span className="leading-relaxed">{step}</span>
@@ -600,8 +600,8 @@ export default function HolidaysAndTours() {
 
               {/* TRAVELER ACCOUNT NOTICE IN DETAIL MODAL */}
               {!user && (
-                <div className="rounded-2xl border border-amber-200/90 bg-amber-50/80 p-3 text-xs text-amber-900 flex items-center gap-2.5">
-                  <Lock className="h-4 w-4 text-amber-700 shrink-0" />
+                <div className="rounded-2xl border border-slate-300 bg-slate-100 p-3 text-xs text-slate-900 flex items-center gap-2.5">
+                  <Lock className="h-4 w-4 text-slate-700 shrink-0" />
                   <span>Traveler account required to reserve — clicking <strong>Reserve Now</strong> will guide you to register or sign in.</span>
                 </div>
               )}
@@ -630,7 +630,7 @@ export default function HolidaysAndTours() {
                   </a>
                   <button
                     onClick={() => handleBookNow(selectedItem)}
-                    className="flex-1 sm:flex-initial btn-primary !py-2.5 !px-6 text-xs font-bold shadow-md shadow-amber-500/20"
+                    className="flex-1 sm:flex-initial btn-primary !py-2.5 !px-6 text-xs font-bold shadow-md shadow-slate-950/10"
                   >
                     Reserve Now
                   </button>
@@ -662,8 +662,8 @@ export default function HolidaysAndTours() {
 
               {/* HEADER BADGE */}
               <div className="space-y-1.5 pr-8">
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-0.5 text-xs font-bold text-amber-800">
-                  <Lock className="h-3 w-3 text-amber-600" />
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 border border-slate-300 px-3 py-0.5 text-xs font-bold text-slate-800">
+                  <Lock className="h-3 w-3 text-slate-700" />
                   <span>Traveler Account Required</span>
                 </div>
                 <h3 className="font-serif text-xl sm:text-2xl font-bold text-slate-950 tracking-tight">
@@ -683,7 +683,7 @@ export default function HolidaysAndTours() {
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[9px] font-bold text-amber-800 uppercase font-mono">
+                    <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[9px] font-bold text-slate-800 uppercase font-mono">
                       {authRequiredItem.badge}
                     </span>
                     <span className="text-[10px] text-slate-500 flex items-center gap-0.5 truncate">
@@ -694,7 +694,7 @@ export default function HolidaysAndTours() {
                     {authRequiredItem.title}
                   </h4>
                   <div className="mt-0.5 flex items-baseline gap-1">
-                    <span className="font-serif font-bold text-amber-700 text-xs sm:text-sm">
+                    <span className="font-serif font-bold text-slate-950 text-xs sm:text-sm">
                       {formatPrice(authRequiredItem.priceKES)}
                     </span>
                     <span className="text-[10px] text-slate-500">{authRequiredItem.priceUnit}</span>
@@ -703,8 +703,8 @@ export default function HolidaysAndTours() {
               </div>
 
               {/* BENEFITS CHECKLIST */}
-              <div className="space-y-1.5 rounded-2xl bg-amber-50/50 border border-amber-200/60 p-3 text-xs text-slate-700">
-                <p className="font-bold text-amber-900 text-[10px] uppercase tracking-wider">
+              <div className="space-y-1.5 rounded-2xl bg-slate-50 border border-slate-200 p-3 text-xs text-slate-700">
+                <p className="font-bold text-slate-900 text-[10px] uppercase tracking-wider">
                   Why you need a Traveler Account:
                 </p>
                 <div className="space-y-1">

@@ -27,19 +27,19 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
 }) => {
   if (isTripBooking(booking)) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-xs">
         <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 space-y-4 text-center">
-          <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center mx-auto">
-            <CheckCircle2 className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-900 border border-slate-200 flex items-center justify-center mx-auto">
+            <CheckCircle2 className="w-6 h-6 text-slate-800" />
           </div>
-          <h3 className="font-display font-bold text-lg text-slate-900">Return Inspection Not Applicable</h3>
-          <p className="text-xs text-slate-600">
+          <h3 className="font-display font-bold text-lg text-slate-950">Return Inspection Not Applicable</h3>
+          <p className="text-xs text-slate-600 leading-relaxed">
             Booking <strong>{booking.bookingRef}</strong> is for a safari tour or holiday stay. Vehicle return inspections, odometer distance tracking, and vehicle damage checks apply exclusively to fleet vehicle rentals.
           </p>
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold transition"
+            className="w-full py-2.5 bg-slate-950 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
           >
             Close
           </button>
@@ -47,6 +47,7 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
       </div>
     );
   }
+
   const initialOdo = handover?.odometerReading || 45280;
   const initialFuel = handover?.fuelLevelPercent || 100;
 
@@ -152,29 +153,29 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full my-8 overflow-hidden border border-gray-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full my-8 overflow-hidden border border-slate-300">
         {/* Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 px-6 py-5 text-white flex items-center justify-between">
+        <div className="bg-slate-950 px-6 py-5 text-white flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-400">
+            <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400">
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-xl font-bold flex items-center gap-2">
-                Vehicle Return & Settlement Inspection
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-medium border border-indigo-500/30">
+              <h3 className="text-xl font-bold flex items-center gap-2 text-white">
+                Vehicle Return &amp; Settlement Inspection
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-white/10 text-slate-300 font-mono border border-white/20">
                   Stage 13 of 14
                 </span>
               </h3>
-              <p className="text-xs text-gray-300">
-                Booking: <span className="font-mono text-amber-300">{booking.bookingRef}</span> • Vehicle: <span className="font-semibold text-white">{booking.vehicleName}</span>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Booking: <span className="font-mono text-white font-bold bg-white/10 px-1.5 py-0.5 rounded border border-white/10">{booking.bookingRef}</span> • Vehicle: <span className="font-semibold text-white">{booking.vehicleName}</span>
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -184,11 +185,11 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
         <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
           {/* Overdue Warning if late */}
           {overdueEval.isOverdue && (
-            <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <div className="p-4 rounded-xl bg-rose-50 border border-rose-300 flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-rose-600 mt-0.5 flex-shrink-0" />
               <div>
-                <h4 className="text-sm font-bold text-red-900">Vehicle Returned Late ({Math.abs(overdueEval.hoursRemaining)} Hours Overdue)</h4>
-                <p className="text-xs text-red-700 mt-0.5">
+                <h4 className="text-sm font-bold text-rose-950">Vehicle Returned Late ({Math.abs(overdueEval.hoursRemaining)} Hours Overdue)</h4>
+                <p className="text-xs text-rose-800 mt-0.5 leading-relaxed font-medium">
                   Scheduled return was {new Date(booking.endDate).toLocaleString()}. A late return charge of KES {lateReturnCharge.toLocaleString()} has been factored into the settlement.
                 </p>
               </div>
@@ -198,38 +199,38 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
           {/* Handover Baseline vs Return Comparison */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm">
             <div className="space-y-1">
-              <span className="text-xs text-gray-500 uppercase font-semibold block">Pre-Rental Handover Baseline</span>
-              <p className="font-medium text-gray-800">
-                Odometer: <span className="font-mono font-bold">{initialOdo.toLocaleString()} km</span>
+              <span className="text-xs text-slate-500 uppercase font-bold tracking-wider block">Pre-Rental Handover Baseline</span>
+              <p className="font-medium text-slate-800">
+                Odometer: <span className="font-mono font-bold text-slate-950">{initialOdo.toLocaleString()} km</span>
               </p>
-              <p className="font-medium text-gray-800">
-                Fuel Level: <span className="font-bold text-amber-600">{initialFuel}%</span>
+              <p className="font-medium text-slate-800">
+                Fuel Level: <span className="font-mono font-bold text-slate-950">{initialFuel}%</span>
               </p>
               {handover?.existingDamageNotes && (
-                <p className="text-xs text-gray-500 italic">
+                <p className="text-xs text-slate-500 italic">
                   Noted at start: "{handover.existingDamageNotes}"
                 </p>
               )}
             </div>
 
             <div className="space-y-1 md:border-l md:border-slate-200 md:pl-4">
-              <span className="text-xs text-indigo-700 uppercase font-bold block flex items-center gap-1">
-                <TrendingUp className="w-3.5 h-3.5" /> Trip Distance Summary
+              <span className="text-xs text-slate-900 uppercase font-bold tracking-wider block flex items-center gap-1.5">
+                <TrendingUp className="w-4 h-4 text-slate-700" /> Trip Distance Summary
               </span>
-              <p className="text-2xl font-black font-mono text-gray-900">
-                +{distanceDriven.toLocaleString()} <span className="text-sm font-sans font-medium text-gray-500">KM driven</span>
+              <p className="text-2xl font-black font-mono text-slate-950">
+                +{distanceDriven.toLocaleString()} <span className="text-xs font-sans font-normal text-slate-500 uppercase tracking-wider">KM driven</span>
               </p>
-              <p className="text-xs text-gray-600">
-                Renter: <span className="font-semibold">{booking.touristName}</span> ({booking.touristPhone})
+              <p className="text-xs text-slate-600">
+                Renter: <span className="font-semibold text-slate-900">{booking.touristName}</span> ({booking.touristPhone})
               </p>
             </div>
           </div>
 
           {/* Return Odometer & Fuel */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm space-y-2">
-              <label className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                <Gauge className="w-4 h-4 text-indigo-600" />
+            <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2">
+              <label className="text-sm font-bold text-slate-950 flex items-center gap-2">
+                <Gauge className="w-4 h-4 text-slate-800" />
                 Return Odometer Reading (km)
               </label>
               <div className="relative">
@@ -239,20 +240,20 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
                   required
                   value={returnOdometer}
                   onChange={e => setReturnOdometer(Number(e.target.value))}
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-lg font-mono font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-lg font-mono font-bold text-slate-950 focus:ring-2 focus:ring-slate-950 focus:bg-white"
                 />
-                <span className="absolute right-3 top-2.5 text-xs text-gray-500 font-semibold">KM</span>
+                <span className="absolute right-3 top-3 text-xs text-slate-500 font-bold font-mono">KM</span>
               </div>
-              <p className="text-xs text-gray-500">Must be ≥ {initialOdo.toLocaleString()} km.</p>
+              <p className="text-xs text-slate-500">Must be &ge; {initialOdo.toLocaleString()} km.</p>
             </div>
 
-            <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm space-y-2">
-              <label className="text-sm font-bold text-gray-900 flex items-center justify-between">
+            <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2">
+              <label className="text-sm font-bold text-slate-950 flex items-center justify-between">
                 <span className="flex items-center gap-2">
-                  <Fuel className="w-4 h-4 text-amber-600" />
+                  <Fuel className="w-4 h-4 text-slate-800" />
                   Fuel Level at Return
                 </span>
-                <span className="font-bold text-amber-700">{returnFuel}%</span>
+                <span className="font-bold font-mono text-slate-950">{returnFuel}%</span>
               </label>
               <input
                 type="range"
@@ -261,15 +262,16 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
                 step="5"
                 value={returnFuel}
                 onChange={e => setReturnFuel(Number(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-950"
               />
-              <div className="flex justify-between text-[11px] text-gray-500 font-medium">
+              <div className="flex justify-between text-[11px] text-slate-500 font-medium font-mono">
                 <span>Empty (0%)</span>
                 <span>50%</span>
                 <span>100%</span>
               </div>
               {calculatedFuelCharge > 0 && (
-                <p className="text-xs text-red-600 font-semibold">
+                <p className="text-xs text-rose-600 font-bold flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
                   Fuel deficit surcharge: KES {calculatedFuelCharge.toLocaleString()}
                 </p>
               )}
@@ -277,47 +279,57 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
           </div>
 
           {/* Condition Evaluation */}
-          <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm space-y-3">
-            <h4 className="text-sm font-bold text-gray-900">Overall Return Vehicle Condition</h4>
+          <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-3">
+            <h4 className="text-sm font-bold text-slate-950">Overall Return Vehicle Condition</h4>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {(['EXCELLENT', 'GOOD', 'FAIR', 'DAMAGED'] as const).map(cond => (
-                <button
-                  key={cond}
-                  type="button"
-                  onClick={() => {
-                    setConditionStatus(cond);
-                    if (cond === 'DAMAGED') setDamageFound(true);
-                  }}
-                  className={`py-2 px-3 text-xs font-bold rounded-lg border text-center transition-all ${
-                    conditionStatus === cond
-                      ? cond === 'DAMAGED'
-                        ? 'bg-red-600 text-white border-red-700 shadow-sm'
-                        : 'bg-indigo-600 text-white border-indigo-700 shadow-sm'
-                      : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
-                  }`}
-                >
-                  {cond}
-                </button>
-              ))}
+              {(['EXCELLENT', 'GOOD', 'FAIR', 'DAMAGED'] as const).map(cond => {
+                const isSelected = conditionStatus === cond;
+                let activeClass = 'bg-slate-900 text-white border-slate-950 shadow-sm';
+                if (cond === 'EXCELLENT' || cond === 'GOOD') {
+                  activeClass = 'bg-emerald-600 text-white border-emerald-700 shadow-sm';
+                } else if (cond === 'DAMAGED') {
+                  activeClass = 'bg-rose-600 text-white border-rose-700 shadow-sm';
+                }
+
+                return (
+                  <button
+                    key={cond}
+                    type="button"
+                    onClick={() => {
+                      setConditionStatus(cond);
+                      if (cond === 'DAMAGED') setDamageFound(true);
+                    }}
+                    className={`py-2.5 px-3 text-xs font-bold rounded-xl border text-center transition-all cursor-pointer ${
+                      isSelected
+                        ? activeClass
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-950'
+                    }`}
+                  >
+                    {cond}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Damage Check & Deductions */}
-          <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm space-y-4">
+          <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <AlertTriangle className={`w-4 h-4 ${damageFound ? 'text-red-600' : 'text-gray-400'}`} />
+                <h4 className="text-sm font-bold text-slate-950 flex items-center gap-2">
+                  <AlertTriangle className={`w-4 h-4 ${damageFound ? 'text-rose-600' : 'text-slate-400'}`} />
                   Damage or Excessive Wear Detected?
                 </h4>
-                <p className="text-xs text-gray-500">Record any new scratches, dents, cracked glass, or interior burns.</p>
+                <p className="text-xs text-slate-500 mt-0.5">Record any new scratches, dents, cracked glass, or interior burns.</p>
               </div>
               <div className="flex items-center space-x-2">
                 <button
                   type="button"
                   onClick={() => setDamageFound(false)}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
-                    !damageFound ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                    !damageFound
+                      ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                      : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
                   }`}
                 >
                   No Damage (Clean)
@@ -325,8 +337,10 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
                 <button
                   type="button"
                   onClick={() => setDamageFound(true)}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
-                    damageFound ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                    damageFound
+                      ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
+                      : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
                   }`}
                 >
                   Damage Found
@@ -335,10 +349,10 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
             </div>
 
             {damageFound && (
-              <div className="pt-3 border-t border-gray-200 space-y-3">
+              <div className="pt-3 border-t border-slate-200 space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-700 block mb-1">
-                    Damage Description & Location on Vehicle
+                  <label className="text-xs font-bold text-slate-800 block mb-1">
+                    Damage Description &amp; Location on Vehicle
                   </label>
                   <textarea
                     rows={2}
@@ -346,13 +360,13 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
                     value={damageDescription}
                     onChange={e => setDamageDescription(e.target.value)}
                     placeholder="e.g. Rear right bumper scratch (approx 15cm) and broken fog lamp reflector."
-                    className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:bg-white"
+                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-950 focus:bg-white text-slate-950 font-medium"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-semibold text-gray-700 block mb-1">
+                    <label className="text-xs font-bold text-slate-800 block mb-1">
                       Assessed Repair / Restitution Cost (KES)
                     </label>
                     <input
@@ -370,16 +384,16 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
                           setDamageCharge('');
                         }
                       }}
-                      className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg font-mono font-bold text-red-700 focus:ring-2 focus:ring-red-500"
+                      className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold text-rose-700 focus:ring-2 focus:ring-rose-500"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-gray-700 block mb-1">
+                    <label className="text-xs font-bold text-slate-800 block mb-1">
                       Attach Evidence Photos ({damagePhotos.length})
                     </label>
-                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300 transition-colors w-full justify-center">
-                      <Camera className="w-3.5 h-3.5" />
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-xl border border-slate-300 transition-colors w-full justify-center">
+                      <Camera className="w-3.5 h-3.5 text-slate-700" />
                       Upload Damage Photo
                       <input
                         type="file"
@@ -399,7 +413,7 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
                         key={i}
                         src={url}
                         alt={`Evidence ${i + 1}`}
-                        className="w-16 h-16 object-cover rounded-lg border border-red-300"
+                        className="w-16 h-16 object-cover rounded-xl border-2 border-rose-300"
                       />
                     ))}
                   </div>
@@ -409,47 +423,47 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
           </div>
 
           {/* Vehicle Return & Damage Assessment Summary */}
-          <div className="p-4 rounded-xl border border-indigo-200 bg-indigo-50/50 space-y-3">
-            <h4 className="text-sm font-bold text-indigo-950 flex items-center justify-between">
+          <div className="p-4 rounded-xl border border-slate-300 bg-slate-50 space-y-3">
+            <h4 className="text-sm font-bold text-slate-950 flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-indigo-600" />
+                <DollarSign className="w-4 h-4 text-slate-800" />
                 Vehicle Return &amp; Damage Assessment
               </span>
-              <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded border ${
-                effectiveDamageCharge > 0 ? 'bg-red-100 text-red-800 border-red-300' : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+              <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-lg border ${
+                effectiveDamageCharge > 0 ? 'bg-rose-100 text-rose-800 border-rose-300' : 'bg-emerald-100 text-emerald-800 border-emerald-300'
               }`}>
                 {effectiveDamageCharge > 0 ? `Assessed Damage: KES ${effectiveDamageCharge.toLocaleString()}` : 'Clean Return — KES 0 Damage Charges'}
               </span>
             </h4>
 
-            <div className="space-y-1.5 text-xs text-gray-700 pt-1 border-t border-indigo-100">
+            <div className="space-y-1.5 text-xs text-slate-700 pt-1 border-t border-slate-200">
               <div className="flex justify-between font-semibold">
                 <span>Vehicle Return Condition Status:</span>
-                <span className={effectiveDamageCharge > 0 ? 'text-red-700 font-bold' : 'text-emerald-700 font-bold'}>
+                <span className={effectiveDamageCharge > 0 ? 'text-rose-700 font-bold' : 'text-emerald-700 font-bold'}>
                   {effectiveDamageCharge > 0 ? 'Damaged / Restitution Required' : 'Clean & Good Condition (KES 0 Fee)'}
                 </span>
               </div>
               {calculatedFuelCharge > 0 && (
-                <div className="flex justify-between text-red-600 font-semibold">
+                <div className="flex justify-between text-rose-600 font-semibold">
                   <span>Fuel Refilling Deficit Charge:</span>
-                  <span className="font-mono">+ KES {calculatedFuelCharge.toLocaleString()}</span>
+                  <span className="font-mono font-bold">+ KES {calculatedFuelCharge.toLocaleString()}</span>
                 </div>
               )}
               {effectiveDamageCharge > 0 && (
-                <div className="flex justify-between text-red-600 font-bold">
+                <div className="flex justify-between text-rose-600 font-bold">
                   <span>Assessed Repair / Restitution Fee (Billed to Renter):</span>
-                  <span className="font-mono">+ KES {effectiveDamageCharge.toLocaleString()}</span>
+                  <span className="font-mono font-bold">+ KES {effectiveDamageCharge.toLocaleString()}</span>
                 </div>
               )}
               {lateReturnCharge > 0 && (
-                <div className="flex justify-between text-red-600 font-semibold">
+                <div className="flex justify-between text-rose-600 font-semibold">
                   <span>Late Return Overdue Fee:</span>
-                  <span className="font-mono">+ KES {lateReturnCharge.toLocaleString()}</span>
+                  <span className="font-mono font-bold">+ KES {lateReturnCharge.toLocaleString()}</span>
                 </div>
               )}
-              <div className="flex justify-between pt-2 border-t border-indigo-200 text-sm font-bold">
-                <span className="text-indigo-950">Total Settlement Charges Billed:</span>
-                <span className="font-mono text-indigo-900 text-base">
+              <div className="flex justify-between pt-2 border-t border-slate-200 text-sm font-bold">
+                <span className="text-slate-950">Total Settlement Charges Billed:</span>
+                <span className={`font-mono font-bold text-base ${totalDeductions > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
                   KES {totalDeductions.toLocaleString()}
                 </span>
               </div>
@@ -459,7 +473,7 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
           {/* Inspector & Notes */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-gray-600 block mb-1">
+              <label className="text-xs font-bold text-slate-800 block mb-1">
                 Inspecting Staff Officer
               </label>
               <input
@@ -467,11 +481,11 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
                 required
                 value={inspectorName}
                 onChange={e => setInspectorName(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg font-semibold text-gray-900"
+                className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-950 focus:ring-2 focus:ring-slate-950 focus:bg-white"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-600 block mb-1">
+              <label className="text-xs font-bold text-slate-800 block mb-1">
                 Settlement Notes (Optional)
               </label>
               <input
@@ -479,26 +493,26 @@ export const VehicleReturnInspectionModal: React.FC<VehicleReturnInspectionModal
                 value={settlementNotes}
                 onChange={e => setSettlementNotes(e.target.value)}
                 placeholder="e.g. Vehicle returned in good condition. Return inspection verified."
-                className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg text-gray-900"
+                className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl text-slate-950 focus:ring-2 focus:ring-slate-950 focus:bg-white"
               />
             </div>
           </div>
 
           {/* Action Footer */}
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
+          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-200">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 text-sm font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors"
+              className="px-5 py-2.5 text-sm font-bold text-slate-700 hover:text-slate-950 hover:bg-slate-100 rounded-xl border border-slate-300 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 hover:from-indigo-700 hover:to-blue-800 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/30 flex items-center gap-2 disabled:opacity-50 transition-all cursor-pointer"
+              className="px-6 py-2.5 bg-slate-950 hover:bg-slate-800 text-white font-bold rounded-xl shadow-md flex items-center gap-2 disabled:opacity-50 transition-all cursor-pointer"
             >
-              <CheckCircle2 className="w-5 h-5" />
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
               {isSubmitting ? 'Finalizing Inspection...' : 'Finalize Return & Close Booking'}
             </button>
           </div>
