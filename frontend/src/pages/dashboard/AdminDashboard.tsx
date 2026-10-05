@@ -61,6 +61,7 @@ import {
   getStoredCreditProfiles,
   toggleTravelerRestriction,
 } from '@/lib/creditScoreStore';
+import { getVehicleFallbackImage } from '@/lib/supabaseClient';
 
 interface DBUser {
   id: string; email: string; first_name: string; last_name: string;
@@ -1682,7 +1683,7 @@ export default function AdminDashboard() {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="relative h-36 rounded-xl overflow-hidden bg-slate-900 border border-slate-200">
                       <img
-                        src={v.images[0] || (isBusVehicle(v) ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/prado-front.jpg')}
+                        src={v.images[0] || getVehicleFallbackImage(v.make, v.model, isBusVehicle(v) ? 'BUS' : v.type, v.id)}
                         alt="Front View"
                         className="h-full w-full object-cover"
                       />
@@ -2074,7 +2075,7 @@ export default function AdminDashboard() {
 
                     <div className="relative h-36 rounded-xl overflow-hidden bg-slate-900">
                       <img
-                        src={v.images[0] || (isBusVehicle(v) ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/prado-front.jpg')}
+                        src={v.images[0] || getVehicleFallbackImage(v.make, v.model, isBusVehicle(v) ? 'BUS' : v.type, v.id)}
                         alt={`${v.make} ${v.model}`}
                         className="h-full w-full object-cover"
                       />
@@ -3167,7 +3168,7 @@ export default function AdminDashboard() {
             <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 flex items-center gap-3">
               <div className="h-14 w-20 rounded-lg overflow-hidden bg-slate-200 shrink-0">
                 <img
-                  src={(vehicleToDelete.images[0] && !vehicleToDelete.images[0].includes('prado')) ? vehicleToDelete.images[0] : (isBusVehicle(vehicleToDelete) ? '/vehicles/isuzu-coach-front.jpg' : (vehicleToDelete.images[0] || '/vehicles/prado-front.jpg'))}
+                  src={vehicleToDelete.images[0] || getVehicleFallbackImage(vehicleToDelete.make, vehicleToDelete.model, isBusVehicle(vehicleToDelete) ? 'BUS' : vehicleToDelete.type, vehicleToDelete.id)}
                   alt={vehicleToDelete.make}
                   className="h-full w-full object-cover"
                 />

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Star, X, Sparkles, Car, Palmtree, Send } from 'lucide-react';
 import { rateBooking, type StoredBooking } from '@/lib/bookingStore';
+import { getVehicleFallbackImage } from '@/lib/supabaseClient';
 import { sendNotification } from '@/lib/notificationService';
 
 interface BookingRatingModalProps {
@@ -138,7 +139,7 @@ export const BookingRatingModal: React.FC<BookingRatingModalProps> = ({
             <div className="flex items-center gap-3.5 rounded-2xl bg-white/5 border border-white/10 p-3">
               <div className="h-14 w-20 rounded-xl overflow-hidden bg-slate-800 shrink-0 border border-white/10">
                 <img
-                  src={booking.vehicleImage || '/vehicles/prado-front.jpg'}
+                  src={booking.vehicleImage && !booking.vehicleImage.includes('prado') ? booking.vehicleImage : getVehicleFallbackImage(booking.vehicleMake, booking.vehicleModel, '', booking.vehicleId)}
                   alt={booking.vehicleName}
                   className="h-full w-full object-cover"
                 />

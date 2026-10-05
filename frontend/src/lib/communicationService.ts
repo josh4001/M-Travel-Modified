@@ -4,7 +4,7 @@
  * and formatted WhatsApp Concierge direct links.
  */
 
-import { supabase } from './supabaseClient';
+import { supabase, getVehicleFallbackImage } from './supabaseClient';
 import { isBusVehicle, type StoredBooking, type StoredVehicle } from './bookingStore';
 
 export interface DispatchedEmail {
@@ -172,7 +172,12 @@ export async function sendHostVehicleApprovedEmail(params: {
   const previewText = `Congratulations ${hostName}! Your ${vehicle.make} ${vehicle.model} has passed inspection and is now live for guest bookings.`;
 
   const isBus = (vehicle.type || '').toUpperCase() === 'BUS' || (vehicle.model || '').toLowerCase().includes('bus') || (vehicle.model || '').toLowerCase().includes('coach') || Number(vehicle.seats) >= 20;
-  const vehicleImage = (vehicle.images?.[0] && !vehicle.images[0].includes('prado')) ? vehicle.images[0] : (isBus ? '/vehicles/isuzu-coach-front.jpg' : (vehicle.images?.[0] || '/vehicles/prado-front.jpg'));
+  const text = `${vehicle.make} ${vehicle.model} ${vehicle.type || ''} ${vehicle.id || ''}`.toLowerCase();
+  const fallback = getVehicleFallbackImage(vehicle.make, vehicle.model, isBus ? 'BUS' : vehicle.type, vehicle.id);
+  let vehicleImage = vehicle.images?.[0];
+  if (!vehicleImage || (isBus && vehicleImage.includes('prado')) || (vehicleImage.includes('prado') && !text.includes('prado'))) {
+    vehicleImage = isBus ? '/vehicles/isuzu-coach-front.jpg' : fallback;
+  }
   const dailyRate = Number(vehicle.pricePerDay || 15000);
 
   const htmlContent = `

@@ -36,16 +36,22 @@ export function getVehicleFallbackImage(make: string = '', model: string = '', t
   if (text.includes('coach') || text.includes('bus') || text.includes('isuzu') || text.includes('coaster') || id === '48d4aa37-a383-40cf-9b17-19548457dd95') {
     return '/vehicles/isuzu-coach-front.jpg';
   }
+  if (text.includes('hiace') || (text.includes('van') && !text.includes('cruiser'))) {
+    return '/vehicles/toyota-hiace-safari.jpg';
+  }
+  if (text.includes('mitsubishi')) {
+    return '/vehicles/mitsubishi-4x4-cruiser.jpg';
+  }
+  if (text.includes('land cruiser') || text.includes('landcruiser') || (text.includes('toyota') && (text.includes('4x4') || text.includes('cruiser')))) {
+    return '/vehicles/toyota-4x4-landcruiser.jpg';
+  }
   if (text.includes('pickup') || text.includes('hilux')) {
     return '/vehicles/pickup.jpg';
   }
-  if (text.includes('van') || text.includes('hiace')) {
-    return '/vehicles/van.jpg';
+  if (text.includes('suv') || text.includes('cruiser') || text.includes('4x4')) {
+    return '/vehicles/toyota-4x4-landcruiser.jpg';
   }
-  if (text.includes('suv') || text.includes('landcruiser') || text.includes('cruiser') || text.includes('4x4')) {
-    return '/vehicles/suv.jpg';
-  }
-  return '/vehicles/prado-front.jpg';
+  return '/vehicles/toyota-4x4-landcruiser.jpg';
 }
 
 export function formatDbVehicle(v: any): any {
@@ -59,11 +65,18 @@ export function formatDbVehicle(v: any): any {
 
   let images: { id: string; url: string; isPrimary: boolean }[] = [];
   if (Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0) {
-    images = v.vehicle_images.map((img: any, idx: number) => ({
-      id: img.id || `img-${idx}`,
-      url: (isBus && (!img.url || img.url.includes('prado'))) ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : img.url,
-      isPrimary: Boolean(img.is_primary || idx === 0),
-    }));
+    images = v.vehicle_images.map((img: any, idx: number) => {
+      let url = img.url;
+      const text = `${v.make} ${v.model} ${v.type} ${v.id}`.toLowerCase();
+      if (!url || (url.includes('prado') && !text.includes('prado')) || (isBus && url.includes('prado'))) {
+        url = isBus ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : hostImage;
+      }
+      return {
+        id: img.id || `img-${idx}`,
+        url: url || hostImage,
+        isPrimary: Boolean(img.is_primary || idx === 0),
+      };
+    });
   }
 
   if (images.length === 0 || !images[0]?.url) {

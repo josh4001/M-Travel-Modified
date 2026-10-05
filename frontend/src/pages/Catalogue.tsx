@@ -13,6 +13,7 @@ import {
   saveBooking, getStoredVehicles, syncVehiclesFromSupabase, getVehicleHireStatus, toggleVehicleLiveStatus, isVehicleLive,
   isBusVehicle, type StoredVehicle, type VehicleHireStatus
 } from '@/lib/bookingStore';
+import { getVehicleFallbackImage } from '@/lib/supabaseClient';
 import { sendNotification } from '@/lib/notificationService';
 import { sendTravelerBookingEmail } from '@/lib/communicationService';
 
@@ -104,15 +105,21 @@ export default function Catalogue() {
     .filter((v) => v.status === 'APPROVED' && (isVehicleLive(v.id) || getVehicleHireStatus(v.id).isHired))
     .map((v) => {
       const isBus = isBusVehicle(v);
+      const text = `${v.make} ${v.model} ${v.type} ${v.id}`.toLowerCase();
+      const fallback = getVehicleFallbackImage(v.make, v.model, isBus ? 'BUS' : v.type, v.id);
+      let img = v.images?.[0];
+      if (!img || (isBus && img.includes('prado')) || (img.includes('prado') && !text.includes('prado'))) {
+        img = isBus ? '/vehicles/isuzu-coach-front.jpg' : fallback;
+      }
       return {
         id: v.id,
         category: (isBus ? 'buses' : 'vehicles') as TabType,
         title: `${v.make} ${v.model}`,
         subtitle: `${v.year} • ${v.seats} Seats • ${v.fuelType} • ${v.transmission}`,
-        badge: isBus ? 'BUS VEHICLE' : `${v.type} Vehicle`,
+        badge: isBus ? 'BUS' : '',
         priceKES: v.pricePerDay,
         priceUnit: '/ day',
-        imageUrl: v.images[0] || (isBus ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/prado-front.jpg'),
+        imageUrl: img,
         location: v.address || 'Nairobi & National Parks',
         specs: [`${v.seats} Seats`, v.fuelType, v.transmission, v.hasInsurance ? 'Verified & Insured' : 'Standard Insurance'],
         rating: v.ratingAverage || 4.9,
@@ -332,9 +339,11 @@ export default function Catalogue() {
                       alt={item.title}
                       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
-                    <span className="absolute top-3 left-3 rounded-full bg-slate-950/85 backdrop-blur-md border border-white/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-200 shadow-sm">
-                      {item.badge}
-                    </span>
+                    {item.badge && item.badge !== 'VAN VEHICLE' && item.badge !== '4X4 VEHICLE' && !item.badge.toLowerCase().includes('vehicle') && (
+                      <span className="absolute top-3 left-3 rounded-full bg-slate-950/85 backdrop-blur-md border border-white/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-200 shadow-sm">
+                        {item.badge}
+                      </span>
+                    )}
                     {hireStatus.isOnTrip && (
                       <span className="absolute top-3 right-3 rounded-full bg-black/90 backdrop-blur-md border border-slate-700 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-md flex items-center gap-1">
                         <Lock className="h-3 w-3 text-slate-300" /> Active On Trip

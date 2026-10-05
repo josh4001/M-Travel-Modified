@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import type { StoredVehicle, VehicleDocument } from '@/lib/bookingStore';
 import { ensureVehicleComplianceDocs, isBusVehicle, resolveRealDocumentUrl, getDocumentFromVault } from '@/lib/bookingStore';
+import { getVehicleFallbackImage } from '@/lib/supabaseClient';
 import { getHostRejectionWhatsAppUrl } from '@/lib/communicationService';
 
 interface VehicleInspectionModalProps {
@@ -48,14 +49,21 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
 
   const vehicleImages = useMemo(() => {
     const isBus = isBusVehicle(vehicle) || vehicle.model?.toLowerCase().includes('coach') || vehicle.model?.toLowerCase().includes('bus') || vehicle.id === '48d4aa37-a383-40cf-9b17-19548457dd95';
+    const text = `${vehicle.make} ${vehicle.model} ${vehicle.type || ''} ${vehicle.id || ''}`.toLowerCase();
+    const fallback = getVehicleFallbackImage(vehicle.make, vehicle.model, isBus ? 'BUS' : vehicle.type, vehicle.id);
     let imgs = vehicle.images && vehicle.images.length > 0
       ? vehicle.images
-      : (isBus ? ['/vehicles/isuzu-coach-front.jpg', '/vehicles/isuzu-coach-rear.jpg'] : ['/vehicles/prado-front.jpg', '/vehicles/prado-rear.jpg']);
-    if (isBus) {
-      imgs = imgs.map((img: string, idx: number) =>
-        (!img || img.includes('prado')) ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : img
-      );
-    }
+      : [fallback];
+    imgs = imgs.map((img: string, idx: number) => {
+      if (!img) return fallback;
+      if (isBus && img.includes('prado')) {
+        return idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg';
+      }
+      if (img.includes('prado') && !text.includes('prado')) {
+        return fallback;
+      }
+      return img;
+    });
     return imgs;
   }, [vehicle]);
 

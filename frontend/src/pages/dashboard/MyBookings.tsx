@@ -9,7 +9,7 @@ import {
 import { useSelector } from 'react-redux';
 import { selectUser } from '@/store/slices/authSlice';
 import { useCurrency } from '@/context/CurrencyContext';
-import { fetchUserBookings, cancelBookingInSupabase, supabase } from '@/lib/supabaseClient';
+import { fetchUserBookings, cancelBookingInSupabase, supabase, getVehicleFallbackImage } from '@/lib/supabaseClient';
 import { sendNotification } from '@/lib/notificationService';
 import { api } from '@/lib/api';
 import { OfficialReceiptModal } from '@/components/ui/OfficialReceiptModal';
@@ -640,7 +640,15 @@ export default function MyBookings() {
       vehicleMake: b.vehicleMake || '',
       vehicleModel: b.vehicleModel || '',
       vehicleName: b.vehicleName || `${b.vehicleMake || ''} ${b.vehicleModel || ''}`.trim() || 'Safari Fleet Vehicle',
-      vehicleImage: b.vehicleImage || '/vehicles/prado-front.jpg',
+      vehicleImage: (() => {
+        const fallbackImg = getVehicleFallbackImage(b.vehicleMake, b.vehicleModel, '', b.vehicleId);
+        const bText = `${b.vehicleMake} ${b.vehicleModel}`.toLowerCase();
+        let vImg = b.vehicleImage;
+        if (!vImg || (vImg.includes('prado') && !bText.includes('prado'))) {
+          vImg = fallbackImg;
+        }
+        return vImg;
+      })(),
       ownerId: b.ownerId,
       driverName: b.driverName || 'Samuel Omondi',
       driverPhone: '+254722374535',
@@ -678,7 +686,15 @@ export default function MyBookings() {
               vehicleMake: make,
               vehicleModel: model,
               vehicleName: `${make} ${model}`,
-              vehicleImage: vImg || '/vehicles/prado-front.jpg',
+              vehicleImage: (() => {
+                const fallbackImg = getVehicleFallbackImage(make, model, sb.vehicles?.type, sb.vehicle_id);
+                const sbText = `${make} ${model}`.toLowerCase();
+                let finalImg = vImg;
+                if (!finalImg || (finalImg.includes('prado') && !sbText.includes('prado'))) {
+                  finalImg = fallbackImg;
+                }
+                return finalImg;
+              })(),
               touristId: sb.user_id,
               startDate: sb.start_date?.split('T')[0] || sb.start_date,
               endDate: sb.end_date?.split('T')[0] || sb.end_date,

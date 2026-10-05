@@ -4,6 +4,7 @@ import { Car, Bus, Palmtree, Home, MapPin, ArrowRight, Sparkles } from 'lucide-r
 import { Link } from 'react-router-dom';
 import { useCurrency } from '@/context/CurrencyContext';
 import { getStoredVehicles, isVehicleLive, getVehicleHireStatus, isBusVehicle, type StoredVehicle } from '@/lib/bookingStore';
+import { getVehicleFallbackImage } from '@/lib/supabaseClient';
 
 import { getStoredDestinations, type TravelDestinationItem } from '@/lib/destinationsStore';
 
@@ -59,15 +60,21 @@ export const CatalogueTabs: React.FC = () => {
     .filter((v) => v.status === 'APPROVED' && (isVehicleLive(v.id) || getVehicleHireStatus(v.id).isHired))
     .map((v) => {
       const isBus = isBusVehicle(v);
+      const text = `${v.make} ${v.model} ${v.type} ${v.id}`.toLowerCase();
+      const fallback = getVehicleFallbackImage(v.make, v.model, isBus ? 'BUS' : v.type, v.id);
+      let img = v.images?.[0];
+      if (!img || (isBus && img.includes('prado')) || (img.includes('prado') && !text.includes('prado'))) {
+        img = isBus ? '/vehicles/isuzu-coach-front.jpg' : fallback;
+      }
       return {
         id: v.id,
         category: (isBus ? 'buses' : 'vehicles') as TabType,
         title: `${v.make} ${v.model}`,
         subtitle: `${v.year} • ${v.seats} Seats • ${v.fuelType} • ${v.transmission}`,
-        badge: isBus ? 'BUS VEHICLE' : `${v.type} Vehicle`,
+        badge: isBus ? 'BUS' : '',
         priceKES: v.pricePerDay,
         priceUnit: '/ day',
-        imageUrl: (v.images[0] && !v.images[0].includes('prado')) ? v.images[0] : (isBus ? '/vehicles/isuzu-coach-front.jpg' : (v.images[0] || '/vehicles/prado-front.jpg')),
+        imageUrl: img,
         location: v.address || 'Nairobi & National Parks',
         specs: [`${v.seats} Seats`, v.fuelType, v.transmission, v.hasInsurance ? 'Verified' : 'Standard Insurance'],
       };
@@ -214,9 +221,11 @@ export const CatalogueTabs: React.FC = () => {
                   alt={item.title}
                   className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
-                <span className="absolute top-3 left-3 rounded-full bg-slate-950 text-white font-mono text-[10px] font-bold px-3 py-1 border border-slate-850 uppercase tracking-wider shadow-sm">
-                  {item.badge}
-                </span>
+                {item.badge && item.badge !== 'VAN VEHICLE' && item.badge !== '4X4 VEHICLE' && !item.badge.toLowerCase().includes('vehicle') && (
+                  <span className="absolute top-3 left-3 rounded-full bg-slate-950 text-white font-mono text-[10px] font-bold px-3 py-1 border border-slate-850 uppercase tracking-wider shadow-sm">
+                    {item.badge}
+                  </span>
+                )}
               </div>
 
               {/* DETAILS */}

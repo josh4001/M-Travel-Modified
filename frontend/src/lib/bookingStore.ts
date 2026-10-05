@@ -989,11 +989,13 @@ export const syncLocalStoreToSupabase = async (): Promise<void> => {
       if (!vErr && Array.isArray(v.images) && v.images.length > 0) {
         await supabase.from('vehicle_images').delete().eq('vehicle_id', vId);
         const isBus = isBusVehicle(v);
+        const fallback = getVehicleFallbackImage(v.make, v.model, isBus ? 'BUS' : v.type, vId);
+        const text = `${v.make} ${v.model} ${v.type} ${vId}`.toLowerCase();
         const imgRows = v.images.slice(0, 5).map((url, idx) => ({
           vehicle_id: vId,
           url: url.startsWith('data:')
-            ? (isBus ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : (idx === 0 ? '/vehicles/prado-front.jpg' : '/vehicles/prado-rear.jpg'))
-            : (isBus && url.includes('prado') ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : url),
+            ? (isBus ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : fallback)
+            : (isBus && url.includes('prado') ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : (url.includes('prado') && !text.includes('prado') ? fallback : url)),
           is_primary: idx === 0,
         }));
         await supabase.from('vehicle_images').insert(imgRows);
@@ -1242,18 +1244,26 @@ export const getStoredVehicles = (): StoredVehicle[] => {
         const vaultImages = getVehicleImagesFromVault(p.id);
         if (vaultImages && vaultImages.length > 0) {
           images = vaultImages;
-        } else if (isBus) {
-          images = images.map((img: string, idx: number) =>
-            (!img || img.includes('prado')) ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : img
-          );
-          if (images.length === 0) {
-            images = ['/vehicles/isuzu-coach-front.jpg', '/vehicles/isuzu-coach-rear.jpg'];
+        }
+        const text = `${p.make} ${p.model} ${p.type} ${p.id}`.toLowerCase();
+        const fallback = getVehicleFallbackImage(p.make, p.model, isBus ? 'BUS' : p.type, p.id);
+        images = images.map((img: string, idx: number) => {
+          if (!img) return fallback;
+          if (isBus && img.includes('prado')) {
+            return idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg';
           }
+          if (img.includes('prado') && !text.includes('prado')) {
+            return fallback;
+          }
+          return img;
+        });
+        if (images.length === 0) {
+          images = [fallback];
         }
         valid.push({
           ...p,
           type: (isBus ? 'BUS' : p.type).toUpperCase(),
-          images: images.length > 0 ? images : (isBus ? ['/vehicles/isuzu-coach-front.jpg', '/vehicles/isuzu-coach-rear.jpg'] : ['/vehicles/prado-front.jpg', '/vehicles/prado-rear.jpg']),
+          images,
           documents: ensureVehicleComplianceDocs(p.id, p),
           isLive: overrides[p.id] !== undefined ? overrides[p.id] : p.isLive !== false,
         });
@@ -1323,8 +1333,10 @@ export const syncBookingsFromSupabase = async (): Promise<StoredBooking[]> => {
           vehicleImage = vehicle.vehicle_images[0]?.url;
         }
         const isBus = isBusVehicle(vehicle) || vehicle.model?.toLowerCase().includes('coach') || vehicle.model?.toLowerCase().includes('bus') || vehicle.id === '48d4aa37-a383-40cf-9b17-19548457dd95';
-        if (!vehicleImage || (isBus && vehicleImage.includes('prado'))) {
-          vehicleImage = isBus ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/prado-front.jpg';
+        const vText = `${vehicleMake} ${vehicleModel} ${vehicle.type || ''} ${vehicle.id || ''}`.toLowerCase();
+        const fallback = getVehicleFallbackImage(vehicleMake, vehicleModel, isBus ? 'BUS' : vehicle.type, vehicle.id);
+        if (!vehicleImage || (isBus && vehicleImage.includes('prado')) || (vehicleImage.includes('prado') && !vText.includes('prado'))) {
+          vehicleImage = fallback;
         }
 
         return {
@@ -1463,19 +1475,28 @@ export const syncVehiclesFromSupabase = async (): Promise<StoredVehicle[]> => {
 
           const isBus = isBusVehicle(v) || (v.model?.toLowerCase().includes('bus') || v.model?.toLowerCase().includes('coach') || v.make?.toLowerCase().includes('bus') || Number(v.seats) >= 20);
 
+          const text = `${v.make} ${v.model} ${v.type} ${v.id}`.toLowerCase();
+          const fallback = getVehicleFallbackImage(v.make, v.model, isBus ? 'BUS' : v.type, v.id);
+
           let images: string[] = (existing?.images && existing.images.length > 0)
             ? existing.images
             : ((Array.isArray(v.vehicle_images) && v.vehicle_images.length > 0)
                 ? v.vehicle_images.map((img: any) => img.url).filter(Boolean)
-                : [getVehicleFallbackImage(v.make, v.model, isBus ? 'BUS' : v.type, v.id)]);
+                : [fallback]);
 
-          if (isBus) {
-            images = images.map((img: string, idx: number) =>
-              (!img || img.includes('prado')) ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : img
-            );
-            if (images.length === 0) {
-              images = ['/vehicles/isuzu-coach-front.jpg', '/vehicles/isuzu-coach-rear.jpg'];
+          images = images.map((img: string, idx: number) => {
+            if (!img) return fallback;
+            if (isBus && img.includes('prado')) {
+              return idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg';
             }
+            if (img.includes('prado') && !text.includes('prado')) {
+              return fallback;
+            }
+            return img;
+          });
+
+          if (images.length === 0) {
+            images = [fallback];
           }
 
           const isApprovedInDb = Boolean(v.is_approved);
@@ -1562,15 +1583,16 @@ export const saveVehicle = async (vehicle: Omit<StoredVehicle, 'id' | 'createdAt
   const docs = ensureVehicleComplianceDocs(vehicleId, vehicle);
 
   const isBus = isBusVehicle(vehicle);
+  const fallback = getVehicleFallbackImage(vehicle.make, vehicle.model, isBus ? 'BUS' : vehicle.type, vehicleId);
   const rawImages = (vehicle.images && vehicle.images.length > 0)
     ? vehicle.images.filter(Boolean)
-    : (isBus ? ['/vehicles/isuzu-coach-front.jpg', '/vehicles/isuzu-coach-rear.jpg'] : ['/vehicles/prado-front.jpg', '/vehicles/prado-rear.jpg']);
+    : [fallback];
 
   putVehicleImagesInVault(vehicleId, rawImages);
 
   const storageImages = rawImages.map((img, i) =>
     (img.startsWith('data:') && img.length > 1000)
-      ? (isBus ? (i === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : (i === 0 ? '/vehicles/prado-front.jpg' : '/vehicles/prado-rear.jpg'))
+      ? (isBus ? (i === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : fallback)
       : img
   );
 
@@ -1672,9 +1694,13 @@ export const saveVehicle = async (vehicle: Omit<StoredVehicle, 'id' | 'createdAt
       if (Array.isArray(vehicle.images) && vehicle.images.length > 0) {
         await supabase.from('vehicle_images').delete().eq('vehicle_id', vehicleId);
         const isBus = isBusVehicle(vehicle);
+        const fallback = getVehicleFallbackImage(vehicle.make, vehicle.model, isBus ? 'BUS' : vehicle.type, vehicleId);
+        const text = `${vehicle.make} ${vehicle.model} ${vehicle.type} ${vehicleId}`.toLowerCase();
         const imgRows = vehicle.images.slice(0, 5).map((url, idx) => ({
           vehicle_id: vehicleId,
-          url: url.startsWith('data:') ? (isBus ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : (idx === 0 ? '/vehicles/prado-front.jpg' : '/vehicles/prado-rear.jpg')) : url,
+          url: url.startsWith('data:')
+            ? (isBus ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : fallback)
+            : (isBus && url.includes('prado') ? (idx === 0 ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/isuzu-coach-rear.jpg') : (url.includes('prado') && !text.includes('prado') ? fallback : url)),
           is_primary: idx === 0,
         }));
         await supabase.from('vehicle_images').insert(imgRows);
@@ -2073,7 +2099,7 @@ export const updateBookingStatus = (
       vehicleMake: 'Safari Fleet',
       vehicleModel: 'Vehicle',
       vehicleName: 'Safari Fleet Vehicle',
-      vehicleImage: '/vehicles/prado-front.jpg',
+      vehicleImage: '/vehicles/toyota-4x4-landcruiser.jpg',
       touristId: 'tourist',
       touristName: 'Traveler',
       touristPhone: '0712345678',
@@ -2368,7 +2394,7 @@ export const generateSampleBookingForVehicle = (
     vehicleMake,
     vehicleModel,
     vehicleName: `${vehicleMake} ${vehicleModel}`,
-    vehicleImage: '/vehicles/prado-front.jpg',
+    vehicleImage: getVehicleFallbackImage(vehicleMake, vehicleModel),
     ownerId: hostId,
     driverName: 'Host Assigned Certified Driver',
     touristId: `usr-tourist-${Date.now()}`,

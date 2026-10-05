@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Vehicle } from '@/types';
-import { createBooking, fetchVehicleBookedDates, fetchVehicleById } from '@/lib/supabaseClient';
+import { createBooking, fetchVehicleBookedDates, fetchVehicleById, getVehicleFallbackImage } from '@/lib/supabaseClient';
 import { payForBooking, payWithWallet, getLocalWallet, type LocalWalletData } from '@/lib/paymentService';
 import { selectUser } from '@/store/slices/authSlice';
 import { useCurrency } from '@/context/CurrencyContext';
@@ -311,7 +311,12 @@ export default function VehicleDetail() {
         vehicleImage: (() => {
           const targetIsBus = isBusVehicle(targetVehicle) || targetVehicle.model?.toLowerCase().includes('coach') || targetVehicle.model?.toLowerCase().includes('bus') || Number(targetVehicle.seats) >= 20;
           const targetImg = targetVehicle.images?.[0]?.url || (targetVehicle as any).imageUrl;
-          return (targetImg && !targetImg.includes('prado')) ? targetImg : (targetIsBus ? '/vehicles/isuzu-coach-front.jpg' : (targetImg || '/vehicles/prado-front.jpg'));
+          const text = `${targetVehicle.make} ${targetVehicle.model} ${targetVehicle.type || ''}`.toLowerCase();
+          const fallback = getVehicleFallbackImage(targetVehicle.make, targetVehicle.model, targetIsBus ? 'BUS' : targetVehicle.type, targetVehicle.id);
+          if (!targetImg || (targetIsBus && targetImg.includes('prado')) || (targetImg.includes('prado') && !text.includes('prado'))) {
+            return targetIsBus ? '/vehicles/isuzu-coach-front.jpg' : fallback;
+          }
+          return targetImg;
         })(),
         ownerId: hostOwnerId,
         driverId: undefined,
@@ -447,7 +452,12 @@ export default function VehicleDetail() {
               src={(() => {
                 const targetIsBus = isBusVehicle(targetVehicle) || targetVehicle.model?.toLowerCase().includes('coach') || targetVehicle.model?.toLowerCase().includes('bus') || Number(targetVehicle.seats) >= 20;
                 const targetImg = targetVehicle.images[0]?.url;
-                return (targetImg && !targetImg.includes('prado')) ? targetImg : (targetIsBus ? '/vehicles/isuzu-coach-front.jpg' : (targetImg || '/vehicles/prado-front.jpg'));
+                const text = `${targetVehicle.make} ${targetVehicle.model} ${targetVehicle.type || ''}`.toLowerCase();
+                const fallback = getVehicleFallbackImage(targetVehicle.make, targetVehicle.model, targetIsBus ? 'BUS' : targetVehicle.type, targetVehicle.id);
+                if (!targetImg || (targetIsBus && targetImg.includes('prado')) || (targetImg.includes('prado') && !text.includes('prado'))) {
+                  return targetIsBus ? '/vehicles/isuzu-coach-front.jpg' : fallback;
+                }
+                return targetImg;
               })()}
               className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700"
               alt={`${targetVehicle.make} ${targetVehicle.model}`}

@@ -25,6 +25,7 @@ import {
   getVehicleHireStatus,
   type StoredVehicle,
 } from '@/lib/bookingStore';
+import { getVehicleFallbackImage } from '@/lib/supabaseClient';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1134,7 +1135,7 @@ export function AiTravelAssistant({
                     <div className="mt-3 rounded-xl border border-slate-200 bg-white overflow-hidden space-y-3 p-3 shadow-sm">
                       <div className="relative h-40 rounded-lg overflow-hidden bg-slate-100">
                         <img
-                          src={msg.vehicleData.images?.[0] || '/vehicles/prado-front.jpg'}
+                          src={msg.vehicleData.images?.[0] || getVehicleFallbackImage(msg.vehicleData.make, msg.vehicleData.model, msg.vehicleData.type, msg.vehicleData.id)}
                           alt={`${msg.vehicleData.make} ${msg.vehicleData.model}`}
                           className="h-full w-full object-cover"
                         />

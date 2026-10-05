@@ -25,7 +25,7 @@ import {
 import { getLocalWallet } from '@/lib/paymentService';
 import { MpesaLogo } from '@/components/ui/MpesaLogo';
 import { VehicleStatusBadge } from '@/components/ui/LuxuryVehicleBadges';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, getVehicleFallbackImage } from '@/lib/supabaseClient';
 import {
   getHostApprovalWhatsAppUrl,
 } from '@/lib/communicationService';
@@ -401,7 +401,8 @@ export default function OwnerDashboard() {
 
       const isBus = (newV.type || '').toUpperCase() === 'BUS' || model.toLowerCase().includes('bus') || model.toLowerCase().includes('coach') || seats >= 20;
       const vehiclePhotos = [frontPhoto, backPhoto, ...extraPhotos].filter(Boolean);
-      const defaultPhotos = isBus ? ['/vehicles/isuzu-coach-front.jpg', '/vehicles/isuzu-coach-rear.jpg'] : ['/vehicles/prado-front.jpg', '/vehicles/prado-rear.jpg'];
+      const fallbackImg = getVehicleFallbackImage(make, model, isBus ? 'BUS' : newV.type);
+      const defaultPhotos = isBus ? ['/vehicles/isuzu-coach-front.jpg', '/vehicles/isuzu-coach-rear.jpg'] : [fallbackImg];
       const chosenPhotos = vehiclePhotos.length > 0 ? vehiclePhotos : defaultPhotos;
 
       const savedVehicle = await saveVehicle({
@@ -638,7 +639,7 @@ export default function OwnerDashboard() {
                   <div key={v.id} className="rounded-2xl bg-white border border-slate-200 p-5 space-y-3 shadow-sm hover:border-slate-900 hover:shadow-md transition text-slate-900">
                     <div className="relative h-44 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
                       <img
-                        src={v.images?.[0] || (isBusVehicle(v) ? '/vehicles/isuzu-coach-front.jpg' : '/vehicles/prado-front.jpg')}
+                        src={v.images?.[0] || getVehicleFallbackImage(v.make, v.model, isBusVehicle(v) ? 'BUS' : v.type, v.id)}
                         alt={v.make}
                         className="h-full w-full object-cover"
                       />
@@ -1102,11 +1103,7 @@ export default function OwnerDashboard() {
                   <div className="flex items-center gap-3">
                     <div className="h-12 w-16 rounded-lg overflow-hidden bg-slate-100 shrink-0">
                       <img
-                        src={
-                          (v.images && v.images[0] && !v.images[0].includes('prado'))
-                            ? v.images[0]
-                            : (isBusVehicle(v) ? '/vehicles/isuzu-coach-front.jpg' : (v.images?.[0] || '/vehicles/prado-front.jpg'))
-                        }
+                        src={v.images?.[0] || getVehicleFallbackImage(v.make, v.model, isBusVehicle(v) ? 'BUS' : v.type, v.id)}
                         alt={v.make}
                         className="h-full w-full object-cover"
                       />
