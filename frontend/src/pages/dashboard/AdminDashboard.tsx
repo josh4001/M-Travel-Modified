@@ -1673,7 +1673,7 @@ export default function AdminDashboard() {
               {pendingVehicles.map(v => (
                 <div key={v.id} className="rounded-2xl bg-white border border-slate-200/90 hover:border-amber-400/60 p-5 space-y-4 shadow-sm hover:shadow-md transition">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-amber-800 uppercase tracking-wider">{v.type}</span>
+                    <span className="font-display font-bold text-slate-900 text-sm">{v.make} {v.model}</span>
                     <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-3 py-0.5 text-[10px] font-bold text-amber-800">
                       <Clock className="h-3 w-3 text-amber-600" /> Pending Approval
                     </span>
@@ -2063,8 +2063,7 @@ export default function AdminDashboard() {
 
                 return (
                   <div key={v.id} className="rounded-2xl bg-white border border-slate-200/90 p-4 space-y-2.5 shadow-sm hover:shadow-md transition">
-                    <div className="flex justify-between items-center">
-                      <span className="font-mono text-xs text-amber-700 font-bold">{v.type}</span>
+                    <div className="flex justify-end items-center">
                       <VehicleStatusBadge
                         isHired={hireStatus.isHired}
                         isLive={isLive}

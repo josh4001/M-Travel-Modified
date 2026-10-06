@@ -1140,8 +1140,8 @@ export function AiTravelAssistant({
                           className="h-full w-full object-cover"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
-                        <span className="absolute bottom-2 left-2 rounded-full bg-slate-950 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase shadow-sm border border-white/20">
-                          {msg.vehicleData.type}
+                        <span className="absolute bottom-2 left-2 rounded-full bg-slate-950/80 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase shadow-sm border border-white/20">
+                          {msg.vehicleData.seats} Seats
                         </span>
                         <span className="absolute bottom-2 right-2 rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold text-slate-950 uppercase shadow-sm font-mono">
                           KES {msg.vehicleData.pricePerDay.toLocaleString()} / day

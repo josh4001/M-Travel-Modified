@@ -482,12 +482,7 @@ export default function Search() {
                           <span className="font-display text-lg text-white/50">{v.make} {v.model}</span>
                         )}
 
-                        {/* TOP BADGES */}
-                        {v.type && !['VAN', '4X4', 'VAN VEHICLE', '4X4 VEHICLE', 'SUV'].includes(v.type.toUpperCase().trim()) && (
-                          <span className="absolute top-3 left-3 rounded-full bg-slate-950/85 backdrop-blur-md px-2.5 py-1 text-[10px] uppercase font-mono font-bold text-white border border-white/20 flex items-center gap-1 shadow-sm">
-                            <Car className="h-3 w-3 text-slate-300" /> {v.type}
-                          </span>
-                        )}
+
 
                         {/* OPERATIONAL STATUS BADGE */}
                         <div className="absolute top-3 right-3">

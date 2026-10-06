@@ -644,9 +644,6 @@ export default function OwnerDashboard() {
                         className="h-full w-full object-cover"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                      <span className="absolute top-3 left-3 rounded-full bg-slate-950 text-white font-mono text-[10px] font-bold px-2.5 py-0.5 border border-slate-800">
-                        {v.type}
-                      </span>
                       <div className="absolute top-3 right-3">
                         <VehicleStatusBadge
                           isHired={hireStatus.isOnTrip}

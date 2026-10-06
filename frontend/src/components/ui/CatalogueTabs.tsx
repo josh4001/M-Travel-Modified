@@ -221,7 +221,7 @@ export const CatalogueTabs: React.FC = () => {
                   alt={item.title}
                   className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
-                {item.badge && item.badge !== 'VAN VEHICLE' && item.badge !== '4X4 VEHICLE' && !item.badge.toLowerCase().includes('vehicle') && (
+                {item.badge && item.category !== 'vehicles' && item.badge !== 'VAN VEHICLE' && item.badge !== '4X4 VEHICLE' && !item.badge.toLowerCase().includes('vehicle') && (
                   <span className="absolute top-3 left-3 rounded-full bg-slate-950 text-white font-mono text-[10px] font-bold px-3 py-1 border border-slate-850 uppercase tracking-wider shadow-sm">
                     {item.badge}
                   </span>

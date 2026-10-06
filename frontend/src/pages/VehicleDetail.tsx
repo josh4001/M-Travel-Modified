@@ -463,9 +463,6 @@ export default function VehicleDetail() {
               alt={`${targetVehicle.make} ${targetVehicle.model}`}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
-            <span className="absolute top-4 left-4 rounded-full bg-slate-950 text-white font-bold text-xs px-3 py-1 uppercase tracking-wider shadow-md border border-white/20">
-              {targetVehicle.type}
-            </span>
             <span className="absolute bottom-4 left-4 flex items-center gap-1.5 text-xs text-white bg-slate-900/80 px-3 py-1.5 rounded-full border border-white/20 backdrop-blur-md shadow-md">
               <MapPin className="h-3.5 w-3.5 text-slate-300" /> {targetVehicle.address || 'Nairobi, Kenya'}
             </span>

@@ -339,7 +339,7 @@ export default function Catalogue() {
                       alt={item.title}
                       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
-                    {item.badge && item.badge !== 'VAN VEHICLE' && item.badge !== '4X4 VEHICLE' && !item.badge.toLowerCase().includes('vehicle') && (
+                    {item.badge && !isVehicle && item.badge !== 'VAN VEHICLE' && item.badge !== '4X4 VEHICLE' && !item.badge.toLowerCase().includes('vehicle') && (
                       <span className="absolute top-3 left-3 rounded-full bg-slate-950/85 backdrop-blur-md border border-white/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-200 shadow-sm">
                         {item.badge}
                       </span>
