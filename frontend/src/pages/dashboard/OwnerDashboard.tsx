@@ -885,15 +885,6 @@ export default function OwnerDashboard() {
 
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
                       <span className="font-mono font-bold text-slate-950 text-base">{formatPrice(v.pricePerDay)}/day</span>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          onClick={() => handleGenerateSampleBooking(v)}
-                          title="Generate a realistic incoming booking request for this car"
-                          className="rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-800 !py-1 !px-2.5 text-[11px] font-bold flex items-center gap-1 transition"
-                        >
-                          <Sparkles className="h-3 w-3 text-slate-900" /> + Test Booking
-                        </button>
-                      </div>
                     </div>
                   </div>
                 );

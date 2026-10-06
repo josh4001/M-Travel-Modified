@@ -14,7 +14,7 @@ export default function AdminLogin() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [autofilled, setAutofilled] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<'CHIEF_ADMIN' | 'OPERATIONS' | null>(null);
   const dispatch = useDispatch();
 
   async function onSubmit(e: FormEvent) {
@@ -41,11 +41,10 @@ export default function AdminLogin() {
     }
   }
 
-  const fillManagementCreds = (e: string, p: string) => {
-    setEmail(e);
-    setPassword(p);
-    setAutofilled(true);
+  const handleRoleSelect = (role: 'CHIEF_ADMIN' | 'OPERATIONS') => {
+    setSelectedRole(role);
     setError(null);
+    // Explicitly do not autofill or paste credentials to ensure security and privacy
   };
 
   return (
@@ -72,15 +71,16 @@ export default function AdminLogin() {
             </p>
           </div>
 
-          {/* INTERNAL STAFF DEMONSTRATION ACCREDITATION */}
+          {/* ADMINISTRATIVE ROLES (ZERO CREDENTIAL AUTOFILL FOR PRIVACY & SECURITY) */}
           <div className="py-3.5 border-b border-slate-100">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono flex items-center gap-1">
-                <KeyRound className="h-3 w-3 text-slate-900" /> Management Credentials
+                <KeyRound className="h-3 w-3 text-slate-900" /> Administrative Role
               </span>
-              {autofilled && (
+              {selectedRole && (
                 <span className="text-[10px] text-slate-900 font-mono font-bold flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" /> Autofilled
+                  <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                  {selectedRole === 'CHIEF_ADMIN' ? 'Chief Admin' : 'Operations Desk'}
                 </span>
               )}
             </div>
@@ -88,22 +88,33 @@ export default function AdminLogin() {
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => fillManagementCreds('safari@jambo.africa', 'Admin@2026')}
-                className="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-center transition cursor-pointer"
+                onClick={() => handleRoleSelect('CHIEF_ADMIN')}
+                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all duration-200 cursor-pointer ${
+                  selectedRole === 'CHIEF_ADMIN'
+                    ? 'bg-slate-950 border-slate-950 text-white shadow-xs'
+                    : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-800'
+                }`}
               >
-                <span className="text-[11px] font-bold text-slate-900">Chief Admin</span>
-                <span className="text-[9px] text-slate-500 font-mono">safari@jambo.africa</span>
+                <span className="text-[11px] font-bold">Chief Admin</span>
+                <span className={`text-[9px] mt-0.5 font-medium ${selectedRole === 'CHIEF_ADMIN' ? 'text-slate-300' : 'text-slate-500'}`}>Executive Access</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => fillManagementCreds('admin@mtravel.co.ke', 'Admin@2026')}
-                className="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-center transition cursor-pointer"
+                onClick={() => handleRoleSelect('OPERATIONS')}
+                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all duration-200 cursor-pointer ${
+                  selectedRole === 'OPERATIONS'
+                    ? 'bg-slate-950 border-slate-950 text-white shadow-xs'
+                    : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-800'
+                }`}
               >
-                <span className="text-[11px] font-bold text-slate-900">Operations Desk</span>
-                <span className="text-[9px] text-slate-500 font-mono">admin@mtravel.co.ke</span>
+                <span className="text-[11px] font-bold">Operations Desk</span>
+                <span className={`text-[9px] mt-0.5 font-medium ${selectedRole === 'OPERATIONS' ? 'text-slate-300' : 'text-slate-500'}`}>Fleet Operations</span>
               </button>
             </div>
+            <p className="mt-2 text-[10px] text-slate-500 text-center font-medium">
+              Please enter your assigned administrative credentials manually below.
+            </p>
           </div>
 
           {/* MAIN LOGIN FORM */}
@@ -129,7 +140,7 @@ export default function AdminLogin() {
                   type="email"
                   required
                   autoComplete="email"
-                  placeholder="admin@mtravel.co.ke"
+                  placeholder="Enter management email"
                   className="w-full rounded-xl bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-300 focus:border-slate-950 text-slate-950 placeholder:text-slate-400 pl-9 pr-3.5 py-2.5 text-sm transition outline-hidden focus:ring-1 focus:ring-slate-950 font-medium"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
