@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   Menu, Wallet, Sparkles, X, User as UserIcon, Shield, Car,
-  Globe, Phone, Crown, LayoutDashboard, CalendarCheck, PlusCircle, Palmtree
+  Globe, Phone, Crown, LayoutDashboard, CalendarCheck, PlusCircle, Palmtree, LogOut
 } from 'lucide-react';
 import { useState } from 'react';
 import type { RootState } from '@/store';
@@ -37,23 +37,23 @@ export function Navbar() {
 
     if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-700 text-white border border-purple-600 shadow-2xs">
-          <Shield className="h-3 w-3 shrink-0 fill-purple-300" />
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-700 text-white border border-purple-500 shadow-2xs shrink-0">
+          <Shield className="h-2.5 w-2.5 shrink-0 fill-purple-300" />
           <span>Admin</span>
         </span>
       );
     }
     if (role === 'VEHICLE_OWNER' || role === 'OWNER' || role === 'HOST' || role === 'FLEET_HOST') {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-slate-950 border border-amber-400 shadow-2xs">
-          <Car className="h-3 w-3 shrink-0 text-slate-950" />
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-slate-950 border border-amber-400 shadow-2xs shrink-0">
+          <Car className="h-2.5 w-2.5 shrink-0 text-slate-950" />
           <span>Fleet Host</span>
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-600 text-white border border-emerald-500 shadow-2xs">
-        <UserIcon className="h-3 w-3 shrink-0" />
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-600 text-white border border-emerald-500 shadow-2xs shrink-0">
+        <UserIcon className="h-2.5 w-2.5 shrink-0" />
         <span>Traveler</span>
       </span>
     );
@@ -61,8 +61,7 @@ export function Navbar() {
 
   /**
    * Tailored role-based navigation links:
-   * Leaves only the essential, high-value components for each account persona,
-   * centered around their respective Dashboard.
+   * Concise, elegant, and perfectly fitted navigation across all device resolutions.
    */
   const getNavItems = (): NavItem[] => {
     if (!user) {
@@ -77,7 +76,7 @@ export function Navbar() {
 
     const role = user?.role?.toUpperCase();
 
-    // 1. ADMIN ACCOUNT — Mission Control & Fleet Oversight (No consumer marketing fluff)
+    // 1. ADMIN ACCOUNT — Mission Control, Live Fleet & Treasury
     if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
       return [
         {
@@ -101,17 +100,17 @@ export function Navbar() {
       ];
     }
 
-    // 2. FLEET HOST ACCOUNT — Only Host Dashboard, My Registered Cars, Bookings, Register Car & Wallet
+    // 2. FLEET HOST ACCOUNT — Dashboard, My Fleet, Bookings, Add Car & Wallet
     if (role === 'VEHICLE_OWNER' || role === 'OWNER' || role === 'HOST' || role === 'FLEET_HOST') {
       return [
         {
-          label: 'Host Dashboard',
+          label: 'Dashboard',
           path: '/dashboard/owner',
           icon: LayoutDashboard,
-          isActive: (p) => (p === '/dashboard/owner' || p === '/dashboard') && (!location.search || location.search.includes('overview')),
+          isActive: (p) => (p === '/dashboard/owner' || p === '/dashboard') && (!location.search || location.search.includes('overview') || (!location.search.includes('tab=fleet') && !location.search.includes('tab=bookings') && !location.search.includes('tab=add'))),
         },
         {
-          label: 'My Registered Cars',
+          label: 'My Fleet',
           path: '/dashboard/owner?tab=fleet',
           icon: Car,
           isActive: (p) => p.startsWith('/dashboard/owner') && location.search.includes('tab=fleet'),
@@ -123,13 +122,13 @@ export function Navbar() {
           isActive: (p) => p.startsWith('/dashboard/owner') && location.search.includes('tab=bookings'),
         },
         {
-          label: 'Register Car',
+          label: 'Add Car',
           path: '/dashboard/owner?tab=add',
           icon: PlusCircle,
           isActive: (p) => p.startsWith('/dashboard/owner') && location.search.includes('tab=add'),
         },
         {
-          label: 'My Wallet',
+          label: 'Wallet',
           path: '/dashboard/wallet',
           icon: Wallet,
           isActive: (p) => p === '/dashboard/wallet',
@@ -137,7 +136,7 @@ export function Navbar() {
       ];
     }
 
-    // 3. TRAVELER / TOURIST ACCOUNT — Booking, Active Trips & Wallet
+    // 3. TRAVELER / TOURIST ACCOUNT — Dashboard, Explore Fleet, Holidays & Tours, Bookings, Wallet
     return [
       {
         label: 'Dashboard',
@@ -152,16 +151,16 @@ export function Navbar() {
         isActive: (p) => p === '/catalogue' || p === '/search' || p.startsWith('/vehicles'),
       },
       {
-        label: 'Holidays and Tours',
+        label: 'Holidays & Tours',
         path: '/holidays-and-tours',
         icon: Palmtree,
-        isActive: (p) => p === '/holidays-and-tours',
+        isActive: (p) => p === '/holidays-and-tours' || p === '/dashboard/holidays-and-tours',
       },
       {
-        label: 'My Bookings',
+        label: 'Bookings',
         path: '/dashboard/bookings',
         icon: CalendarCheck,
-        isActive: (p) => p === '/dashboard/bookings',
+        isActive: (p) => p === '/dashboard/bookings' || p === '/dashboard/my-bookings',
       },
       {
         label: 'Wallet',
@@ -177,8 +176,8 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 font-display">
       {/* LUXURY TOP UTILITY STRIP */}
-      <div className="bg-black border-b border-white/10 text-slate-300 text-[11px] px-3 sm:px-4 py-1.5 font-medium transition-colors">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2">
+      <div className="bg-black border-b border-white/10 text-slate-300 text-[11px] px-4 sm:px-6 lg:px-8 py-1.5 font-medium transition-colors">
+        <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-4 truncate">
             <a href="tel:0722374535" className="flex items-center gap-1.5 text-slate-300 font-bold hover:text-white transition">
               <Phone className="h-3 w-3 text-slate-400 shrink-0" />
@@ -221,10 +220,10 @@ export function Navbar() {
       </div>
 
       {/* MAIN FROSTED NAVIGATION BAR */}
-      <div className="bg-black/95 backdrop-blur-xl border-b border-white/10 shadow-[0_4px_25px_-4px_rgba(0,0,0,0.7)] px-4 py-2.5 transition-colors">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between">
+      <div className="bg-black/95 backdrop-blur-xl border-b border-white/10 shadow-[0_4px_25px_-4px_rgba(0,0,0,0.7)] px-4 sm:px-6 lg:px-8 py-2.5 transition-colors">
+        <nav className="mx-auto flex max-w-[1440px] items-center justify-between gap-3 xl:gap-6">
           {/* LOGO */}
-          <Link to="/" className="flex items-center gap-3 group">
+          <Link to="/" className="flex items-center gap-3 group shrink-0">
             <img
               src="/logo.png"
               alt="M-TRAVEL"
@@ -233,7 +232,7 @@ export function Navbar() {
           </Link>
 
           {/* DYNAMIC ROLE-TAILORED NAVIGATION LINKS */}
-          <div className="hidden items-center gap-1 lg:flex">
+          <div className="hidden items-center gap-1 xl:gap-2 lg:flex shrink-0">
             {navItems.map((item) => {
               const isActive = item.isActive(location.pathname);
               const Icon = item.icon;
@@ -241,59 +240,53 @@ export function Navbar() {
                 <Link
                   key={`${item.label}-${item.path}`}
                   to={item.path}
-                  className={`relative flex items-center gap-1.5 px-4 py-2 text-xs font-bold tracking-wide uppercase transition-all duration-200 rounded-full ${
+                  className={`relative flex items-center gap-1.5 px-3 py-1.5 xl:px-3.5 xl:py-2 text-xs font-bold tracking-wide uppercase transition-all duration-200 rounded-full shrink-0 ${
                     isActive
-                      ? 'text-white bg-white/15 border border-white/30 font-extrabold shadow-xs'
+                      ? 'text-white bg-white/15 border border-white/25 shadow-xs font-extrabold'
                       : 'text-slate-300 hover:text-white hover:bg-white/10 border border-transparent'
                   }`}
                 >
-                  {Icon && <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />}
+                  {Icon && <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />}
                   <span>{item.label}</span>
-                  {isActive && (
-                    <span className="absolute bottom-1 left-1/2 h-0.5 w-3 -translate-x-1/2 rounded-full bg-white" />
-                  )}
                 </Link>
               );
             })}
           </div>
 
           {/* USER PROFILE & ACTIONS */}
-          <div className="hidden items-center gap-3 lg:flex">
+          <div className="hidden items-center gap-2.5 lg:flex shrink-0">
             {user ? (
               <>
                 <Link
                   to="/profile"
-                  title="My Profile — Click to view & manage your account credentials, standing and settings"
-                  className={`group flex items-center gap-2.5 rounded-full border pl-1.5 pr-3 py-1 transition-all duration-200 shadow-2xs cursor-pointer ${
+                  title="Account Settings & Profile"
+                  className={`group flex items-center gap-2 rounded-full border px-2.5 py-1.5 transition-all duration-200 shadow-2xs cursor-pointer ${
                     location.pathname === '/profile' || location.pathname === '/dashboard/profile'
-                      ? 'border-white/40 bg-white/20 ring-2 ring-white/30 shadow-xs'
+                      ? 'border-white/40 bg-white/20 ring-1 ring-white/30 shadow-xs'
                       : 'border-white/20 bg-white/10 hover:border-white/40 hover:bg-white/15'
                   }`}
                 >
                   {/* User Initial Avatar */}
-                  <div className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-[11px] shadow-2xs ring-1 ring-white/20">
+                  <div className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-[11px] shadow-2xs ring-1 ring-white/20 shrink-0">
                     {user.firstName ? user.firstName.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : 'U')}
                   </div>
 
                   {/* User Name */}
-                  <span className="text-xs font-bold text-white group-hover:text-slate-200 transition max-w-[130px] truncate">
+                  <span className="text-xs font-bold text-white group-hover:text-slate-200 transition max-w-[150px] truncate">
                     {user.firstName ? `${user.firstName} ${user.lastName ?? ''}`.trim() : user.email}
                   </span>
 
-                  {/* High-Visibility Role Badge */}
+                  {/* Role Badge */}
                   {getRoleBadgeUI()}
-
-                  {/* Dedicated Profile Action Pill */}
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-950 bg-white group-hover:bg-slate-100 border border-slate-300 px-2 py-0.5 rounded-full transition flex items-center gap-1 shadow-2xs">
-                    <UserIcon className="h-2.5 w-2.5" /> Profile →
-                  </span>
                 </Link>
 
                 <button
                   onClick={handleSignOut}
-                  className="rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20 hover:border-white/30 !px-3.5 !py-1.5 text-xs font-bold tracking-wide uppercase transition shadow-2xs cursor-pointer"
+                  title="Sign out of account"
+                  className="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 hover:bg-rose-600/30 hover:border-rose-400/50 hover:text-rose-200 text-slate-200 px-3 py-1.5 text-xs font-bold tracking-wide uppercase transition shadow-2xs cursor-pointer shrink-0"
                 >
-                  Sign out
+                  <LogOut className="h-3 w-3 shrink-0" />
+                  <span>Sign out</span>
                 </button>
               </>
             ) : (
@@ -306,7 +299,7 @@ export function Navbar() {
                 </Link>
                 <Link
                   to="/catalogue"
-                  className="rounded-full bg-white hover:bg-slate-100 text-slate-950 border border-white !px-5 !py-2.5 text-xs uppercase tracking-wider font-bold shadow-md hover:shadow-lg transition flex items-center gap-1.5 cursor-pointer"
+                  className="rounded-full bg-white hover:bg-slate-100 text-slate-950 border border-white !px-4 !py-2 text-xs uppercase tracking-wider font-bold shadow-md hover:shadow-lg transition flex items-center gap-1.5 cursor-pointer shrink-0"
                 >
                   <Sparkles className="h-3.5 w-3.5 text-slate-950" /> Book a Ride
                 </Link>
@@ -326,7 +319,7 @@ export function Navbar() {
 
         {/* MOBILE DRAWER */}
         {open && (
-          <div className="mt-3 mx-auto max-w-7xl rounded-2xl border border-white/20 bg-slate-950 text-white p-4 sm:p-5 shadow-2xl lg:hidden animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="mt-3 mx-auto max-w-[1440px] rounded-2xl border border-white/20 bg-slate-950 text-white p-4 sm:p-5 shadow-2xl lg:hidden animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="flex flex-col gap-2">
               {user && (
                 <div className="border-b border-white/15 pb-3">
@@ -396,9 +389,10 @@ export function Navbar() {
                   <span className="text-xs text-slate-400 font-medium">Logged in as {user.role || 'Member'}</span>
                   <button
                     onClick={() => { setOpen(false); handleSignOut(); }}
-                    className="text-xs text-rose-400 font-bold px-3 py-2 rounded-lg hover:bg-rose-500/10 transition cursor-pointer min-h-[40px] flex items-center"
+                    className="text-xs text-rose-400 font-bold px-3 py-2 rounded-lg hover:bg-rose-500/10 transition cursor-pointer min-h-[40px] flex items-center gap-1.5"
                   >
-                    Sign out
+                    <LogOut className="h-3.5 w-3.5" />
+                    <span>Sign out</span>
                   </button>
                 </div>
               ) : (
