@@ -542,9 +542,9 @@ export const executeReturnInspection = async (
     settledAt: new Date().toISOString()
   };
 
-  // 1. Save Inspection record
+  // 1. Save Inspection record locally
   const inspections = getAllInspections();
-  const existingIdx = inspections.findIndex(i => i.bookingId === fullInspection.bookingId);
+  const existingIdx = inspections.findIndex(i => i.bookingId === fullInspection.bookingId || (fullInspection.bookingRef && i.bookingRef === fullInspection.bookingRef));
   if (existingIdx >= 0) {
     inspections[existingIdx] = fullInspection;
   } else {
@@ -552,10 +552,26 @@ export const executeReturnInspection = async (
   }
   localStorage.setItem(INSPECTIONS_KEY, JSON.stringify(inspections));
 
-  // 2. Mark Booking as COMPLETED
+  const returnDateIso = new Date().toISOString();
+  const returnDateStr = returnDateIso.split('T')[0];
+
+  // 2. Mark Booking as COMPLETED across all stores and trigger host payout & audits
+  updateBookingStatus(fullInspection.bookingId, 'COMPLETED');
+  if (fullInspection.bookingRef && fullInspection.bookingRef !== fullInspection.bookingId) {
+    updateBookingStatus(fullInspection.bookingRef, 'COMPLETED');
+  }
+
+  // Also clamp end_date in stored bookings to the actual return date so it never blocks future dates
   updateStoredBooking(fullInspection.bookingId, {
-    status: 'COMPLETED'
+    status: 'COMPLETED',
+    endDate: returnDateStr,
   });
+  if (fullInspection.bookingRef && fullInspection.bookingRef !== fullInspection.bookingId) {
+    updateStoredBooking(fullInspection.bookingRef, {
+      status: 'COMPLETED',
+      endDate: returnDateStr,
+    });
+  }
 
   // 3. Mark Vehicle as available again for future bookings
   if (fullInspection.vehicleId) {
@@ -563,7 +579,8 @@ export const executeReturnInspection = async (
       toggleVehicleLiveStatus(fullInspection.vehicleId, true);
     } catch {}
     updateStoredVehicle(fullInspection.vehicleId, {
-      isLive: true
+      isLive: true,
+      status: 'APPROVED',
     });
   }
 
@@ -581,28 +598,57 @@ export const executeReturnInspection = async (
     'ADMIN'
   );
 
-  window.dispatchEvent(new CustomEvent('mt_return_inspected', { detail: fullInspection }));
-
-  // Supabase background sync
+  // 5. CRITICAL: Synchronously update Supabase DB so all travelers & devices immediately see vehicle as free & available
   if (supabase) {
     try {
-      supabase.from('vehicle_inspections').insert([{
-        booking_id: fullInspection.bookingId,
-        vehicle_id: fullInspection.vehicleId,
-        inspection_type: 'return',
-        inspector_name: fullInspection.inspectorName,
-        odometer_reading: fullInspection.odometerReading,
-        fuel_level_percent: fullInspection.fuelLevelPercent,
-        condition_status: fullInspection.conditionStatus,
-        damage_found: fullInspection.damageFound,
-        damage_description: fullInspection.damageDescription,
-        deposit_held: fullInspection.depositHeld,
-        deposit_deducted: fullInspection.depositDeducted,
-        deposit_refunded: fullInspection.depositRefunded,
-        settlement_status: fullInspection.settlementStatus
-      }]).then(() => {}, () => {});
-    } catch {}
+      const bId = fullInspection.bookingId;
+      const bRef = fullInspection.bookingRef;
+
+      // 5a. Update Booking status to COMPLETED and clamp end_date in Supabase
+      if (isValidUUID(bId)) {
+        await supabase
+          .from('bookings')
+          .update({
+            status: 'COMPLETED',
+            end_date: returnDateIso,
+            updated_at: returnDateIso,
+          })
+          .eq('id', bId);
+      }
+      if (bRef) {
+        await supabase
+          .from('bookings')
+          .update({
+            status: 'COMPLETED',
+            end_date: returnDateIso,
+            updated_at: returnDateIso,
+          })
+          .eq('booking_ref', bRef);
+      }
+
+      // 5b. Update Vehicle in Supabase to is_available = true
+      if (fullInspection.vehicleId && isValidUUID(fullInspection.vehicleId)) {
+        await supabase
+          .from('vehicles')
+          .update({
+            is_available: true,
+            updated_at: returnDateIso,
+          })
+          .eq('id', fullInspection.vehicleId);
+      }
+    } catch (sbErr) {
+      console.warn('[executeReturnInspection] Supabase direct update error:', sbErr);
+    }
   }
+
+  // 6. Broadcast reactive events across the entire window and storage listeners
+  window.dispatchEvent(new CustomEvent('mt_return_inspected', { detail: fullInspection }));
+  window.dispatchEvent(new CustomEvent('mt_booking_status_changed', { detail: { ...fullInspection, status: 'COMPLETED' } }));
+  window.dispatchEvent(new CustomEvent('mt_booking_updated', { detail: { ...fullInspection, status: 'COMPLETED' } }));
+  window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: { id: fullInspection.vehicleId, isLive: true } }));
+  window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'bookings' } }));
+  window.dispatchEvent(new CustomEvent('mt_remote_change', { detail: { table: 'vehicles' } }));
+  window.dispatchEvent(new Event('storage'));
 
   return fullInspection;
 };

@@ -185,12 +185,33 @@ export default function VehicleDetail() {
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'MPESA'>('MPESA');
 
   // Fetch booked dates for this vehicle from Supabase
-  const { data: bookedDates } = useQuery<string[]>({
-    queryKey: ['booked-dates', id],
-    queryFn: () => fetchVehicleBookedDates(id ?? ''),
-    enabled: !!id,
-    staleTime: 60_000,
+  const { data: bookedDates, refetch: refetchBookedDates } = useQuery<string[]>({
+    queryKey: ['booked-dates', id, targetVehicle?.id],
+    queryFn: () => {
+      const vId = targetVehicle?.id || id || '';
+      const altIds = id && id !== targetVehicle?.id ? [id] : undefined;
+      return fetchVehicleBookedDates(vId, altIds);
+    },
+    enabled: !!id || !!targetVehicle?.id,
+    staleTime: 5_000,
   });
+
+  // Real-time synchronization: immediately refetch booked dates upon return inspection or booking updates
+  useEffect(() => {
+    const handleRefresh = () => {
+      refetchBookedDates();
+    };
+    window.addEventListener('mt_return_inspected', handleRefresh);
+    window.addEventListener('mt_booking_status_changed', handleRefresh);
+    window.addEventListener('mt_booking_updated', handleRefresh);
+    window.addEventListener('mt_remote_change', handleRefresh);
+    return () => {
+      window.removeEventListener('mt_return_inspected', handleRefresh);
+      window.removeEventListener('mt_booking_status_changed', handleRefresh);
+      window.removeEventListener('mt_booking_updated', handleRefresh);
+      window.removeEventListener('mt_remote_change', handleRefresh);
+    };
+  }, [refetchBookedDates]);
 
   const isDateBooked = (dateStr: string) =>
     (bookedDates ?? []).includes(dateStr);
@@ -214,6 +235,17 @@ export default function VehicleDetail() {
           : 'This vehicle is currently unavailable for booking.'
       );
       return;
+    }
+
+    // Check if any date in the requested range is already booked by another traveler
+    const startObj = new Date(startDate);
+    const endObj = new Date(endDate);
+    for (let d = new Date(startObj); d <= endObj; d.setDate(d.getDate() + 1)) {
+      const dStr = d.toISOString().split('T')[0];
+      if (isDateBooked(dStr)) {
+        setPaymentError(`The date ${dStr} is already booked by another traveler. Please choose another date.`);
+        return;
+      }
     }
 
     if (isCreditRestricted) {

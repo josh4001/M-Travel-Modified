@@ -288,16 +288,55 @@ export async function fetchBlockedDates(vehicleId: string): Promise<string[]> {
 }
 
 /** Get existing bookings for calendar blocking */
-export async function fetchVehicleBookedDates(vehicleId: string): Promise<string[]> {
-  const { data, error } = await supabase
+export async function fetchVehicleBookedDates(vehicleId: string, altVehicleIds?: string[]): Promise<string[]> {
+  if (!vehicleId) return [];
+
+  const candidateIds = Array.from(new Set([vehicleId, ...(altVehicleIds || [])].filter(Boolean)));
+  
+  let query = supabase
     .from('bookings')
-    .select('start_date, end_date')
-    .eq('vehicle_id', vehicleId)
+    .select('id, booking_ref, start_date, end_date, status')
     .in('status', ['PENDING', 'CONFIRMED', 'IN_PROGRESS']);
+
+  if (candidateIds.length === 1) {
+    query = query.eq('vehicle_id', candidateIds[0]);
+  } else {
+    query = query.in('vehicle_id', candidateIds);
+  }
+
+  const { data, error } = await query;
   if (error) return [];
+
+  // Exclude any bookings that have already undergone return inspection
+  const returnedBookingIds = new Set<string>();
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('mt_inspections_v1');
+      if (raw) {
+        const inspections = JSON.parse(raw);
+        if (Array.isArray(inspections)) {
+          for (const insp of inspections) {
+            if (insp.inspectionType === 'return' || insp.settlementStatus === 'SETTLED') {
+              if (insp.bookingId) returnedBookingIds.add(String(insp.bookingId).toLowerCase());
+              if (insp.bookingRef) returnedBookingIds.add(String(insp.bookingRef).toLowerCase());
+            }
+          }
+        }
+      }
+    } catch {}
+  }
 
   const dates: string[] = [];
   for (const b of data ?? []) {
+    const bId = String(b.id || '').toLowerCase();
+    const bRef = String(b.booking_ref || '').toLowerCase();
+    const bStatus = String(b.status || '').toUpperCase();
+
+    // If completed or verified as returned, do NOT block future dates
+    if (bStatus === 'COMPLETED' || returnedBookingIds.has(bId) || returnedBookingIds.has(bRef)) {
+      continue;
+    }
+
     const start = new Date(b.start_date);
     const end = new Date(b.end_date);
     for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {

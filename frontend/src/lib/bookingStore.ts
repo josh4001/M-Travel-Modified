@@ -1933,6 +1933,22 @@ export const getVehicleHireStatus = (vehicleId: string): VehicleHireStatus => {
     const isActiveStatus = ['IN_PROGRESS', 'ACTIVE', 'CONFIRMED', 'ACCEPTED', 'PAID', 'RESERVED'].includes(status);
     if (!isActiveStatus) return false;
 
+    // If a verified return inspection exists for this booking, it has already been returned and is available!
+    try {
+      const rawInspections = localStorage.getItem('mt_inspections_v1');
+      if (rawInspections) {
+        const inspections = JSON.parse(rawInspections);
+        if (Array.isArray(inspections)) {
+          const isReturned = inspections.some(
+            (i: any) =>
+              (i.bookingId === b.id || i.bookingId === b.bookingRef || i.bookingRef === b.bookingRef) &&
+              (i.inspectionType === 'return' || i.settlementStatus === 'SETTLED')
+          );
+          if (isReturned) return false;
+        }
+      }
+    } catch {}
+
     // Match 1: direct ID match
     if (b.vehicleId && b.vehicleId === vehicleId) return true;
     if (b.id && b.id === vehicleId) return true;
@@ -1981,7 +1997,15 @@ export const getVehicleHireStatus = (vehicleId: string): VehicleHireStatus => {
     };
   }
 
-  const awaitingBooking = vehicleBookings.find(b => ['CONFIRMED', 'ACCEPTED', 'PAID', 'RESERVED'].includes((b.status || '').toUpperCase()));
+  const todayStr = new Date().toISOString().split('T')[0];
+  const awaitingBooking = vehicleBookings.find(b => {
+    const s = (b.status || '').toUpperCase();
+    if (!['CONFIRMED', 'ACCEPTED', 'PAID', 'RESERVED'].includes(s)) return false;
+    // An awaiting booking only blocks immediate vehicle handover if it is starting today or overdue for pickup
+    const startStr = (b.startDate || '').split('T')[0];
+    return !startStr || startStr <= todayStr;
+  });
+
   if (awaitingBooking) {
     return {
       isHired: true,
@@ -2159,23 +2183,39 @@ export const updateBookingStatus = (
     (async () => {
       try {
         const ub = updatedBooking as StoredBooking;
+        const nowIso = new Date().toISOString();
+        const isCompleted = status.toUpperCase() === 'COMPLETED';
+
+        const updatePayload: Record<string, any> = {
+          status: status.toUpperCase(),
+          updated_at: nowIso,
+        };
+        if (isCompleted) {
+          updatePayload.end_date = nowIso;
+        }
+
         if (isValidUUID(ub.id)) {
           await supabase
             .from('bookings')
-            .update({
-              status: status.toUpperCase(),
-              updated_at: new Date().toISOString(),
-            })
+            .update(updatePayload)
             .eq('id', ub.id);
         }
         if (ub.bookingRef) {
           await supabase
             .from('bookings')
-            .update({
-              status: status.toUpperCase(),
-              updated_at: new Date().toISOString(),
-            })
+            .update(updatePayload)
             .eq('booking_ref', ub.bookingRef);
+        }
+
+        // If completed or cancelled, immediately ensure vehicle is marked available in Supabase
+        if ((isCompleted || status.toUpperCase() === 'CANCELLED') && ub.vehicleId && isValidUUID(ub.vehicleId)) {
+          await supabase
+            .from('vehicles')
+            .update({
+              is_available: true,
+              updated_at: nowIso,
+            })
+            .eq('id', ub.vehicleId);
         }
       } catch (err) {
         console.warn('Supabase updateBookingStatus notice:', err);
