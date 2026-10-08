@@ -46,8 +46,8 @@ export default function WalletPage() {
     }
   })();
   const { formatPrice } = useCurrency();
-  const isCarOwner = user?.role === 'VEHICLE_OWNER';
-  const isAdmin = user?.role === 'ADMIN';
+  const isCarOwner = user?.role === 'VEHICLE_OWNER' || user?.role === 'OWNER' || user?.role === 'HOST' || user?.role === 'FLEET_HOST';
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
   const isCarOwnerOrAdmin = isCarOwner || isAdmin;
 
   // Driver partners are compensated directly by the agency per contract

@@ -139,8 +139,8 @@ export function getLocalWallet(
         if (storedUserRaw) {
           const u = JSON.parse(storedUserRaw);
           if (u.id === userId) {
-            if (u.role === 'ADMIN') checkIsAdmin = true;
-            if (u.role === 'VEHICLE_OWNER' || u.role === 'OWNER') {
+            if (u.role === 'ADMIN' || u.role === 'SUPER_ADMIN') checkIsAdmin = true;
+            if (u.role === 'VEHICLE_OWNER' || u.role === 'OWNER' || u.role === 'HOST' || u.role === 'FLEET_HOST') {
               checkIsHost = true;
               if (!userEmail) userEmail = u.email;
             }
