@@ -177,8 +177,13 @@ export function getLocalWallet(
       return (bId !== '' && handoverBookingIds.has(bId)) || (bRef !== '' && handoverBookingIds.has(bRef));
     };
 
-    // Merge transactions from alias host accounts if user is host
-    if (checkIsHost && typeof window !== 'undefined') {
+    const isUserJames = (userEmail && userEmail.toLowerCase().includes('james')) ||
+                        userId === 'a0000000-0000-0000-0000-000000000002' ||
+                        userId === 'owner-safari-1' ||
+                        userId === 'user-host-1';
+
+    // Merge transactions from alias host accounts ONLY IF the user is specifically James Mwangi
+    if (isUserJames && typeof window !== 'undefined') {
       const aliasKeys = ['a0000000-0000-0000-0000-000000000002', 'owner-safari-1', 'user-host-1'];
       for (const ak of aliasKeys) {
         if (ak !== userId) {
@@ -301,6 +306,24 @@ export function getLocalWallet(
 
         return matchesOwner || matchesVehicle || isHostFleet;
       });
+
+      // STRICT USER ISOLATION: For any host who is NOT James Mwangi,
+      // purge any foreign BOOKING_PAYOUT transactions that do not belong to this host's vehicles
+      if (!isUserJames) {
+        const legitimateBookingRefs = new Set<string>();
+        ownerBookings.forEach(b => {
+          if (b.bookingRef) legitimateBookingRefs.add(b.bookingRef.toUpperCase());
+          if (b.id) legitimateBookingRefs.add(b.id.toUpperCase());
+        });
+
+        w.transactions = (w.transactions || []).filter(t => {
+          if (t.type === 'BOOKING_PAYOUT') {
+            const bk = extractBookingRef(`${t.reference || ''} ${t.description || ''} ${t.id || ''}`);
+            return bk ? legitimateBookingRefs.has(bk) : false;
+          }
+          return true;
+        });
+      }
 
       const verifiedBookings = ownerBookings.filter(b => isHandoverVerified(b));
       const pendingBookings = ownerBookings.filter(b => !isHandoverVerified(b));
@@ -565,7 +588,8 @@ export async function creditHostPayout(
   const desc = description || `Host net earnings (75%) released for trip ${cleanBookingRef}`;
 
   const JAMES_HOST_UUID = 'a0000000-0000-0000-0000-000000000002';
-  const primaryHostUuid = isValidUUID(userId) ? userId : JAMES_HOST_UUID;
+  const isJames = userId === JAMES_HOST_UUID || userId === 'owner-safari-1' || userId === 'user-host-1';
+  const primaryHostUuid = isValidUUID(userId) ? userId : (isJames ? JAMES_HOST_UUID : userId);
 
   // 1. Supabase Sync: Credit only one primary host wallet
   try {
@@ -633,28 +657,16 @@ export async function creditHostPayout(
     console.warn('Supabase host payout notice:', err);
   }
 
-  // 2. Local Wallet Sync for all host aliases (keeping host accounts synchronized)
+  // 2. Local Wallet Sync: Strictly credit ONLY this specific vehicle host
   const hostIds = new Set<string>();
   if (userId) hostIds.add(userId);
-  hostIds.add(JAMES_HOST_UUID);
-  hostIds.add('owner-safari-1');
-  hostIds.add('user-host-1');
+  if (primaryHostUuid) hostIds.add(primaryHostUuid);
 
-  if (typeof window !== 'undefined') {
-    try {
-      const stored = localStorage.getItem('mt_user');
-      if (stored) {
-        const u = JSON.parse(stored);
-        if ((u.role === 'VEHICLE_OWNER' || u.role === 'OWNER') && u.id) hostIds.add(u.id);
-      }
-      const rawAccounts = localStorage.getItem('mt_user_credentials_v2') || localStorage.getItem('mt_local_accounts');
-      if (rawAccounts) {
-        const accs = JSON.parse(rawAccounts);
-        if (Array.isArray(accs)) {
-          accs.filter((a: any) => a.role === 'VEHICLE_OWNER' || a.role === 'OWNER').forEach((a: any) => hostIds.add(a.id));
-        }
-      }
-    } catch {}
+  // Synchronize legacy alias IDs only if the recipient is specifically James Mwangi
+  if (isJames) {
+    hostIds.add(JAMES_HOST_UUID);
+    hostIds.add('owner-safari-1');
+    hostIds.add('user-host-1');
   }
 
   for (const hId of hostIds) {
