@@ -254,7 +254,7 @@ export async function sendHostVehicleApprovedEmail(params: {
     </div>
 
     <div class="footer">
-      <p style="margin: 0 0 6px;">M-TRAVEL East Africa Ltd. · Westlands Square, Nairobi, Kenya</p>
+      <p style="margin: 0 0 6px;">M-TRAVEL · Westlands Square, Nairobi, Kenya</p>
       <p style="margin: 0;">24/7 Concierge Hotline: +254 722 374 535 · Partner Desk: host@mtravel.co.ke</p>
     </div>
   </div>
@@ -286,7 +286,7 @@ FLEET HOST STANDARDS & NEXT STEPS:
 For host assistance, reach our 24/7 Partner Concierge:
 Hotline: +254 722 374 535 | Email: host@mtravel.co.ke
 
-M-TRAVEL East Africa Ltd. · Westlands Square, Nairobi, Kenya
+M-TRAVEL · Westlands Square, Nairobi, Kenya
 `.trim();
 
   // Attempt live outbound dispatch via gateway (Resend API) to real Gmail inbox
@@ -429,10 +429,10 @@ export async function sendTravelerBookingEmail(params: {
       </p>
       <p style="font-size: 14px; line-height: 1.6; color: #CBD5E1;">
         ${isDestination
-          ? 'Thank you for choosing M-TRAVEL East Africa for your upcoming holiday. Your destination booking has been officially recorded and confirmed. Our dedicated travel company operations desk is currently facilitating all necessary ground arrangements, lodge coordination, and itinerary details.'
+          ? 'Thank you for choosing M-TRAVEL for your upcoming holiday. Your destination booking has been officially recorded and confirmed. Our dedicated travel company operations desk is currently facilitating all necessary ground arrangements, lodge coordination, and itinerary details.'
           : isBus
-          ? 'Thank you for choosing M-TRAVEL East Africa. Your executive bus charter reservation is confirmed. Your bus is scheduled with an assigned company coach driver and verified for handover.'
-          : 'Thank you for choosing M-TRAVEL East Africa. Your luxury vehicle hire reservation is confirmed. Your vehicle is scheduled, inspected, and verified for handover.'}
+          ? 'Thank you for choosing M-TRAVEL. Your executive bus charter reservation is confirmed. Your bus is scheduled with an assigned company coach driver and verified for handover.'
+          : 'Thank you for choosing M-TRAVEL. Your luxury vehicle hire reservation is confirmed. Your vehicle is scheduled, inspected, and verified for handover.'}
       </p>
 
       <div class="card">
@@ -494,7 +494,7 @@ export async function sendTravelerBookingEmail(params: {
     </div>
 
     <div class="footer">
-      <p style="margin: 0 0 6px;">M-TRAVEL East Africa Ltd. · Signature Travel &amp; Mobility Network</p>
+      <p style="margin: 0 0 6px;">M-TRAVEL · Signature Travel &amp; Mobility Network</p>
       <p style="margin: 0;">24/7 Concierge Hotline: +254 722 374 535 · WhatsApp Desk: +254 791 888 840</p>
     </div>
   </div>
@@ -548,7 +548,7 @@ export function getWhatsAppConciergeUrl(params: {
 
   let message = '';
   if (isDestination) {
-    message = `🌴 *M-TRAVEL EAST AFRICA — DESTINATION BOOKING CONFIRMATION* 🌴\n\n` +
+    message = `🌴 *M-TRAVEL — DESTINATION BOOKING CONFIRMATION* 🌴\n\n` +
       `Hello M-TRAVEL Concierge,\n` +
       `My name is *${name}* and I have completed my booking payment for:\n\n` +
       `🏨 *Destination / Lodge:* ${place}\n` +
@@ -617,7 +617,7 @@ export function getHostApprovalWhatsAppUrl(params: {
     `• All traveler payments and M-Pesa receipts are secured upfront by M-TRAVEL.\n` +
     `• Access your Fleet Host Dashboard to view live bookings and payouts:\n` +
     `  https://m-travel.co.ke/dashboard/owner?tab=fleet\n\n` +
-    `M-TRAVEL East Africa Ltd. · Partner Desk: host@mtravel.co.ke · 24/7 Concierge: +254 722 374 535`;
+    `M-TRAVEL · Partner Desk: host@mtravel.co.ke · 24/7 Concierge: +254 722 374 535`;
 
   return `https://wa.me/${intlPhone}?text=${encodeURIComponent(message)}`;
 }
@@ -664,7 +664,7 @@ export function getTravelerBookingWhatsAppUrl(params: {
   let message = '';
   if (isDestination) {
     message =
-      `🌴 *M-TRAVEL EAST AFRICA — DESTINATION BOOKING CONFIRMATION* 🌴\n` +
+      `🌴 *M-TRAVEL — DESTINATION BOOKING CONFIRMATION* 🌴\n` +
       `*OFFICIAL TRAVEL VOUCHER & RESERVATION RECEIPT*\n\n` +
       `Dear *${name}*,\n\n` +
       `Thank you for choosing M-TRAVEL! Your luxury holiday destination reservation is *CONFIRMED & FACILITATED*.\n\n` +
@@ -682,7 +682,7 @@ export function getTravelerBookingWhatsAppUrl(params: {
       `📱 View complete itinerary in your dashboard:\n` +
       `https://m-travel.co.ke/dashboard/bookings\n\n` +
       `Need custom safari requests or transfer updates? Reply to this message!\n` +
-      `24/7 Operations Desk: +254 722 374 535 · M-TRAVEL East Africa Ltd.`;
+      `24/7 Operations Desk: +254 722 374 535 · M-TRAVEL`;
   } else {
     const isBus = isBusVehicle(booking);
     message =
@@ -705,7 +705,7 @@ export function getTravelerBookingWhatsAppUrl(params: {
         : `Present your National ID or Passport and driving license (for self-drive) at vehicle handover.\n\n`) +
       `📱 Access rental details, security check-in & receipt:\n` +
       `https://m-travel.co.ke/dashboard/my-bookings\n\n` +
-      `24/7 Roadside Concierge: +254 722 374 535 · M-TRAVEL East Africa Ltd.`;
+      `24/7 Roadside Concierge: +254 722 374 535 · M-TRAVEL`;
   }
 
   return `https://wa.me/${intlPhone}?text=${encodeURIComponent(message)}`;

@@ -729,9 +729,9 @@ export const performScopedFactoryReset = async (
       return { success: true, message: 'Entire platform and all accounts have been successfully reset to factory settings.' };
     }
 
-    if (scope === 'OPERATIONS_DESK') {
-      const opsIds = ['admin-mtravel-1', 'admin-ops-1'];
-      for (const id of opsIds) {
+    if (scope === 'OPERATIONS_DESK' || scope === 'CHIEF_ADMIN') {
+      const adminIds = ['admin-mtravel-1', 'admin-ops-1', 'admin-safari-1', 'a0000000-0000-0000-0000-000000000001'];
+      for (const id of adminIds) {
         localStorage.setItem(`mt_local_wallet_${id}`, JSON.stringify({
           id: `w-${id}`,
           balance: 0,
@@ -743,7 +743,7 @@ export const performScopedFactoryReset = async (
 
       if (supabase) {
         try {
-          const { data: users } = await supabase.from('users').select('id').eq('email', 'admin@mtravel.co.ke');
+          const { data: users } = await supabase.from('users').select('id').in('email', ['admin@mtravel.co.ke', 'safari@jambo.africa']);
           if (users && users.length > 0) {
             for (const u of users) {
               const { data: w } = await supabase.from('wallets').select('id').eq('user_id', u.id);
@@ -758,39 +758,7 @@ export const performScopedFactoryReset = async (
       }
 
       window.dispatchEvent(new CustomEvent('mt_wallet_updated', { detail: null }));
-      return { success: true, message: 'Operations Desk admin account has been reset to factory zero.' };
-    }
-
-    if (scope === 'CHIEF_ADMIN') {
-      const chiefIds = ['admin-safari-1', 'a0000000-0000-0000-0000-000000000001'];
-      for (const id of chiefIds) {
-        localStorage.setItem(`mt_local_wallet_${id}`, JSON.stringify({
-          id: `w-${id}`,
-          balance: 0,
-          pendingBalance: 0,
-          currency: 'KES',
-          transactions: []
-        }));
-      }
-
-      if (supabase) {
-        try {
-          const { data: users } = await supabase.from('users').select('id').in('email', ['safari@jambo.africa']);
-          if (users && users.length > 0) {
-            for (const u of users) {
-              const { data: w } = await supabase.from('wallets').select('id').eq('user_id', u.id);
-              if (w && w.length > 0) {
-                const wIds = w.map(x => x.id);
-                await supabase.from('transactions').delete().in('wallet_id', wIds);
-                await supabase.from('wallets').update({ balance: 0 }).in('id', wIds);
-              }
-            }
-          }
-        } catch {}
-      }
-
-      window.dispatchEvent(new CustomEvent('mt_wallet_updated', { detail: null }));
-      return { success: true, message: 'Chief Admin account has been reset to factory zero.' };
+      return { success: true, message: 'M-Travel Admin account has been reset to factory zero.' };
     }
 
     return { success: false, message: 'Invalid reset scope specified' };

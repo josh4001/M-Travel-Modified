@@ -907,7 +907,7 @@ export default function MyBookings() {
         <body>
           <div class="header">
             <div>
-              <div class="brand">M-TRAVEL EAST AFRICA</div>
+              <div class="brand">M-TRAVEL</div>
               <div style="font-size:12px; color:#64748b;">Luxury Vehicle Rental & Safari Expedition Pass</div>
             </div>
             <div class="ref">REF: ${b.bookingRef}</div>

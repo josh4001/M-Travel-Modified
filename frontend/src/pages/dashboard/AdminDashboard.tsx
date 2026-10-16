@@ -118,8 +118,8 @@ export default function AdminDashboard() {
 
   const adminName = activeAdmin?.firstName
     ? `${activeAdmin.firstName} ${activeAdmin.lastName || ''}`.trim()
-    : (activeAdmin?.name || 'Administrator');
-  const adminEmail = activeAdmin?.email || 'maurice7868@gmail.com';
+    : (activeAdmin?.name || 'M-Travel Admin');
+  const adminEmail = activeAdmin?.email || 'admin@mtravel.co.ke';
   const adminRole = activeAdmin?.role || 'SUPER_ADMIN';
 
   // Provision New Admin / Staff Modal
@@ -142,7 +142,7 @@ export default function AdminDashboard() {
 
     try {
       const res = await createAdminAccountByManagement(
-        activeAdmin || { role: 'ADMIN', email: 'maurice7868@gmail.com' },
+        activeAdmin || { role: 'ADMIN', email: 'admin@mtravel.co.ke' },
         newAdminForm
       );
 
@@ -245,16 +245,17 @@ export default function AdminDashboard() {
 
       const [uRes, txRes] = await Promise.race([fetchPromise, timeoutPromise]) as any;
       if (uRes?.data && Array.isArray(uRes.data) && uRes.data.length > 0) {
-        const retiredAliases = new Set(['safari@jambo.africa', 'admin@mtravel.co.ke', 'admin@admin.com']);
+        const retiredAliases = new Set(['maurice7868@gmail.com', 'safari@jambo.africa', 'admin@admin.com']);
         const userMap = new Map<string, DBUser>();
         localUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
         (uRes.data as DBUser[]).forEach(u => {
           if (u.email && !retiredAliases.has(u.email.toLowerCase())) {
+            const isMTravelAdmin = u.email.toLowerCase() === 'admin@mtravel.co.ke';
             userMap.set(u.email.toLowerCase(), {
               ...u,
-              first_name: u.first_name || 'Explorer',
-              last_name: u.last_name || '',
-              role: u.email.toLowerCase() === 'maurice7868@gmail.com' ? 'ADMIN' : (u.role || 'TOURIST'),
+              first_name: isMTravelAdmin ? 'M-Travel' : (u.first_name || 'Explorer'),
+              last_name: isMTravelAdmin ? 'Admin' : (u.last_name || ''),
+              role: isMTravelAdmin ? 'ADMIN' : (u.role || 'TOURIST'),
               is_active: u.is_active !== false,
             });
           }
@@ -3737,7 +3738,7 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Assigned Admin Desk</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Assigned Admin Role</label>
                   <select
                     value={newAdminForm.deskRole}
                     onChange={(e) =>
@@ -3748,8 +3749,7 @@ export default function AdminDashboard() {
                     }
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:border-purple-600 focus:outline-hidden text-slate-900 font-semibold"
                   >
-                    <option value="OPERATIONS">Operations Desk (Fleet Oversight)</option>
-                    <option value="CHIEF_ADMIN">Chief Admin (Executive Access)</option>
+                    <option value="CHIEF_ADMIN">M-Travel Admin (Full Executive &amp; Operations Access)</option>
                   </select>
                 </div>
               </div>
@@ -3787,7 +3787,7 @@ export default function AdminDashboard() {
         isOpen={showFactoryResetModal}
         onClose={() => setShowFactoryResetModal(false)}
         adminEmail={activeAdmin?.email || 'admin@mtravel.co.ke'}
-        adminName={`${activeAdmin?.firstName || ''} ${activeAdmin?.lastName || ''}`.trim() || activeAdmin?.name || 'Admin'}
+        adminName={`${activeAdmin?.firstName || ''} ${activeAdmin?.lastName || ''}`.trim() || activeAdmin?.name || 'M-Travel Admin'}
         adminRole={activeAdmin?.role || 'ADMIN'}
         onResetCompleted={() => {
           fetchAll();

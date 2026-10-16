@@ -510,7 +510,7 @@ export default function MyProfilePage() {
             <span className="text-slate-500 text-[11px] hidden sm:inline">Active Standing:</span>
             <span className="inline-flex items-center gap-1.5 text-slate-900 font-bold bg-white border border-slate-200 px-3 py-1.5 rounded-xl text-[11px] shadow-2xs">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              {isAdmin ? 'Chief Admin Verified' : isHost ? 'Accredited Host Standing' : 'Verified VIP Traveler'}
+              {isAdmin ? 'M-Travel Admin Verified' : isHost ? 'Accredited Host Standing' : 'Verified VIP Traveler'}
             </span>
           </div>
         </div>
@@ -1044,7 +1044,7 @@ export default function MyProfilePage() {
                   <div className="grid grid-cols-2 gap-3 text-xs font-semibold pt-1">
                     <div className="rounded-xl bg-white p-3.5 border border-slate-200 text-slate-900 shadow-xs">
                       <span className="text-[10px] text-slate-500 font-bold block uppercase tracking-wider">System Role</span>
-                      <span className="font-bold text-sm text-purple-700">Super Admin</span>
+                      <span className="font-bold text-sm text-purple-700">M-Travel Admin</span>
                     </div>
                     <div className="rounded-xl bg-white p-3.5 border border-slate-200 text-slate-900 shadow-xs">
                       <span className="text-[10px] text-slate-500 font-bold block uppercase tracking-wider">Authority Tier</span>

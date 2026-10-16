@@ -91,7 +91,7 @@ export function Footer() {
 
       <div className="mx-auto mt-12 max-w-7xl border-t border-slate-900 pt-6 flex flex-wrap items-center justify-between text-xs text-slate-500 gap-4 relative z-10">
         <div className="flex flex-wrap items-center gap-3">
-          <p>© {new Date().getFullYear()} M-TRAVEL East Africa Ltd. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} M-TRAVEL. All rights reserved.</p>
           <span className="text-slate-800 select-none">•</span>
           <Link
             to="/admin/login"

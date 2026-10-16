@@ -244,13 +244,13 @@ export function downloadAuditTrailPdf(params: {
     <div class="report-header">
       <div>
         <div class="security-pill">Confidential · Internal Corporate Governance</div>
-        <div class="brand-title">M-TRAVEL East Africa Ltd.</div>
+        <div class="brand-title">M-TRAVEL</div>
         <div class="brand-sub">Executive Lifecycle &amp; Security Audit Trail Report</div>
       </div>
       <div class="report-meta">
         <div>Generated: <strong>${now} EAT</strong></div>
         <div>Operator: <strong>${adminName}</strong> (${adminEmail})</div>
-        <div>Authority Level: <strong>${adminRole === 'SUPER_ADMIN' ? 'Chief Administrator' : 'Operations Desk Admin'}</strong></div>
+        <div>Authority Level: <strong>${adminRole ? 'M-Travel Admin' : 'M-Travel Admin'}</strong></div>
         <div>Total Audit Records: <strong>${logs.length}</strong></div>
       </div>
     </div>
@@ -292,7 +292,7 @@ export function downloadAuditTrailPdf(params: {
 
     <div class="report-footer">
       <div>M-TRAVEL Corporate Governance · Official Cryptographic Audit Trail Document</div>
-      <div>Authorized by: ${adminName} · M-TRAVEL East Africa Security Operations</div>
+      <div>Authorized by: ${adminName} · M-TRAVEL Security Operations</div>
     </div>
   `;
 
@@ -344,13 +344,13 @@ export function downloadBookingsLedgerPdf(params: {
     <div class="report-header">
       <div>
         <div class="security-pill">Executive Mobility &amp; Charter Ledger</div>
-        <div class="brand-title">M-TRAVEL East Africa Ltd.</div>
+        <div class="brand-title">M-TRAVEL</div>
         <div class="brand-sub">Platform Bookings &amp; Reservation Register</div>
       </div>
       <div class="report-meta">
         <div>Generated: <strong>${now} EAT</strong></div>
         <div>Operator: <strong>${adminName}</strong> (${adminEmail})</div>
-        <div>Authority Level: <strong>${adminRole === 'SUPER_ADMIN' ? 'Chief Administrator' : 'Operations Desk Admin'}</strong></div>
+        <div>Authority Level: <strong>${adminRole ? 'M-Travel Admin' : 'M-Travel Admin'}</strong></div>
         <div>Total Reservations: <strong>${bookings.length}</strong></div>
       </div>
     </div>
@@ -457,13 +457,13 @@ export function downloadTreasuryLedgerPdf(params: {
     <div class="report-header">
       <div>
         <div class="security-pill">Treasury &amp; Financial Settlement</div>
-        <div class="brand-title">M-TRAVEL East Africa Ltd.</div>
+        <div class="brand-title">M-TRAVEL</div>
         <div class="brand-sub">Platform Financial Ledger &amp; Revenue Audit Report</div>
       </div>
       <div class="report-meta">
         <div>Generated: <strong>${now} EAT</strong></div>
         <div>Financial Controller: <strong>${adminName}</strong> (${adminEmail})</div>
-        <div>Governance Role: <strong>${adminRole === 'SUPER_ADMIN' ? 'Chief Administrator' : 'Operations Desk Admin'}</strong></div>
+        <div>Governance Role: <strong>${adminRole ? 'M-Travel Admin' : 'M-Travel Admin'}</strong></div>
         <div>Settlement Currency: <strong>KES (Kenyan Shillings)</strong></div>
       </div>
     </div>
@@ -548,13 +548,13 @@ export function downloadFleetManifestPdf(params: {
     <div class="report-header">
       <div>
         <div class="security-pill">Fleet Telematics &amp; Asset Management</div>
-        <div class="brand-title">M-TRAVEL East Africa Ltd.</div>
+        <div class="brand-title">M-TRAVEL</div>
         <div class="brand-sub">Official Fleet Telematics &amp; Vehicle Registry</div>
       </div>
       <div class="report-meta">
         <div>Generated: <strong>${now} EAT</strong></div>
         <div>Fleet Inspector: <strong>${adminName}</strong> (${adminEmail})</div>
-        <div>Authority Level: <strong>${adminRole === 'SUPER_ADMIN' ? 'Chief Administrator' : 'Operations Desk Admin'}</strong></div>
+        <div>Authority Level: <strong>${adminRole ? 'M-Travel Admin' : 'M-Travel Admin'}</strong></div>
         <div>Registered Vehicles: <strong>${vehicles.length}</strong></div>
       </div>
     </div>
@@ -659,13 +659,13 @@ export function downloadIncidentsReportPdf(params: {
     <div class="report-header">
       <div>
         <div class="security-pill">Roadside Assistance &amp; Safety Response</div>
-        <div class="brand-title">M-TRAVEL East Africa Ltd.</div>
+        <div class="brand-title">M-TRAVEL</div>
         <div class="brand-sub">Safety Incident Log &amp; Roadside Dispatch Dossier</div>
       </div>
       <div class="report-meta">
         <div>Generated: <strong>${now} EAT</strong></div>
         <div>Safety Supervisor: <strong>${adminName}</strong> (${adminEmail})</div>
-        <div>Authority Level: <strong>${adminRole === 'SUPER_ADMIN' ? 'Chief Administrator' : 'Operations Desk Admin'}</strong></div>
+        <div>Authority Level: <strong>${adminRole ? 'M-Travel Admin' : 'M-Travel Admin'}</strong></div>
         <div>Total Incidents Logged: <strong>${incidents.length}</strong></div>
       </div>
     </div>

@@ -15,7 +15,7 @@ export default function AdminLogin() {
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<'CHIEF_ADMIN' | 'OPERATIONS' | null>(null);
+  const [selectedRole] = useState<'MTRAVEL_ADMIN'>('MTRAVEL_ADMIN');
   const [resendCooldown, setResendCooldown] = useState(0);
 
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -28,12 +28,6 @@ export default function AdminLogin() {
     }, 1000);
     return () => clearInterval(timer);
   }, [resendCooldown]);
-
-  const handleRoleSelect = (role: 'CHIEF_ADMIN' | 'OPERATIONS') => {
-    setSelectedRole(role);
-    setError(null);
-    // Explicitly do not autofill or paste credentials to ensure security and privacy
-  };
 
   async function handleRequestOtp(e: FormEvent) {
     e.preventDefault();
@@ -178,56 +172,23 @@ export default function AdminLogin() {
             </p>
           </div>
 
-          {/* ADMINISTRATIVE ROLES (ZERO CREDENTIAL AUTOFILL FOR PRIVACY & SECURITY) */}
+          {/* UNIFIED ADMINISTRATIVE ROLE (ZERO CREDENTIAL AUTOFILL FOR PRIVACY & SECURITY) */}
           <div className="py-3.5 border-b border-slate-100">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono flex items-center gap-1">
-                <KeyRound className="h-3 w-3 text-slate-900" /> Administrative Role
+                <KeyRound className="h-3 w-3 text-slate-900" /> Administrative Authority
               </span>
-              {selectedRole && (
-                <span className="text-[10px] text-slate-900 font-mono font-bold flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                  {selectedRole === 'CHIEF_ADMIN' ? 'Chief Admin' : 'Operations Desk'}
-                </span>
-              )}
+              <span className="text-[10px] text-slate-900 font-mono font-bold flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                M-Travel Admin
+              </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                disabled={step === 'OTP'}
-                onClick={() => handleRoleSelect('CHIEF_ADMIN')}
-                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all duration-200 ${
-                  step === 'OTP' ? 'opacity-75 cursor-default' : 'cursor-pointer'
-                } ${
-                  selectedRole === 'CHIEF_ADMIN'
-                    ? 'bg-slate-950 border-slate-950 text-white shadow-xs'
-                    : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-800'
-                }`}
-              >
-                <span className="text-[11px] font-bold">Chief Admin</span>
-                <span className={`text-[9px] mt-0.5 font-medium ${selectedRole === 'CHIEF_ADMIN' ? 'text-slate-300' : 'text-slate-500'}`}>
-                  Executive Access
-                </span>
-              </button>
-
-              <button
-                type="button"
-                disabled={step === 'OTP'}
-                onClick={() => handleRoleSelect('OPERATIONS')}
-                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all duration-200 ${
-                  step === 'OTP' ? 'opacity-75 cursor-default' : 'cursor-pointer'
-                } ${
-                  selectedRole === 'OPERATIONS'
-                    ? 'bg-slate-950 border-slate-950 text-white shadow-xs'
-                    : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-800'
-                }`}
-              >
-                <span className="text-[11px] font-bold">Operations Desk</span>
-                <span className={`text-[9px] mt-0.5 font-medium ${selectedRole === 'OPERATIONS' ? 'text-slate-300' : 'text-slate-500'}`}>
-                  Fleet Operations
-                </span>
-              </button>
+            <div className="flex flex-col items-center justify-center p-3 rounded-xl border bg-slate-950 border-slate-950 text-white shadow-xs text-center">
+              <span className="text-xs font-extrabold tracking-wide">M-Travel Admin</span>
+              <span className="text-[10px] mt-0.5 font-medium text-slate-300">
+                Full Executive Governance &amp; Fleet Operations Access
+              </span>
             </div>
             <p className="mt-2 text-[10px] text-slate-500 text-center font-medium">
               {step === 'EMAIL'
