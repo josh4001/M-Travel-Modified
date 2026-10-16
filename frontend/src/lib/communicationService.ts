@@ -14,7 +14,7 @@ export interface DispatchedEmail {
   subject: string;
   previewText: string;
   htmlContent: string;
-  category: 'VEHICLE_APPROVED' | 'DESTINATION_BOOKING' | 'VEHICLE_BOOKING' | 'ADMIN_ALERT' | 'PASSWORD_RESET';
+  category: 'VEHICLE_APPROVED' | 'DESTINATION_BOOKING' | 'VEHICLE_BOOKING' | 'ADMIN_ALERT' | 'PASSWORD_RESET' | 'ADMIN_OTP';
   reference?: string;
   sentAt: string;
   deliveryStatus?: 'DELIVERED_RESEND' | 'GMAIL_READY' | 'DISPATCHED_LOCAL' | 'FAILED';
@@ -899,4 +899,125 @@ export function generatePasswordResetOtpEmail(params: {
 
   return { subject, html, text };
 }
+
+/**
+ * 8. ADMIN PORTAL PASSWORDLESS ONE-TIME LOGIN (OTP) EMAIL TEMPLATE
+ * Executive security code email exclusively for verified M-TRAVEL Administrators.
+ */
+export function generateAdminLoginOtpEmail(params: {
+  email: string;
+  recipientName?: string;
+  roleLabel?: string;
+  otpCode: string;
+  expiresInMinutes?: number;
+}): { subject: string; html: string; text: string } {
+  const { email, recipientName, roleLabel = 'Executive Administrator', otpCode, expiresInMinutes = 10 } = params;
+  const name = recipientName?.trim() || 'Authorized Administrator';
+  const subject = `M-TRAVEL Admin Portal Login Code: ${otpCode}`;
+
+  const text =
+    `M-TRAVEL TOURS — EXECUTIVE MISSION CONTROL SECURITY\n\n` +
+    `Hello ${name},\n\n` +
+    `A one-time login request was initiated at the M-TRAVEL Management Portal for ${email} (${roleLabel}).\n\n` +
+    `YOUR ONE-TIME ADMIN LOGIN CODE IS:\n` +
+    `${otpCode}\n\n` +
+    `Enter this 6-digit code in the Management Portal to access Mission Control. This code expires in ${expiresInMinutes} minutes and is valid for a single login session only.\n\n` +
+    `Security Notice: Admin logins use passwordless one-time email verification. Never share this code with anyone.\n\n` +
+    `M-TRAVEL Platform Corporate Security · Nairobi, Kenya`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #0f172a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #0f172a; padding: 36px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width: 540px; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.35); border: 1px solid #1e293b;" cellspacing="0" cellpadding="0" border="0">
+          <!-- Executive Header -->
+          <tr>
+            <td style="background-color: #090d16; padding: 30px 36px; text-align: left; border-bottom: 2px solid #f59e0b;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td>
+                    <div style="display: inline-block; font-size: 22px; font-weight: 900; letter-spacing: 2px; color: #ffffff;">
+                      M-TRAVEL<span style="color: #f59e0b;">.</span>
+                    </div>
+                    <div style="font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #94a3b8; margin-top: 4px;">
+                      Mission Control • Admin OTP Gateway
+                    </div>
+                  </td>
+                  <td align="right">
+                    <span style="display: inline-block; background-color: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.45); color: #fbbf24; padding: 6px 12px; border-radius: 9999px; font-size: 10px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase;">
+                      Admin Login OTP
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Body Content -->
+          <tr>
+            <td style="padding: 36px 36px 28px 36px;">
+              <div style="display: inline-block; background-color: #f1f5f9; border: 1px solid #cbd5e1; color: #0f172a; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;">
+                Clearance: ${roleLabel}
+              </div>
+              <h1 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.02em;">
+                One-Time Admin Portal Sign-In
+              </h1>
+              <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #475569;">
+                Hello <strong>${name}</strong>,<br>
+                Use the single-use verification code below to complete your sign-in to the <strong>M-TRAVEL Management Portal</strong> for authorized administrator <strong style="color: #0f172a;">${email}</strong>.
+              </p>
+
+              <!-- OTP Box -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 24px 0;">
+                <tr>
+                  <td align="center" style="background-color: #090d16; border: 2px solid #1e293b; border-radius: 16px; padding: 26px 16px;">
+                    <div style="font-size: 10px; font-weight: 800; letter-spacing: 2.5px; text-transform: uppercase; color: #94a3b8; margin-bottom: 10px;">
+                      One-Time Mission Control Passcode
+                    </div>
+                    <div style="font-family: 'Courier New', Courier, monospace; font-size: 40px; font-weight: 900; letter-spacing: 10px; color: #fbbf24; text-indent: 10px;">
+                      ${otpCode}
+                    </div>
+                    <div style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin-top: 10px;">
+                      ⏱️ Valid for ${expiresInMinutes} minutes • Single-Session Use Only
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #0f172a; border-radius: 8px; padding: 14px 16px; margin: 20px 0;">
+                <p style="margin: 0; font-size: 12.5px; line-height: 1.5; color: #334155;">
+                  <strong>Zero-Password Admin Security:</strong> M-TRAVEL Administrative accounts authenticate exclusively via one-time email codes on every sign-in. Never share this code with any third party.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; padding: 20px 36px; border-top: 1px solid #e2e8f0; text-align: center;">
+              <p style="margin: 0 0 4px 0; font-size: 11px; font-weight: 700; color: #475569;">
+                M-TRAVEL CORPORATE GOVERNANCE &amp; SECURITY
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+                Nairobi, Kenya · Automated Executive Security Dispatch
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return { subject, html, text };
+}
+
 

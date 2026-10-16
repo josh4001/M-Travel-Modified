@@ -10,7 +10,9 @@ import { logAuditEvent } from './rentalLifecycleStore';
 import { getStoredCreditProfiles, saveCreditProfiles } from './creditScoreStore';
 import {
   dispatchLiveEmail,
+  generateAdminLoginOtpEmail,
   generatePasswordResetOtpEmail,
+  getOutboundGatewayConfig,
   saveDispatchedEmail,
 } from './communicationService';
 
@@ -116,6 +118,18 @@ const DEFAULT_ACCOUNTS: LocalAccount[] = [
     firstName: 'System',
     lastName: 'Admin',
     phone: '+254 700 000 000',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
+    isActive: true,
+    createdAt: '2025-05-01T08:00:00.000Z',
+  },
+  {
+    id: 'admin-executive-jamal',
+    email: 'jamalkarisa96@gmail.com',
+    password: 'Admin@2026',
+    role: 'ADMIN',
+    firstName: 'Jamal',
+    lastName: 'Karisa',
+    phone: '+254 722 374 535',
     avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
     isActive: true,
     createdAt: '2025-05-01T08:00:00.000Z',
@@ -856,6 +870,15 @@ export async function login(
   const accounts = getLocalAccounts();
   const matched = accounts.find(a => a.email.toLowerCase() === cleanEmail);
 
+  if (
+    CORE_AUTHORIZED_ADMIN_EMAILS.has(cleanEmail) ||
+    (matched && (matched.role?.toUpperCase() === 'ADMIN' || matched.role?.toUpperCase() === 'SUPER_ADMIN'))
+  ) {
+    throw new Error(
+      'Administrator accounts authenticate exclusively via One-Time Email Code (OTP). Please use the Admin Portal link in the website footer.'
+    );
+  }
+
   if (matched) {
     // Strictly enforce exact password match - NO demo loose bypasses
     const isValid = matched.password === password;
@@ -1087,8 +1110,21 @@ function saveOtpRecords(records: PasswordResetOtpRecord[]) {
 }
 
 /**
- * 1. REQUEST PASSWORD RESET OTP
+ * Core whitelist of corporate and executive admin emails.
+ * Any account with role === 'ADMIN' or 'SUPER_ADMIN' in local storage or Supabase DB
+ * is also automatically recognized as an authorized administrator.
+ */
+const CORE_AUTHORIZED_ADMIN_EMAILS = new Set([
+  'safari@jambo.africa',
+  'admin@mtravel.co.ke',
+  'admin@admin.com',
+  'jamalkarisa96@gmail.com',
+]);
+
+/**
+ * 1. REQUEST PASSWORD RESET OTP (PUBLIC MEMBERS ONLY — TRAVELERS & FLEET HOSTS)
  * Generates a 6-digit numeric OTP and dispatches a luxury branded email to the user.
+ * Strictly blocks ADMIN accounts since administrators authenticate via Passwordless One-Time Login at the Admin Portal.
  */
 export async function requestPasswordResetOTP(email: string): Promise<{
   success: boolean;
@@ -1107,6 +1143,15 @@ export async function requestPasswordResetOTP(email: string): Promise<{
   const localAccounts = getLocalAccounts();
   const localUser = localAccounts.find((a) => a.email.toLowerCase() === cleanEmail);
 
+  if (
+    CORE_AUTHORIZED_ADMIN_EMAILS.has(cleanEmail) ||
+    (localUser && (localUser.role?.toUpperCase() === 'ADMIN' || localUser.role?.toUpperCase() === 'SUPER_ADMIN'))
+  ) {
+    throw new Error(
+      'Administrator accounts use Passwordless One-Time Email Login (OTP) and cannot change passwords via PIN. Please sign in directly via the Admin Portal link in the website footer.'
+    );
+  }
+
   let recipientName = localUser ? `${localUser.firstName} ${localUser.lastName}`.trim() : '';
 
   // 2. If not local, check Supabase DB
@@ -1114,18 +1159,29 @@ export async function requestPasswordResetOTP(email: string): Promise<{
     try {
       const { data: dbUser } = await supabase
         .from('users')
-        .select('id, email, first_name, last_name, is_active')
-        .eq('email', cleanEmail)
+        .select('id, email, role, first_name, last_name, is_active')
+        .ilike('email', cleanEmail)
         .maybeSingle();
 
       if (dbUser) {
+        const dbRole = (dbUser.role || '').toUpperCase();
+        if (dbRole === 'ADMIN' || dbRole === 'SUPER_ADMIN') {
+          throw new Error(
+            'Administrator accounts use Passwordless One-Time Email Login (OTP) and cannot change passwords via PIN. Please sign in directly via the Admin Portal link in the website footer.'
+          );
+        }
         recipientName = `${dbUser.first_name || ''} ${dbUser.last_name || ''}`.trim() || 'Explorer';
         if (dbUser.is_active === false) {
           throw new Error('This account has been deactivated. Please contact support.');
         }
       }
     } catch (err: any) {
-      if (err.message && err.message.includes('deactivated')) throw err;
+      if (
+        err.message &&
+        (err.message.includes('deactivated') || err.message.includes('Administrator accounts'))
+      ) {
+        throw err;
+      }
       // DB error or offline: continue check
     }
   }
@@ -1257,6 +1313,10 @@ export async function resetPasswordWithOTP(
 ): Promise<{ success: boolean; message: string }> {
   const cleanEmail = email.trim().toLowerCase();
 
+  if (CORE_AUTHORIZED_ADMIN_EMAILS.has(cleanEmail)) {
+    throw new Error('Administrator accounts use Passwordless One-Time Email Login (OTP) and cannot change passwords via PIN.');
+  }
+
   if (!newPassword || newPassword.length < 6) {
     throw new Error('New password must be at least 6 characters long.');
   }
@@ -1269,6 +1329,10 @@ export async function resetPasswordWithOTP(
   const accountIndex = localAccounts.findIndex((a) => a.email.toLowerCase() === cleanEmail);
 
   if (accountIndex >= 0) {
+    const existingRole = (localAccounts[accountIndex].role || '').toUpperCase();
+    if (existingRole === 'ADMIN' || existingRole === 'SUPER_ADMIN') {
+      throw new Error('Administrator accounts use Passwordless One-Time Email Login (OTP) and cannot change passwords via PIN.');
+    }
     localAccounts[accountIndex].password = newPassword;
   } else {
     localAccounts.push({
@@ -1331,3 +1395,368 @@ export async function resetPasswordWithOTP(
     message: 'Your password has been successfully updated. You can now log in with your new password.',
   };
 }
+
+// ---------------------------------------------------------------------------
+// Admin Portal Passwordless One-Time Login (OTP) Service
+// Strictly verifies that the email belongs to an authorized ADMIN before
+// generating or dispatching any OTP. Never sends an OTP to a public user.
+// ---------------------------------------------------------------------------
+const ADMIN_LOGIN_OTP_KEY = 'mt_admin_login_otps';
+
+export interface AdminLoginOtpRecord {
+  email: string;
+  otp: string;
+  selectedRole?: 'CHIEF_ADMIN' | 'OPERATIONS' | null;
+  expiresAt: number;
+  attemptsLeft: number;
+  createdAt: string;
+}
+
+function getStoredAdminOtpRecords(): AdminLoginOtpRecord[] {
+  try {
+    const raw = localStorage.getItem(ADMIN_LOGIN_OTP_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveAdminOtpRecords(records: AdminLoginOtpRecord[]) {
+  try {
+    const now = Date.now();
+    const clean = records.filter((r) => r.expiresAt > now);
+    localStorage.setItem(ADMIN_LOGIN_OTP_KEY, JSON.stringify(clean));
+  } catch (err) {
+    console.warn('Failed to save Admin OTP records:', err);
+  }
+}
+
+/**
+ * STRICT ADMIN-ONLY PRE-DISPATCH AUTHORIZATION GATE
+ * Verifies that `email` belongs exclusively to an active Administrator in:
+ * 1) Local persistent accounts (`getLocalAccounts()`), OR
+ * 2) Supabase `users` table (`role === 'ADMIN' | 'SUPER_ADMIN'`), OR
+ * 3) Core authorized executive admin whitelist.
+ * Immediately rejects public users (`TOURIST`, `VEHICLE_OWNER`, `DRIVER`) and unknown emails.
+ */
+async function resolveAuthorizedAdminAccount(
+  email: string,
+  selectedRole?: 'CHIEF_ADMIN' | 'OPERATIONS' | null,
+): Promise<LocalAccount> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    throw new Error('Please enter a valid management email address.');
+  }
+
+  // 0. Check deleted accounts tombstone
+  const deletedEmails = getDeletedAccountEmails().map((e) => e.toLowerCase());
+  if (deletedEmails.includes(cleanEmail)) {
+    throw new Error('Access Denied: This administrator account has been terminated or its email address was updated.');
+  }
+
+  // 1. Check local persistent accounts
+  const localAccounts = getLocalAccounts();
+  let matchedLocal = localAccounts.find((a) => a.email.toLowerCase() === cleanEmail);
+
+  // 2. Query Supabase DB to cross-verify role and pull any cloud-provisioned admin accounts
+  let dbUser: any = null;
+  try {
+    const { data } = await supabase
+      .from('users')
+      .select('id, email, role, first_name, last_name, phone, avatar_url, is_active, created_at')
+      .ilike('email', cleanEmail)
+      .maybeSingle();
+    if (data) {
+      dbUser = data;
+    }
+  } catch {
+    // Offline fallback relies on localAccounts + whitelist
+  }
+
+  // Determine effective role from local record, Supabase DB, or core whitelist
+  const localRole = matchedLocal?.role?.toUpperCase() || '';
+  const dbRole = (dbUser?.role || '').toUpperCase();
+  const isWhitelistedAdmin = CORE_AUTHORIZED_ADMIN_EMAILS.has(cleanEmail);
+
+  // If the account exists as a non-admin public user (Traveler, Fleet Host, Driver) and is NOT an admin
+  const isExplicitlyNonAdmin =
+    ((localRole && localRole !== 'ADMIN' && localRole !== 'SUPER_ADMIN') ||
+      (dbRole && dbRole !== 'ADMIN' && dbRole !== 'SUPER_ADMIN')) &&
+    !isWhitelistedAdmin;
+
+  if (isExplicitlyNonAdmin) {
+    logAuditEvent(
+      'UNAUTHORIZED_ADMIN_OTP_ATTEMPT',
+      'Security',
+      cleanEmail,
+      `Blocked Admin Portal OTP request from public non-admin account (${cleanEmail}, role: ${dbRole || localRole})`,
+      cleanEmail,
+      dbRole || localRole || 'PUBLIC_USER',
+    );
+    throw new Error(
+      'Access Denied: This email is registered to a public member account. Admin Portal One-Time Login codes are strictly restricted to verified M-TRAVEL Administrators.'
+    );
+  }
+
+  const isAuthorizedAdmin =
+    localRole === 'ADMIN' ||
+    localRole === 'SUPER_ADMIN' ||
+    dbRole === 'ADMIN' ||
+    dbRole === 'SUPER_ADMIN' ||
+    isWhitelistedAdmin;
+
+  if (!isAuthorizedAdmin) {
+    logAuditEvent(
+      'UNAUTHORIZED_ADMIN_OTP_ATTEMPT',
+      'Security',
+      cleanEmail,
+      `Blocked Admin Portal OTP request for unrecognized email (${cleanEmail})`,
+      cleanEmail,
+      'UNREGISTERED',
+    );
+    throw new Error(
+      'Access Denied: Unrecognized management email. For security, One-Time Login codes are only dispatched to verified M-TRAVEL Administrator email addresses.'
+    );
+  }
+
+  if (matchedLocal?.isActive === false || dbUser?.is_active === false) {
+    throw new Error('Access Denied: This administrator account has been deactivated.');
+  }
+
+  // Enforce desk role alignment if the admin specifically chose Chief Admin vs Operations Desk with default corporate aliases
+  if (selectedRole === 'CHIEF_ADMIN' && cleanEmail === 'admin@mtravel.co.ke') {
+    throw new Error(
+      'Role Mismatch: admin@mtravel.co.ke is assigned to the Operations Desk. Please select "Operations Desk" above or enter a Chief Admin email.'
+    );
+  }
+  if (selectedRole === 'OPERATIONS' && cleanEmail === 'safari@jambo.africa') {
+    throw new Error(
+      'Role Mismatch: safari@jambo.africa is assigned to Chief Admin (Executive Access). Please select "Chief Admin" above or enter an Operations Desk email.'
+    );
+  }
+
+  if (matchedLocal) {
+    return matchedLocal;
+  }
+
+  // Construct and persist local admin record from DB or whitelist
+  const resolvedAdmin: LocalAccount = {
+    id: dbUser?.id || generateUserUUID(),
+    email: dbUser?.email || cleanEmail,
+    password: 'OTP_MANAGED_ADMIN_ACCOUNT',
+    role: dbRole === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'ADMIN',
+    firstName:
+      dbUser?.first_name ||
+      (selectedRole === 'OPERATIONS' ? 'Operations' : 'Chief'),
+    lastName:
+      dbUser?.last_name ||
+      'Admin',
+    phone: dbUser?.phone || '+254 700 000 000',
+    avatarUrl: dbUser?.avatar_url,
+    isActive: true,
+    createdAt: dbUser?.created_at || new Date().toISOString(),
+  };
+
+  saveLocalAccount(resolvedAdmin);
+  return resolvedAdmin;
+}
+
+/**
+ * 1. REQUEST ADMIN PORTAL ONE-TIME LOGIN CODE (OTP)
+ * Strictly validates that the email belongs to an authorized Admin before generating
+ * or sending the 6-digit OTP. Public users never receive an OTP.
+ */
+export async function requestAdminLoginOTP(
+  email: string,
+  selectedRole?: 'CHIEF_ADMIN' | 'OPERATIONS' | null,
+): Promise<{
+  success: boolean;
+  message: string;
+  recipientEmail: string;
+  recipientName: string;
+  roleLabel: string;
+  expiresInMinutes: number;
+  provider?: string;
+}> {
+  const adminAccount = await resolveAuthorizedAdminAccount(email, selectedRole);
+  const cleanEmail = adminAccount.email.trim().toLowerCase();
+
+  const roleLabel =
+    selectedRole === 'CHIEF_ADMIN'
+      ? 'Chief Admin • Executive Access'
+      : selectedRole === 'OPERATIONS'
+      ? 'Operations Desk • Fleet Oversight'
+      : cleanEmail === 'safari@jambo.africa'
+      ? 'Chief Admin • Executive Access'
+      : cleanEmail === 'admin@mtravel.co.ke'
+      ? 'Operations Desk • Fleet Oversight'
+      : 'Executive Administrator';
+
+  const recipientName = `${adminAccount.firstName || ''} ${adminAccount.lastName || ''}`.trim() || 'Administrator';
+
+  // Generate fresh 6-digit one-time passcode
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresInMinutes = 10;
+  const expiresAt = Date.now() + expiresInMinutes * 60 * 1000;
+
+  // Store OTP in Admin OTP store (replaces any previous code for this email)
+  const existing = getStoredAdminOtpRecords().filter((r) => r.email.toLowerCase() !== cleanEmail);
+  saveAdminOtpRecords([
+    {
+      email: cleanEmail,
+      otp: otpCode,
+      selectedRole,
+      expiresAt,
+      attemptsLeft: 5,
+      createdAt: new Date().toISOString(),
+    },
+    ...existing,
+  ]);
+
+  // Build luxury executive HTML email
+  const emailPayload = generateAdminLoginOtpEmail({
+    email: cleanEmail,
+    recipientName,
+    roleLabel,
+    otpCode,
+    expiresInMinutes,
+  });
+
+  // If the admin entered one of the corporate aliases (e.g. safari@jambo.africa or admin@mtravel.co.ke),
+  // also include the configured master SMTP admin inbox (jamalkarisa96@gmail.com) so the OTP arrives in their live Gmail inbox immediately.
+  const gatewayConfig = getOutboundGatewayConfig();
+  const masterAdminInbox = (gatewayConfig.smtpUser || 'jamalkarisa96@gmail.com').trim().toLowerCase();
+  const isCorporateAlias =
+    cleanEmail.endsWith('@jambo.africa') ||
+    cleanEmail.endsWith('@mtravel.co.ke') ||
+    cleanEmail.endsWith('@admin.com');
+
+  const dispatchRecipient =
+    isCorporateAlias && masterAdminInbox && masterAdminInbox !== cleanEmail
+      ? `${cleanEmail}, ${masterAdminInbox}`
+      : cleanEmail;
+
+  const dispatchRes = await dispatchLiveEmail({
+    to: dispatchRecipient,
+    subject: emailPayload.subject,
+    html: emailPayload.html,
+    text: emailPayload.text,
+  });
+
+  saveDispatchedEmail({
+    id: `email-admin-otp-${Date.now()}`,
+    recipientEmail: cleanEmail,
+    recipientName,
+    subject: emailPayload.subject,
+    previewText: `Your M-TRAVEL Admin Portal one-time login code is ${otpCode}. Valid for ${expiresInMinutes} minutes.`,
+    htmlContent: emailPayload.html,
+    category: 'ADMIN_OTP',
+    reference: cleanEmail,
+    sentAt: new Date().toISOString(),
+    deliveryStatus: dispatchRes.success ? 'DELIVERED_RESEND' : 'FAILED',
+    deliveryProvider: dispatchRes.provider || 'gmail_smtp',
+    deliveryId: dispatchRes.id,
+  });
+
+  if (!dispatchRes.success) {
+    const errorDetail =
+      dispatchRes.error ||
+      dispatchRes.message ||
+      'Unable to dispatch Admin OTP email. Please verify your network connection.';
+    throw new Error(typeof errorDetail === 'string' ? errorDetail : JSON.stringify(errorDetail));
+  }
+
+  logAuditEvent(
+    'ADMIN_OTP_DISPATCHED',
+    'Security',
+    cleanEmail,
+    `One-Time Login code dispatched to verified Administrator (${cleanEmail} — ${roleLabel})`,
+    recipientName,
+    adminAccount.role || 'ADMIN',
+  );
+
+  return {
+    success: true,
+    message: `A 6-digit One-Time Login code has been sent to ${cleanEmail}. Enter it below to access Mission Control.`,
+    recipientEmail: cleanEmail,
+    recipientName,
+    roleLabel,
+    expiresInMinutes,
+    provider: dispatchRes.provider,
+  };
+}
+
+/**
+ * 2. VERIFY ADMIN PORTAL OTP & COMPLETE PASSWORDLESS LOGIN
+ * Validates the 6-digit one-time code, immediately burns it so it cannot be reused,
+ * and issues authenticated Admin session tokens.
+ */
+export async function verifyAdminLoginOTP(
+  email: string,
+  otp: string,
+  selectedRole?: 'CHIEF_ADMIN' | 'OPERATIONS' | null,
+): Promise<AuthResponse> {
+  const adminAccount = await resolveAuthorizedAdminAccount(email, selectedRole);
+  const cleanEmail = adminAccount.email.trim().toLowerCase();
+  const cleanOtp = otp.trim().replace(/\s+/g, '');
+
+  if (!cleanOtp || cleanOtp.length !== 6) {
+    throw new Error('Please enter the complete 6-digit one-time login code.');
+  }
+
+  const records = getStoredAdminOtpRecords();
+  const record = records.find((r) => r.email.toLowerCase() === cleanEmail);
+
+  if (!record) {
+    throw new Error('No active login code found for this administrator email. Please request a new code.');
+  }
+
+  if (Date.now() > record.expiresAt) {
+    throw new Error('This one-time login code has expired. Please request a fresh code.');
+  }
+
+  if (record.attemptsLeft <= 0) {
+    throw new Error('Maximum verification attempts exceeded. Please request a new one-time login code.');
+  }
+
+  if (record.otp !== cleanOtp) {
+    record.attemptsLeft -= 1;
+    saveAdminOtpRecords(records);
+    const leftText = record.attemptsLeft > 0 ? ` (${record.attemptsLeft} attempts remaining)` : '';
+    throw new Error(`Invalid one-time login code. Please check your email and try again${leftText}.`);
+  }
+
+  // Immediately burn the OTP after successful verification (strictly single-use)
+  const remaining = records.filter((r) => r.email.toLowerCase() !== cleanEmail);
+  saveAdminOtpRecords(remaining);
+
+  const tokens = buildMockTokens(adminAccount.id, adminAccount.email, adminAccount.role);
+  persistTokens(tokens.accessToken, tokens.refreshToken);
+
+  const authUser: AuthUser = {
+    id: adminAccount.id,
+    email: adminAccount.email,
+    role: adminAccount.role,
+    firstName: adminAccount.firstName,
+    lastName: adminAccount.lastName,
+    phone: adminAccount.phone,
+    avatarUrl: adminAccount.avatarUrl,
+    createdAt: adminAccount.createdAt,
+  };
+  localStorage.setItem('mt_user', JSON.stringify(authUser));
+
+  logAuditEvent(
+    'ADMIN_OTP_LOGIN',
+    'User',
+    adminAccount.email,
+    `Administrator ${adminAccount.firstName} ${adminAccount.lastName} (${adminAccount.email}) authenticated via Passwordless One-Time Email OTP`,
+    `${adminAccount.firstName} ${adminAccount.lastName}`.trim(),
+    adminAccount.role,
+  );
+
+  return {
+    ...tokens,
+    user: authUser,
+  };
+}
+

@@ -298,15 +298,6 @@ export default function Login() {
                 <span>•</span>
                 <span>24/7 Concierge</span>
               </div>
-
-              <div className="pt-0.5">
-                <Link
-                  to="/admin/login"
-                  className="text-[10px] text-slate-400 hover:text-slate-900 font-mono tracking-wider transition inline-flex items-center gap-1 font-semibold"
-                >
-                  <ShieldCheck className="h-3 w-3" /> Staff Portal
-                </Link>
-              </div>
             </div>
           </form>
 

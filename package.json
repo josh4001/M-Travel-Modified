@@ -2,9 +2,13 @@
   "name": "m-travel-tours",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "npm --prefix frontend run build",
     "dev": "npm --prefix frontend run dev",
     "preview": "npm --prefix frontend run preview"
+  },
+  "dependencies": {
+    "nodemailer": "^10.0.14"
   }
 }
