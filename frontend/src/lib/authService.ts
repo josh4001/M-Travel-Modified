@@ -12,7 +12,6 @@ import {
   dispatchLiveEmail,
   generateAdminLoginOtpEmail,
   generatePasswordResetOtpEmail,
-  getOutboundGatewayConfig,
   saveDispatchedEmail,
 } from './communicationService';
 
@@ -88,51 +87,15 @@ const DEFAULT_ACCOUNTS: LocalAccount[] = [
   },
   {
     id: 'admin-safari-1',
-    email: 'safari@jambo.africa',
-    password: 'Admin@2026',
+    email: 'maurice7868@gmail.com',
+    password: 'OTP_MANAGED_ADMIN_ACCOUNT',
     role: 'ADMIN',
-    firstName: 'Safari',
-    lastName: 'Desk',
-    phone: '0700000000',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
-    isActive: true,
-    createdAt: '2025-06-01T08:00:00.000Z',
-  },
-  {
-    id: 'admin-mtravel-1',
-    email: 'admin@mtravel.co.ke',
-    password: 'Admin@2026',
-    role: 'ADMIN',
-    firstName: 'Admin',
-    lastName: 'Desk',
-    phone: '+254 700 000 000',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
-    isActive: true,
-    createdAt: '2025-05-15T08:00:00.000Z',
-  },
-  {
-    id: 'admin-default-root',
-    email: 'admin@admin.com',
-    password: 'Admin@2026',
-    role: 'ADMIN',
-    firstName: 'System',
+    firstName: 'Chief',
     lastName: 'Admin',
     phone: '+254 700 000 000',
     avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
     isActive: true,
-    createdAt: '2025-05-01T08:00:00.000Z',
-  },
-  {
-    id: 'admin-executive-jamal',
-    email: 'jamalkarisa96@gmail.com',
-    password: 'Admin@2026',
-    role: 'ADMIN',
-    firstName: 'Jamal',
-    lastName: 'Karisa',
-    phone: '+254 722 374 535',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
-    isActive: true,
-    createdAt: '2025-05-01T08:00:00.000Z',
+    createdAt: '2025-06-01T08:00:00.000Z',
   },
 ];
 
@@ -140,10 +103,17 @@ const USERS_STORAGE_KEY = 'mt_user_credentials_v2';
 const LEGACY_STORAGE_KEYS = ['mt_user_credentials', 'mt_users', 'mt_accounts'];
 const DELETED_ACCOUNTS_KEY = 'mt_deleted_accounts_v1';
 
+const RETIRED_CORPORATE_ADMIN_EMAILS = new Set([
+  'safari@jambo.africa',
+  'admin@mtravel.co.ke',
+  'admin@admin.com',
+]);
+
 export function getDeletedAccountEmails(): string[] {
   try {
     const raw = localStorage.getItem(DELETED_ACCOUNTS_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const list: string[] = raw ? JSON.parse(raw) : [];
+    return list.filter((e) => e.toLowerCase() !== 'maurice7868@gmail.com');
   } catch {
     return [];
   }
@@ -153,6 +123,7 @@ export function getLocalAccounts(): LocalAccount[] {
   const mergedMap = new Map<string, LocalAccount>();
   const idMap = new Map<string, LocalAccount>();
   const deletedEmails = new Set(getDeletedAccountEmails().map((e) => e.toLowerCase()));
+  deletedEmails.delete('maurice7868@gmail.com');
 
   // 1. Read primary key (USERS_STORAGE_KEY) - authoritative client store
   try {
@@ -163,17 +134,19 @@ export function getLocalAccounts(): LocalAccount[] {
         for (const item of parsed) {
           if (item?.email) {
             const clean = item.email.toLowerCase();
+            if (RETIRED_CORPORATE_ADMIN_EMAILS.has(clean)) continue;
             if (!deletedEmails.has(clean)) {
+              const isPrimaryAdminEmail = clean === 'maurice7868@gmail.com';
               const acc: LocalAccount = {
-                id: item.id || `user-${Date.now()}`,
-                email: item.email,
+                id: isPrimaryAdminEmail ? 'admin-safari-1' : (item.id || `user-${Date.now()}`),
+                email: isPrimaryAdminEmail ? 'maurice7868@gmail.com' : item.email,
                 password: item.password || 'Tourist@2026',
-                role: item.role || 'TOURIST',
-                firstName: item.firstName || 'Explorer',
-                lastName: item.lastName || '',
-                phone: item.phone,
+                role: isPrimaryAdminEmail ? 'ADMIN' : (item.role || 'TOURIST'),
+                firstName: isPrimaryAdminEmail ? (item.firstName || 'Chief') : (item.firstName || 'Explorer'),
+                lastName: isPrimaryAdminEmail ? (item.lastName || 'Admin') : (item.lastName || ''),
+                phone: item.phone || '+254 700 000 000',
                 avatarUrl: item.avatarUrl,
-                isActive: item.isActive !== false,
+                isActive: isPrimaryAdminEmail ? true : item.isActive !== false,
                 createdAt: item.createdAt || item.created_at || '2025-11-15T08:00:00.000Z',
               };
               mergedMap.set(clean, acc);
@@ -195,18 +168,20 @@ export function getLocalAccounts(): LocalAccount[] {
           for (const item of parsed) {
             if (item?.email) {
               const clean = item.email.toLowerCase();
+              if (RETIRED_CORPORATE_ADMIN_EMAILS.has(clean)) continue;
               const existingId = item.id ? idMap.get(item.id) : undefined;
               if (!deletedEmails.has(clean) && !mergedMap.has(clean) && !existingId) {
+                const isPrimaryAdminEmail = clean === 'maurice7868@gmail.com';
                 const acc: LocalAccount = {
-                  id: item.id || `user-${Date.now()}`,
-                  email: item.email,
+                  id: isPrimaryAdminEmail ? 'admin-safari-1' : (item.id || `user-${Date.now()}`),
+                  email: isPrimaryAdminEmail ? 'maurice7868@gmail.com' : item.email,
                   password: item.password || 'Tourist@2026',
-                  role: item.role || 'TOURIST',
+                  role: isPrimaryAdminEmail ? 'ADMIN' : (item.role || 'TOURIST'),
                   firstName: item.firstName || item.first_name || 'Explorer',
                   lastName: item.lastName || item.last_name || '',
                   phone: item.phone || '',
                   avatarUrl: item.avatarUrl || item.avatar_url,
-                  isActive: item.isActive !== false && item.is_active !== false,
+                  isActive: isPrimaryAdminEmail ? true : (item.isActive !== false && item.is_active !== false),
                   createdAt: item.createdAt || item.created_at || '2025-11-15T08:00:00.000Z',
                 };
                 mergedMap.set(clean, acc);
@@ -220,12 +195,21 @@ export function getLocalAccounts(): LocalAccount[] {
   }
 
   // 3. Reconcile DEFAULT_ACCOUNTS
-  // If an account ID from DEFAULT_ACCOUNTS exists in idMap with a different email,
-  // that means the user updated their email (e.g. sarah.ochieng@gmail.com -> maurice8017@gmail.com).
-  // The original default email must be tombstoned so it can never be used to log in!
   let deletedChanged = false;
   for (const def of DEFAULT_ACCOUNTS) {
     const cleanDefEmail = def.email.toLowerCase();
+    if (cleanDefEmail === 'maurice7868@gmail.com') {
+      // Always guarantee maurice7868@gmail.com is present as an active ADMIN
+      if (!mergedMap.has(cleanDefEmail)) {
+        mergedMap.set(cleanDefEmail, { ...def });
+        idMap.set(def.id, def);
+      } else {
+        const existing = mergedMap.get(cleanDefEmail)!;
+        existing.role = 'ADMIN';
+        existing.isActive = true;
+      }
+      continue;
+    }
     if (idMap.has(def.id)) {
       const existing = idMap.get(def.id)!;
       if (existing.email.toLowerCase() !== cleanDefEmail) {
@@ -234,12 +218,11 @@ export function getLocalAccounts(): LocalAccount[] {
           deletedChanged = true;
         }
       }
-      continue; // Never overwrite modified user account with default seed
+      continue;
     }
     if (deletedEmails.has(cleanDefEmail)) continue;
     if (mergedMap.has(cleanDefEmail)) continue;
 
-    // Seed default account only if brand new
     mergedMap.set(cleanDefEmail, { ...def });
     idMap.set(def.id, def);
   }
@@ -250,9 +233,12 @@ export function getLocalAccounts(): LocalAccount[] {
     } catch {}
   }
 
-  // Actively purge any legacy driver accounts from memory and storage
+  // Actively purge any legacy driver accounts or retired corporate admin aliases from memory and storage
   const result = Array.from(mergedMap.values()).filter(
-    (a) => a.role !== 'DRIVER' && !a.email.toLowerCase().includes('driver@')
+    (a) =>
+      a.role !== 'DRIVER' &&
+      !a.email.toLowerCase().includes('driver@') &&
+      !RETIRED_CORPORATE_ADMIN_EMAILS.has(a.email.toLowerCase())
   );
   try {
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(result));
@@ -1141,10 +1127,7 @@ function saveOtpRecords(records: PasswordResetOtpRecord[]) {
  * is also automatically recognized as an authorized administrator.
  */
 const CORE_AUTHORIZED_ADMIN_EMAILS = new Set([
-  'safari@jambo.africa',
-  'admin@mtravel.co.ke',
-  'admin@admin.com',
-  'jamalkarisa96@gmail.com',
+  'maurice7868@gmail.com',
 ]);
 
 /**
@@ -1462,7 +1445,7 @@ function saveAdminOtpRecords(records: AdminLoginOtpRecord[]) {
  * Verifies that `email` belongs exclusively to an active Administrator in:
  * 1) Local persistent accounts (`getLocalAccounts()`), OR
  * 2) Supabase `users` table (`role === 'ADMIN' | 'SUPER_ADMIN'`), OR
- * 3) Core authorized executive admin whitelist.
+ * 3) Core authorized executive admin whitelist (`maurice7868@gmail.com`).
  * Immediately rejects public users (`TOURIST`, `VEHICLE_OWNER`, `DRIVER`) and unknown emails.
  */
 async function resolveAuthorizedAdminAccount(
@@ -1482,7 +1465,7 @@ async function resolveAuthorizedAdminAccount(
 
   // 1. Check local persistent accounts
   const localAccounts = getLocalAccounts();
-  let matchedLocal = localAccounts.find((a) => a.email.toLowerCase() === cleanEmail);
+  const matchedLocal = localAccounts.find((a) => a.email.toLowerCase() === cleanEmail);
 
   // 2. Query Supabase DB to cross-verify role and pull any cloud-provisioned admin accounts
   let dbUser: any = null;
@@ -1545,20 +1528,32 @@ async function resolveAuthorizedAdminAccount(
     );
   }
 
-  if (matchedLocal?.isActive === false || dbUser?.is_active === false) {
+  if (!isWhitelistedAdmin && (matchedLocal?.isActive === false || dbUser?.is_active === false)) {
     throw new Error('Access Denied: This administrator account has been deactivated.');
   }
 
-  // Enforce desk role alignment if the admin specifically chose Chief Admin vs Operations Desk with default corporate aliases
-  if (selectedRole === 'CHIEF_ADMIN' && cleanEmail === 'admin@mtravel.co.ke') {
-    throw new Error(
-      'Role Mismatch: admin@mtravel.co.ke is assigned to the Operations Desk. Please select "Operations Desk" above or enter a Chief Admin email.'
-    );
-  }
-  if (selectedRole === 'OPERATIONS' && cleanEmail === 'safari@jambo.africa') {
-    throw new Error(
-      'Role Mismatch: safari@jambo.africa is assigned to Chief Admin (Executive Access). Please select "Chief Admin" above or enter an Operations Desk email.'
-    );
+  // If logging in with the primary admin email (maurice7868@gmail.com), adapt display name to the selected desk role
+  if (cleanEmail === 'maurice7868@gmail.com') {
+    const deskFirstName = selectedRole === 'OPERATIONS' ? 'Operations' : 'Chief';
+    const deskLastName = selectedRole === 'OPERATIONS' ? 'Desk' : 'Admin';
+    const base = matchedLocal || {
+      id: 'admin-safari-1',
+      email: 'maurice7868@gmail.com',
+      password: 'OTP_MANAGED_ADMIN_ACCOUNT',
+      role: 'ADMIN',
+      firstName: deskFirstName,
+      lastName: deskLastName,
+      phone: '+254 700 000 000',
+      isActive: true,
+      createdAt: '2025-06-01T08:00:00.000Z',
+    };
+    return {
+      ...base,
+      role: 'ADMIN',
+      firstName: deskFirstName,
+      lastName: deskLastName,
+      isActive: true,
+    };
   }
 
   if (matchedLocal) {
@@ -1576,7 +1571,7 @@ async function resolveAuthorizedAdminAccount(
       (selectedRole === 'OPERATIONS' ? 'Operations' : 'Chief'),
     lastName:
       dbUser?.last_name ||
-      'Admin',
+      (selectedRole === 'OPERATIONS' ? 'Desk' : 'Admin'),
     phone: dbUser?.phone || '+254 700 000 000',
     avatarUrl: dbUser?.avatar_url,
     isActive: true,
@@ -1608,15 +1603,9 @@ export async function requestAdminLoginOTP(
   const cleanEmail = adminAccount.email.trim().toLowerCase();
 
   const roleLabel =
-    selectedRole === 'CHIEF_ADMIN'
-      ? 'Chief Admin • Executive Access'
-      : selectedRole === 'OPERATIONS'
+    selectedRole === 'OPERATIONS'
       ? 'Operations Desk • Fleet Oversight'
-      : cleanEmail === 'safari@jambo.africa'
-      ? 'Chief Admin • Executive Access'
-      : cleanEmail === 'admin@mtravel.co.ke'
-      ? 'Operations Desk • Fleet Oversight'
-      : 'Executive Administrator';
+      : 'Chief Admin • Executive Access';
 
   const recipientName = `${adminAccount.firstName || ''} ${adminAccount.lastName || ''}`.trim() || 'Administrator';
 
@@ -1648,22 +1637,9 @@ export async function requestAdminLoginOTP(
     expiresInMinutes,
   });
 
-  // If the admin entered one of the corporate aliases (e.g. safari@jambo.africa or admin@mtravel.co.ke),
-  // also include the configured master SMTP admin inbox (jamalkarisa96@gmail.com) so the OTP arrives in their live Gmail inbox immediately.
-  const gatewayConfig = getOutboundGatewayConfig();
-  const masterAdminInbox = (gatewayConfig.smtpUser || 'jamalkarisa96@gmail.com').trim().toLowerCase();
-  const isCorporateAlias =
-    cleanEmail.endsWith('@jambo.africa') ||
-    cleanEmail.endsWith('@mtravel.co.ke') ||
-    cleanEmail.endsWith('@admin.com');
-
-  const dispatchRecipient =
-    isCorporateAlias && masterAdminInbox && masterAdminInbox !== cleanEmail
-      ? `${cleanEmail}, ${masterAdminInbox}`
-      : cleanEmail;
-
+  // Dispatch directly to the verified Admin's email address (e.g. maurice7868@gmail.com)
   const dispatchRes = await dispatchLiveEmail({
-    to: dispatchRecipient,
+    to: cleanEmail,
     subject: emailPayload.subject,
     html: emailPayload.html,
     text: emailPayload.text,
@@ -1785,4 +1761,5 @@ export async function verifyAdminLoginOTP(
     user: authUser,
   };
 }
+
 

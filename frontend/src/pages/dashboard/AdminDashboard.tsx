@@ -119,7 +119,7 @@ export default function AdminDashboard() {
   const adminName = activeAdmin?.firstName
     ? `${activeAdmin.firstName} ${activeAdmin.lastName || ''}`.trim()
     : (activeAdmin?.name || 'Administrator');
-  const adminEmail = activeAdmin?.email || 'admin@mtravel.co.ke';
+  const adminEmail = activeAdmin?.email || 'maurice7868@gmail.com';
   const adminRole = activeAdmin?.role || 'SUPER_ADMIN';
 
   // Provision New Admin / Staff Modal
@@ -142,7 +142,7 @@ export default function AdminDashboard() {
 
     try {
       const res = await createAdminAccountByManagement(
-        activeAdmin || { role: 'ADMIN', email: 'safari@jambo.africa' },
+        activeAdmin || { role: 'ADMIN', email: 'maurice7868@gmail.com' },
         newAdminForm
       );
 
@@ -245,15 +245,16 @@ export default function AdminDashboard() {
 
       const [uRes, txRes] = await Promise.race([fetchPromise, timeoutPromise]) as any;
       if (uRes?.data && Array.isArray(uRes.data) && uRes.data.length > 0) {
+        const retiredAliases = new Set(['safari@jambo.africa', 'admin@mtravel.co.ke', 'admin@admin.com']);
         const userMap = new Map<string, DBUser>();
         localUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
         (uRes.data as DBUser[]).forEach(u => {
-          if (u.email) {
+          if (u.email && !retiredAliases.has(u.email.toLowerCase())) {
             userMap.set(u.email.toLowerCase(), {
               ...u,
               first_name: u.first_name || 'Explorer',
               last_name: u.last_name || '',
-              role: u.role || 'TOURIST',
+              role: u.email.toLowerCase() === 'maurice7868@gmail.com' ? 'ADMIN' : (u.role || 'TOURIST'),
               is_active: u.is_active !== false,
             });
           }
