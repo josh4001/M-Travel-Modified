@@ -119,7 +119,7 @@ export default function AdminDashboard() {
   const adminName = activeAdmin?.firstName
     ? `${activeAdmin.firstName} ${activeAdmin.lastName || ''}`.trim()
     : (activeAdmin?.name || 'M-Travel Admin');
-  const adminEmail = activeAdmin?.email || 'admin@mtravel.co.ke';
+  const adminEmail = activeAdmin?.email || 'maurice7868@gmail.com';
   const adminRole = activeAdmin?.role || 'SUPER_ADMIN';
 
   // Provision New Admin / Staff Modal
@@ -142,7 +142,7 @@ export default function AdminDashboard() {
 
     try {
       const res = await createAdminAccountByManagement(
-        activeAdmin || { role: 'ADMIN', email: 'admin@mtravel.co.ke' },
+        activeAdmin || { role: 'ADMIN', email: 'maurice7868@gmail.com' },
         newAdminForm
       );
 
@@ -245,12 +245,12 @@ export default function AdminDashboard() {
 
       const [uRes, txRes] = await Promise.race([fetchPromise, timeoutPromise]) as any;
       if (uRes?.data && Array.isArray(uRes.data) && uRes.data.length > 0) {
-        const retiredAliases = new Set(['maurice7868@gmail.com', 'safari@jambo.africa', 'admin@admin.com']);
+        const retiredAliases = new Set(['admin@mtravel.co.ke', 'safari@jambo.africa', 'admin@admin.com']);
         const userMap = new Map<string, DBUser>();
         localUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
         (uRes.data as DBUser[]).forEach(u => {
           if (u.email && !retiredAliases.has(u.email.toLowerCase())) {
-            const isMTravelAdmin = u.email.toLowerCase() === 'admin@mtravel.co.ke';
+            const isMTravelAdmin = u.email.toLowerCase() === 'maurice7868@gmail.com';
             userMap.set(u.email.toLowerCase(), {
               ...u,
               first_name: isMTravelAdmin ? 'M-Travel' : (u.first_name || 'Explorer'),
@@ -3786,7 +3786,7 @@ export default function AdminDashboard() {
       <FactoryResetModal
         isOpen={showFactoryResetModal}
         onClose={() => setShowFactoryResetModal(false)}
-        adminEmail={activeAdmin?.email || 'admin@mtravel.co.ke'}
+        adminEmail={activeAdmin?.email || 'maurice7868@gmail.com'}
         adminName={`${activeAdmin?.firstName || ''} ${activeAdmin?.lastName || ''}`.trim() || activeAdmin?.name || 'M-Travel Admin'}
         adminRole={activeAdmin?.role || 'ADMIN'}
         onResetCompleted={() => {

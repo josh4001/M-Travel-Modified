@@ -88,7 +88,7 @@ const DEFAULT_ACCOUNTS: LocalAccount[] = [
   },
   {
     id: 'admin-mtravel-1',
-    email: 'admin@mtravel.co.ke',
+    email: 'maurice7868@gmail.com',
     password: 'OTP_MANAGED_ADMIN_ACCOUNT',
     role: 'ADMIN',
     firstName: 'M-Travel',
@@ -105,7 +105,7 @@ const LEGACY_STORAGE_KEYS = ['mt_user_credentials', 'mt_users', 'mt_accounts'];
 const DELETED_ACCOUNTS_KEY = 'mt_deleted_accounts_v1';
 
 const RETIRED_ADMIN_EMAILS = new Set([
-  'maurice7868@gmail.com',
+  'admin@mtravel.co.ke',
   'admin@admin.com',
   'safari@jambo.africa',
 ]);
@@ -114,7 +114,7 @@ export function getDeletedAccountEmails(): string[] {
   try {
     const raw = localStorage.getItem(DELETED_ACCOUNTS_KEY);
     const list: string[] = raw ? JSON.parse(raw) : [];
-    return list.filter((e) => e.toLowerCase() !== 'admin@mtravel.co.ke');
+    return list.filter((e) => e.toLowerCase() !== 'maurice7868@gmail.com');
   } catch {
     return [];
   }
@@ -124,9 +124,9 @@ export function getLocalAccounts(): LocalAccount[] {
   const mergedMap = new Map<string, LocalAccount>();
   const idMap = new Map<string, LocalAccount>();
   const deletedEmails = new Set(getDeletedAccountEmails().map((e) => e.toLowerCase()));
-  deletedEmails.delete('admin@mtravel.co.ke');
+  deletedEmails.delete('maurice7868@gmail.com');
 
-  // Actively migrate active mt_user session if it was using the removed email or split admin names
+  // Actively migrate active mt_user session to M-Travel Admin (maurice7868@gmail.com)
   try {
     const rawSession = localStorage.getItem('mt_user');
     if (rawSession) {
@@ -141,7 +141,7 @@ export function getLocalAccounts(): LocalAccount[] {
           (parsedSession?.firstName === 'Chief' || parsedSession?.firstName === 'Operations'))
       ) {
         parsedSession.id = 'admin-mtravel-1';
-        parsedSession.email = 'admin@mtravel.co.ke';
+        parsedSession.email = 'maurice7868@gmail.com';
         parsedSession.firstName = 'M-Travel';
         parsedSession.lastName = 'Admin';
         parsedSession.role = 'ADMIN';
@@ -161,10 +161,10 @@ export function getLocalAccounts(): LocalAccount[] {
             const clean = item.email.toLowerCase();
             if (RETIRED_ADMIN_EMAILS.has(clean)) continue;
             if (!deletedEmails.has(clean)) {
-              const isPrimaryAdminEmail = clean === 'admin@mtravel.co.ke' || item.id === 'admin-mtravel-1' || item.id === 'admin-safari-1';
+              const isPrimaryAdminEmail = clean === 'maurice7868@gmail.com' || item.id === 'admin-mtravel-1' || item.id === 'admin-safari-1';
               const acc: LocalAccount = {
                 id: isPrimaryAdminEmail ? 'admin-mtravel-1' : (item.id || `user-${Date.now()}`),
-                email: isPrimaryAdminEmail ? 'admin@mtravel.co.ke' : item.email,
+                email: isPrimaryAdminEmail ? 'maurice7868@gmail.com' : item.email,
                 password: item.password || 'Tourist@2026',
                 role: isPrimaryAdminEmail ? 'ADMIN' : (item.role || 'TOURIST'),
                 firstName: isPrimaryAdminEmail ? 'M-Travel' : (item.firstName || 'Explorer'),
@@ -196,10 +196,10 @@ export function getLocalAccounts(): LocalAccount[] {
               if (RETIRED_ADMIN_EMAILS.has(clean)) continue;
               const existingId = item.id ? idMap.get(item.id) : undefined;
               if (!deletedEmails.has(clean) && !mergedMap.has(clean) && !existingId) {
-                const isPrimaryAdminEmail = clean === 'admin@mtravel.co.ke' || item.id === 'admin-mtravel-1' || item.id === 'admin-safari-1';
+                const isPrimaryAdminEmail = clean === 'maurice7868@gmail.com' || item.id === 'admin-mtravel-1' || item.id === 'admin-safari-1';
                 const acc: LocalAccount = {
                   id: isPrimaryAdminEmail ? 'admin-mtravel-1' : (item.id || `user-${Date.now()}`),
-                  email: isPrimaryAdminEmail ? 'admin@mtravel.co.ke' : item.email,
+                  email: isPrimaryAdminEmail ? 'maurice7868@gmail.com' : item.email,
                   password: item.password || 'Tourist@2026',
                   role: isPrimaryAdminEmail ? 'ADMIN' : (item.role || 'TOURIST'),
                   firstName: isPrimaryAdminEmail ? 'M-Travel' : (item.firstName || item.first_name || 'Explorer'),
@@ -223,7 +223,7 @@ export function getLocalAccounts(): LocalAccount[] {
   let deletedChanged = false;
   for (const def of DEFAULT_ACCOUNTS) {
     const cleanDefEmail = def.email.toLowerCase();
-    if (cleanDefEmail === 'admin@mtravel.co.ke') {
+    if (cleanDefEmail === 'maurice7868@gmail.com') {
       // Always guarantee the single M-Travel Admin account is present and active
       if (!mergedMap.has(cleanDefEmail)) {
         mergedMap.set(cleanDefEmail, { ...def });
@@ -261,7 +261,7 @@ export function getLocalAccounts(): LocalAccount[] {
     } catch {}
   }
 
-  // Actively purge any legacy driver accounts or retired emails (including maurice7868@gmail.com)
+  // Actively purge any legacy driver accounts or retired emails
   const result = Array.from(mergedMap.values()).filter(
     (a) =>
       a.role !== 'DRIVER' &&
@@ -409,10 +409,10 @@ export async function syncUsersFromSupabase(): Promise<LocalAccount[]> {
         const clean = u.email.toLowerCase();
         if (deletedEmails.has(clean) || RETIRED_ADMIN_EMAILS.has(clean)) continue;
         const existing = localMap.get(clean);
-        const isPrimaryAdmin = clean === 'admin@mtravel.co.ke';
+        const isPrimaryAdmin = clean === 'maurice7868@gmail.com';
         localMap.set(clean, {
           id: isPrimaryAdmin ? 'admin-mtravel-1' : (u.id || existing?.id || `user-${Date.now()}`),
-          email: isPrimaryAdmin ? 'admin@mtravel.co.ke' : u.email,
+          email: isPrimaryAdmin ? 'maurice7868@gmail.com' : u.email,
           password: existing?.password || 'Tourist@2026',
           role: isPrimaryAdmin ? 'ADMIN' : (u.role || existing?.role || 'TOURIST').toUpperCase(),
           firstName: isPrimaryAdmin ? 'M-Travel' : (u.first_name || existing?.firstName || 'Explorer'),
@@ -1158,9 +1158,7 @@ function saveOtpRecords(records: PasswordResetOtpRecord[]) {
  * is also automatically recognized as an authorized administrator.
  */
 const CORE_AUTHORIZED_ADMIN_EMAILS = new Set([
-  'admin@mtravel.co.ke',
-  'safari@jambo.africa',
-  'jamalkarisa96@gmail.com',
+  'maurice7868@gmail.com',
 ]);
 
 /**
@@ -1488,7 +1486,7 @@ async function resolveAuthorizedAdminAccount(email: string): Promise<LocalAccoun
   }
 
   // Strictly block retired emails
-  if (cleanEmail === 'maurice7868@gmail.com' || cleanEmail === 'admin@admin.com') {
+  if (RETIRED_ADMIN_EMAILS.has(cleanEmail)) {
     throw new Error(
       'Access Denied: Unrecognized management email. For security, One-Time Login codes are only dispatched to verified M-TRAVEL Administrator email addresses.'
     );
@@ -1569,12 +1567,12 @@ async function resolveAuthorizedAdminAccount(email: string): Promise<LocalAccoun
     throw new Error('Access Denied: This administrator account has been deactivated.');
   }
 
-  // If logging in with any of the core default admin emails, unify to the single M-Travel Admin account
+  // If logging in with the core default admin email, unify to the single M-Travel Admin account
   if (CORE_AUTHORIZED_ADMIN_EMAILS.has(cleanEmail)) {
-    const primaryLocal = localAccounts.find((a) => a.email.toLowerCase() === 'admin@mtravel.co.ke');
+    const primaryLocal = localAccounts.find((a) => a.email.toLowerCase() === 'maurice7868@gmail.com');
     return {
       id: primaryLocal?.id || 'admin-mtravel-1',
-      email: 'admin@mtravel.co.ke',
+      email: 'maurice7868@gmail.com',
       password: 'OTP_MANAGED_ADMIN_ACCOUNT',
       role: 'ADMIN',
       firstName: 'M-Travel',

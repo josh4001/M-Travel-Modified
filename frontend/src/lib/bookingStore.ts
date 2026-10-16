@@ -743,7 +743,7 @@ export const performScopedFactoryReset = async (
 
       if (supabase) {
         try {
-          const { data: users } = await supabase.from('users').select('id').in('email', ['admin@mtravel.co.ke', 'safari@jambo.africa']);
+          const { data: users } = await supabase.from('users').select('id').in('email', ['maurice7868@gmail.com', 'admin@mtravel.co.ke', 'safari@jambo.africa']);
           if (users && users.length > 0) {
             for (const u of users) {
               const { data: w } = await supabase.from('wallets').select('id').eq('user_id', u.id);

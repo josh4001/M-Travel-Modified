@@ -22,7 +22,7 @@ interface FactoryResetModalProps {
 export const FactoryResetModal: React.FC<FactoryResetModalProps> = ({
   isOpen,
   onClose,
-  adminEmail = 'admin@mtravel.co.ke',
+  adminEmail = 'maurice7868@gmail.com',
   adminName = 'M-Travel Admin',
   onResetCompleted,
 }) => {
