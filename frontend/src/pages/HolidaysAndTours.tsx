@@ -29,6 +29,8 @@ export default function HolidaysAndTours() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const user = useSelector((s: RootState) => s.auth.user);
+  const role = user?.role?.toUpperCase();
+  const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
   const { formatPrice } = useCurrency();
   const touristName = user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Jane Wanjiru';
   const touristPhone = user?.phone || '+254722374535';
@@ -72,7 +74,11 @@ export default function HolidaysAndTours() {
     if (bookId && destinations.length > 0) {
       const target = destinations.find((d) => d.id === bookId);
       if (target) {
-        if (user) {
+        if (isAdmin) {
+          setSelectedItem(target);
+          searchParams.delete('book');
+          setSearchParams(searchParams, { replace: true });
+        } else if (user) {
           setSelectedItem(target);
           setShowMpesaModal(true);
           searchParams.delete('book');
@@ -82,7 +88,7 @@ export default function HolidaysAndTours() {
         }
       }
     }
-  }, [searchParams, user, destinations, setSearchParams]);
+  }, [searchParams, user, destinations, setSearchParams, isAdmin]);
 
   const handleTabChange = (cat: TabFilter) => {
     setActiveCategory(cat);
@@ -110,6 +116,10 @@ export default function HolidaysAndTours() {
   });
 
   const handleBookNow = (item: TravelDestinationItem) => {
+    if (isAdmin) {
+      setSelectedItem(item);
+      return;
+    }
     if (!user) {
       setAuthRequiredItem(item);
       return;
@@ -470,18 +480,30 @@ export default function HolidaysAndTours() {
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    onClick={() => setSelectedItem(item)}
-                    className="rounded-xl border border-slate-300 hover:border-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-2 text-xs font-bold text-slate-800 transition whitespace-nowrap cursor-pointer"
-                  >
-                    Details
-                  </button>
-                  <button
-                    onClick={() => handleBookNow(item)}
-                    className="btn-primary !py-2 !px-3.5 text-xs font-bold shadow-sm whitespace-nowrap flex items-center gap-1"
-                  >
-                    <span>Book Now</span>
-                  </button>
+                  {isAdmin ? (
+                    <button
+                      onClick={() => setSelectedItem(item)}
+                      className="rounded-xl border border-purple-200 hover:border-purple-600 bg-purple-50 hover:bg-purple-100 px-3.5 py-2 text-xs font-bold text-purple-900 transition whitespace-nowrap cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5 text-purple-700" />
+                      <span>View Details</span>
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setSelectedItem(item)}
+                        className="rounded-xl border border-slate-300 hover:border-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-2 text-xs font-bold text-slate-800 transition whitespace-nowrap cursor-pointer"
+                      >
+                        Details
+                      </button>
+                      <button
+                        onClick={() => handleBookNow(item)}
+                        className="btn-primary !py-2 !px-3.5 text-xs font-bold shadow-sm whitespace-nowrap flex items-center gap-1"
+                      >
+                        <span>Book Now</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -598,13 +620,27 @@ export default function HolidaysAndTours() {
                 </div>
               )}
 
-              {/* TRAVELER ACCOUNT NOTICE IN DETAIL MODAL */}
-              {!user && (
+              {/* TRAVELER ACCOUNT NOTICE OR ADMIN OVERSIGHT NOTICE */}
+              {isAdmin ? (
+                <div className="rounded-2xl border border-purple-200 bg-purple-50/80 p-4 text-xs text-purple-950 space-y-2 shadow-xs">
+                  <div className="flex items-center gap-2 font-bold text-purple-950 text-sm">
+                    <ShieldCheck className="h-5 w-5 text-purple-700 shrink-0" />
+                    <span>Admin Package Preview Mode</span>
+                  </div>
+                  <p className="text-xs text-purple-900 leading-relaxed font-medium">
+                    You are viewing this holiday package with an Administrator account. Traveler reservation, payment authorization, and concierge bookings are reserved for registered traveler accounts.
+                  </p>
+                  <div className="pt-2 flex items-center justify-between border-t border-purple-200/70 text-[11px] text-purple-800">
+                    <span>Package Status: <strong className="font-semibold text-purple-950">Live &amp; Published</strong></span>
+                    <span>Category: <strong className="font-semibold text-purple-950">{selectedItem.category === 'TOUR' ? 'Safari Package' : 'Holiday Home'}</strong></span>
+                  </div>
+                </div>
+              ) : !user ? (
                 <div className="rounded-2xl border border-slate-300 bg-slate-100 p-3 text-xs text-slate-900 flex items-center gap-2.5">
                   <Lock className="h-4 w-4 text-slate-700 shrink-0" />
                   <span>Traveler account required to reserve — clicking <strong>Reserve Now</strong> will guide you to register or sign in.</span>
                 </div>
-              )}
+              ) : null}
 
               {/* MODAL ACTIONS */}
               <div className="border-t border-slate-200 pt-5 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -618,23 +654,41 @@ export default function HolidaysAndTours() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <a
-                    href="https://wa.me/254722374535"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-500 text-emerald-700 hover:bg-emerald-50 px-4 py-2.5 text-xs font-bold transition"
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    <span>WhatsApp Concierge</span>
-                  </a>
-                  <button
-                    onClick={() => handleBookNow(selectedItem)}
-                    className="flex-1 sm:flex-initial btn-primary !py-2.5 !px-6 text-xs font-bold shadow-md shadow-slate-950/10"
-                  >
-                    Reserve Now
-                  </button>
-                </div>
+                {isAdmin ? (
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <Link
+                      to="/dashboard/admin?tab=destinations"
+                      className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white px-4 py-2.5 text-xs font-bold transition shadow-sm"
+                    >
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>Manage in Admin Portal</span>
+                    </Link>
+                    <button
+                      onClick={() => setSelectedItem(null)}
+                      className="flex-1 sm:flex-initial rounded-xl border border-slate-300 hover:bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-700 transition cursor-pointer"
+                    >
+                      Close Preview
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <a
+                      href="https://wa.me/254722374535"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-500 text-emerald-700 hover:bg-emerald-50 px-4 py-2.5 text-xs font-bold transition"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      <span>WhatsApp Concierge</span>
+                    </a>
+                    <button
+                      onClick={() => handleBookNow(selectedItem)}
+                      className="flex-1 sm:flex-initial btn-primary !py-2.5 !px-6 text-xs font-bold shadow-md shadow-slate-950/10"
+                    >
+                      Reserve Now
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>
