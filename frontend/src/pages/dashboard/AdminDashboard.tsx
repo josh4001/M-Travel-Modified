@@ -129,7 +129,7 @@ export default function AdminDashboard() {
     lastName: '',
     email: '',
     phone: '',
-    password: 'Admin@2026',
+    deskRole: 'OPERATIONS' as 'CHIEF_ADMIN' | 'OPERATIONS',
   });
   const [createAdminLoading, setCreateAdminLoading] = useState(false);
   const [createAdminError, setCreateAdminError] = useState<string | null>(null);
@@ -142,7 +142,7 @@ export default function AdminDashboard() {
 
     try {
       const res = await createAdminAccountByManagement(
-        currentUser || { role: 'ADMIN', email: 'safari@jambo.africa' },
+        activeAdmin || { role: 'ADMIN', email: 'safari@jambo.africa' },
         newAdminForm
       );
 
@@ -151,14 +151,16 @@ export default function AdminDashboard() {
         return;
       }
 
-      setCreateAdminSuccess(`Administrator account for ${newAdminForm.firstName} ${newAdminForm.lastName} (${newAdminForm.email}) provisioned successfully!`);
-      setNewAdminForm({ firstName: '', lastName: '', email: '', phone: '', password: 'Admin@2026' });
+      setCreateAdminSuccess(
+        `Administrator ${newAdminForm.firstName} ${newAdminForm.lastName} (${newAdminForm.email}) is now authorized for Passwordless OTP Login at the Admin Portal!`
+      );
+      setNewAdminForm({ firstName: '', lastName: '', email: '', phone: '', deskRole: 'OPERATIONS' });
       setUsers(getAdminUserList());
 
       setTimeout(() => {
         setShowCreateAdminModal(false);
         setCreateAdminSuccess(null);
-      }, 1800);
+      }, 2200);
     } catch (err: any) {
       setCreateAdminError(err?.message || 'Failed to provision admin account.');
     } finally {
@@ -3661,10 +3663,10 @@ export default function AdminDashboard() {
             <div className="rounded-2xl bg-purple-50/80 border border-purple-200/80 p-3.5 text-xs text-purple-900 space-y-1">
               <div className="font-bold flex items-center gap-1.5 text-purple-950">
                 <Lock className="h-3.5 w-3.5 text-purple-700" />
-                Management Security Policy:
+                Passwordless Admin OTP Onboarding Policy:
               </div>
               <p className="text-[11px] text-purple-800 leading-relaxed">
-                Public self-registration for Admin roles is disabled platform-wide. New platform administrators, dispatchers, and finance managers can strictly only be created by authenticated M-Travel Management.
+                Public self-registration for Admin roles is disabled platform-wide. Once you register a new admin&apos;s email below, their email is added to the authorized Admin registry—allowing them to sign in at the <strong>Admin Portal</strong> (in the website footer) using a <strong>6-digit One-Time Email Code (OTP)</strong> with no static password required.
               </p>
             </div>
 
@@ -3709,14 +3711,16 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Official Management Email</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Recruited Admin&apos;s Email Address (Receives Login OTPs)
+                </label>
                 <input
                   type="email"
                   required
-                  placeholder="e.g. samuel.karanja@mtravel.co.ke"
+                  placeholder="e.g. samuel.karanja@gmail.com"
                   value={newAdminForm.email}
                   onChange={(e) => setNewAdminForm({ ...newAdminForm, email: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:border-purple-600 focus:outline-hidden text-slate-900"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:border-purple-600 focus:outline-hidden text-slate-900 font-mono"
                 />
               </div>
 
@@ -3732,15 +3736,20 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Initial Password</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Admin@2026"
-                    value={newAdminForm.password}
-                    onChange={(e) => setNewAdminForm({ ...newAdminForm, password: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:border-purple-600 focus:outline-hidden text-slate-900 font-mono"
-                  />
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Assigned Admin Desk</label>
+                  <select
+                    value={newAdminForm.deskRole}
+                    onChange={(e) =>
+                      setNewAdminForm({
+                        ...newAdminForm,
+                        deskRole: e.target.value as 'CHIEF_ADMIN' | 'OPERATIONS',
+                      })
+                    }
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:border-purple-600 focus:outline-hidden text-slate-900 font-semibold"
+                  >
+                    <option value="OPERATIONS">Operations Desk (Fleet Oversight)</option>
+                    <option value="CHIEF_ADMIN">Chief Admin (Executive Access)</option>
+                  </select>
                 </div>
               </div>
 

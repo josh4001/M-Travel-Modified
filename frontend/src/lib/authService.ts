@@ -791,6 +791,7 @@ export async function createAdminAccountByManagement(
     firstName: string;
     lastName: string;
     phone?: string;
+    deskRole?: 'CHIEF_ADMIN' | 'OPERATIONS';
   }
 ): Promise<{ success: boolean; user?: AuthUser; error?: string }> {
   const creatorRole = adminCreator.role?.toUpperCase();
@@ -806,18 +807,24 @@ export async function createAdminAccountByManagement(
     return { success: false, error: 'A valid email address is required.' };
   }
 
+  // Remove from deleted tombstone if previously removed
+  try {
+    const deleted = getDeletedAccountEmails().filter(e => e.toLowerCase() !== cleanEmail);
+    localStorage.setItem(DELETED_ACCOUNTS_KEY, JSON.stringify(deleted));
+  } catch {}
+
   const existing = getLocalAccounts().find(a => a.email.toLowerCase() === cleanEmail);
-  if (existing) {
-    return { success: false, error: `An account with email "${cleanEmail}" already exists on the platform.` };
+  if (existing && (existing.role === 'ADMIN' || existing.role === 'SUPER_ADMIN')) {
+    return { success: false, error: `An administrator account with email "${cleanEmail}" already exists on the platform.` };
   }
 
-  const adminId = generateUserUUID();
-  const defaultPw = newAdmin.password?.trim() || 'Admin@2026';
+  const adminId = existing?.id || generateUserUUID();
+  const deskLabel = newAdmin.deskRole === 'OPERATIONS' ? 'Operations Desk' : 'Chief Admin';
 
   const newAccount: LocalAccount = {
     id: adminId,
     email: newAdmin.email.trim(),
-    password: defaultPw,
+    password: 'OTP_MANAGED_ADMIN_ACCOUNT',
     role: 'ADMIN',
     firstName: newAdmin.firstName.trim() || 'Admin',
     lastName: newAdmin.lastName.trim() || 'Staff',
@@ -828,11 +835,30 @@ export async function createAdminAccountByManagement(
 
   saveLocalAccount(newAccount);
 
+  // Immediately persist to Supabase cloud database so the recruited admin can request OTP on any device
+  try {
+    await supabase.from('users').upsert(
+      {
+        id: adminId,
+        email: cleanEmail,
+        password_hash: 'OTP_MANAGED_ADMIN_ACCOUNT',
+        role: 'ADMIN',
+        first_name: newAccount.firstName,
+        last_name: newAccount.lastName,
+        phone: newAccount.phone || '+254 700 000 000',
+        is_active: true,
+      },
+      { onConflict: 'email' }
+    );
+  } catch (err) {
+    console.warn('Supabase admin provisioning sync warning:', err);
+  }
+
   logAuditEvent(
     'ADMIN_ACCOUNT_PROVISIONED',
     'User',
     cleanEmail,
-    `New Administrator account (${newAccount.firstName} ${newAccount.lastName} - ${cleanEmail}) was officially provisioned by Management (${adminCreator.email || 'Admin'})`,
+    `New Administrator account (${newAccount.firstName} ${newAccount.lastName} — ${cleanEmail}, ${deskLabel}) was officially provisioned for Passwordless OTP Login by Management (${adminCreator.email || 'Admin'})`,
     adminCreator.name || adminCreator.email || 'Management',
     'ADMIN'
   );
