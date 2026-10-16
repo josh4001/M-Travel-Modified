@@ -1099,6 +1099,327 @@ const ChatInputBox = React.memo(function ChatInputBox({ onSend, isTyping }: Chat
   );
 });
 
+// ─── Elegant Message Formatting ───────────────────────────────────────────────
+
+function renderInlineFormatting(text: string): React.ReactNode {
+  const tokens = text.split(/(\*\*[\s\S]*?\*\*|\*[^\n*]+?\*|`[^`]+?`)/g);
+  return tokens.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**') && part.length >= 4) {
+      return (
+        <strong key={index} className="font-semibold text-slate-950">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith('*') && part.endsWith('*') && part.length >= 2) {
+      const inner = part.slice(1, -1);
+      return (
+        <em key={index} className="italic text-slate-700 font-normal">
+          {inner}
+        </em>
+      );
+    }
+    if (part.startsWith('`') && part.endsWith('`') && part.length >= 2) {
+      return (
+        <code
+          key={index}
+          className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 text-[11px] font-mono border border-slate-200"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return part;
+  });
+}
+
+interface StepItem {
+  number: number;
+  title: string;
+  body: string;
+}
+
+type MessageBlock =
+  | { type: 'numbered-steps'; steps: StepItem[] }
+  | { type: 'bullet-list'; items: string[] }
+  | { type: 'status-pill'; text: string; variant: 'amber' | 'emerald' | 'slate' }
+  | { type: 'question'; text: string }
+  | { type: 'paragraph'; text: string };
+
+function parseMessageBlocks(rawText: string): MessageBlock[] {
+  const lines = rawText.split('\n');
+  const blocks: MessageBlock[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const rawLine = lines[i];
+    const line = rawLine.trim();
+
+    if (!line) {
+      i++;
+      continue;
+    }
+
+    // 1. Check for standalone status/badge notes like *(Currently on trip)* or *(All vehicles sanitized)*
+    const statusMatch =
+      line.match(/^\s*\*\((.*?)\)\*\s*$/) ||
+      line.match(/^\s*\*(Currently [^*]+|Available [^*]+|Instant Confirmation[^*]*)\*\s*$/i);
+    if (statusMatch) {
+      const text = statusMatch[1].trim();
+      const lower = text.toLowerCase();
+      let variant: 'amber' | 'emerald' | 'slate' = 'slate';
+      if (
+        lower.includes('trip') ||
+        lower.includes('busy') ||
+        lower.includes('maintenance') ||
+        lower.includes('awaiting')
+      ) {
+        variant = 'amber';
+      } else if (
+        lower.includes('available') ||
+        lower.includes('ready') ||
+        lower.includes('instant') ||
+        lower.includes('verified')
+      ) {
+        variant = 'emerald';
+      }
+      blocks.push({ type: 'status-pill', text, variant });
+      i++;
+      continue;
+    }
+
+    // 2. Check for numbered steps (e.g. "1. **Open the Booking Page**:" or "1. Step...")
+    const stepMatch = line.match(/^(\d+)[\.\)]\s*(.*)$/);
+    if (stepMatch) {
+      const steps: StepItem[] = [];
+
+      while (i < lines.length) {
+        // Skip occasional empty lines between numbered steps
+        if (!lines[i].trim()) {
+          let peekIdx = i + 1;
+          while (peekIdx < lines.length && !lines[peekIdx].trim()) peekIdx++;
+          if (peekIdx < lines.length && /^(\d+)[\.\)]\s*/.test(lines[peekIdx].trim())) {
+            i = peekIdx;
+          } else {
+            break;
+          }
+        }
+
+        const curLine = lines[i].trim();
+        const curStepMatch = curLine.match(/^(\d+)[\.\)]\s*(.*)$/);
+        if (!curStepMatch) break;
+
+        const num = parseInt(curStepMatch[1], 10);
+        const remainder = curStepMatch[2].trim();
+
+        let title = '';
+        let body = '';
+
+        // Case A: 1. **Title**: Description on same line
+        const boldWithColon = remainder.match(/^\*\*(.*?)\*\*[:\-]?\s*(.*)$/);
+        if (boldWithColon) {
+          title = boldWithColon[1].replace(/[:\-]$/, '').trim();
+          body = boldWithColon[2].trim();
+        } else {
+          // Case B: 1. Title: Description on same line
+          const colonIdx = remainder.indexOf(':');
+          if (colonIdx > 0 && colonIdx < 50) {
+            title = remainder.slice(0, colonIdx).replace(/^\*\*|\*\*$/g, '').trim();
+            body = remainder.slice(colonIdx + 1).trim();
+          } else {
+            // Case C: Just title
+            title = remainder.replace(/^\*\*|\*\*$/g, '').trim();
+          }
+        }
+
+        // If body was not on the same line, check if the subsequent line is the body
+        if (!body && i + 1 < lines.length) {
+          const nextLine = lines[i + 1].trim();
+          if (
+            nextLine &&
+            !/^(\d+)[\.\)]/.test(nextLine) &&
+            !/^[\•\-\*]\s/.test(nextLine) &&
+            !/^\s*\*\([^*]+\)\*\s*$/.test(nextLine)
+          ) {
+            body = nextLine;
+            i++; // consumed the body line
+          }
+        }
+
+        steps.push({ number: num, title, body });
+        i++;
+      }
+
+      if (steps.length > 0) {
+        blocks.push({ type: 'numbered-steps', steps });
+      }
+      continue;
+    }
+
+    // 3. Check for bullet list item (• or - or * followed by space, but not ** bold)
+    if (/^[\•\-\*]\s+(.*)$/.test(line) && !line.startsWith('**')) {
+      const items: string[] = [];
+      while (i < lines.length) {
+        const curLine = lines[i].trim();
+        if (!curLine) break;
+        const bMatch = curLine.match(/^[\•\-\*]\s+(.*)$/);
+        if (bMatch && !curLine.startsWith('**')) {
+          items.push(bMatch[1].trim());
+          i++;
+        } else {
+          break;
+        }
+      }
+      if (items.length > 0) {
+        blocks.push({ type: 'bullet-list', items });
+      }
+      continue;
+    }
+
+    // 4. Check if this is a closing interactive question (e.g. "Would you like me to...")
+    if (
+      line.endsWith('?') &&
+      (line.length < 180 || i >= lines.length - 2) &&
+      /^(would you|can i|shall i|should we|do you|how would you|are you interested|let me know)/i.test(line)
+    ) {
+      blocks.push({ type: 'question', text: line });
+      i++;
+      continue;
+    }
+
+    // 5. Standard paragraph - collect multi-line text until blank line or special line
+    const paraLines: string[] = [line];
+    i++;
+    while (i < lines.length) {
+      const curLine = lines[i].trim();
+      if (!curLine) break;
+      if (
+        /^(\d+)[\.\)]\s/.test(curLine) ||
+        (/^[\•\-\*]\s/.test(curLine) && !curLine.startsWith('**')) ||
+        /^\s*\*\([^*]+\)\*\s*$/.test(curLine)
+      ) {
+        break;
+      }
+      paraLines.push(curLine);
+      i++;
+    }
+
+    const paraText = paraLines.join(' ');
+    // Double check if the single paragraph is actually a question prompt
+    if (
+      paraText.endsWith('?') &&
+      paraLines.length <= 2 &&
+      /^(would you|can i|shall i|should we|do you|how would you|are you interested|let me know)/i.test(paraText)
+    ) {
+      blocks.push({ type: 'question', text: paraText });
+    } else {
+      blocks.push({ type: 'paragraph', text: paraText });
+    }
+  }
+
+  return blocks;
+}
+
+export function FormattedAiMessage({ text }: { text: string }) {
+  const blocks = useMemo(() => parseMessageBlocks(text), [text]);
+
+  return (
+    <div className="space-y-3 text-slate-800">
+      {blocks.map((block, idx) => {
+        switch (block.type) {
+          case 'numbered-steps':
+            return (
+              <div key={idx} className="space-y-2 my-2.5">
+                {block.steps.map((st) => (
+                  <div
+                    key={st.number}
+                    className="flex items-start gap-3 p-3 rounded-xl bg-slate-50/90 border border-slate-200/80 hover:border-slate-300 transition-colors shadow-2xs"
+                  >
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white font-bold text-[11px] shadow-xs mt-0.5 font-mono">
+                      {st.number}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      {st.title && (
+                        <div className="text-xs font-bold text-slate-900 tracking-tight">
+                          {renderInlineFormatting(st.title)}
+                        </div>
+                      )}
+                      {st.body && (
+                        <div className="text-xs text-slate-600 mt-1 leading-relaxed">
+                          {renderInlineFormatting(st.body)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+
+          case 'bullet-list':
+            return (
+              <div key={idx} className="space-y-1.5 my-1.5 pl-1">
+                {block.items.map((item, itemIdx) => (
+                  <div key={itemIdx} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700 leading-relaxed">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 mt-2 shrink-0" />
+                    <span className="flex-1 min-w-0">{renderInlineFormatting(item)}</span>
+                  </div>
+                ))}
+              </div>
+            );
+
+          case 'status-pill':
+            return (
+              <div key={idx} className="my-1">
+                <span
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shadow-2xs border ${
+                    block.variant === 'amber'
+                      ? 'bg-amber-500/10 text-amber-900 border-amber-300/80'
+                      : block.variant === 'emerald'
+                      ? 'bg-emerald-500/10 text-emerald-900 border-emerald-300/80'
+                      : 'bg-slate-100 text-slate-800 border-slate-200'
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      block.variant === 'amber'
+                        ? 'bg-amber-500 animate-pulse'
+                        : block.variant === 'emerald'
+                        ? 'bg-emerald-500'
+                        : 'bg-slate-500'
+                    }`}
+                  />
+                  <span>{block.text}</span>
+                </span>
+              </div>
+            );
+
+          case 'question':
+            return (
+              <div
+                key={idx}
+                className="flex items-start gap-2.5 p-3 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-400/30 text-slate-900 text-xs sm:text-sm font-medium leading-relaxed my-2"
+              >
+                <Sparkles className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <span className="flex-1">{renderInlineFormatting(block.text)}</span>
+              </div>
+            );
+
+          case 'paragraph':
+          default:
+            return (
+              <p
+                key={idx}
+                className="text-xs sm:text-sm leading-relaxed text-slate-800 tracking-normal"
+              >
+                {renderInlineFormatting(block.text)}
+              </p>
+            );
+        }
+      })}
+    </div>
+  );
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function AiTravelAssistant({
@@ -1431,7 +1752,11 @@ export function AiTravelAssistant({
                       : 'bg-white border border-slate-200 text-slate-900 rounded-tl-none space-y-3 shadow-sm'
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-line leading-relaxed">{msg.text}</p>
+                  {msg.sender === 'user' ? (
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                  ) : (
+                    <FormattedAiMessage text={msg.text} />
+                  )}
 
                   {/* DESTINATION CARD */}
                   {msg.destinationData && (
@@ -1647,7 +1972,7 @@ export function AiTravelAssistant({
           </div>
 
           {/* DYNAMIC PRESET CHIPS */}
-          <div className="px-3 py-2 border-t border-slate-200 bg-slate-50 flex gap-2 overflow-x-auto shrink-0 no-scrollbar">
+          <div className="px-3 py-2 border-t border-slate-200 bg-slate-50 flex gap-2 overflow-x-auto shrink-0 no-scrollbar [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {presetPrompts.map((item, idx) => (
               <button
                 key={idx}
