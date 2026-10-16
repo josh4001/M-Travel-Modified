@@ -139,24 +139,64 @@ const PROCEDURAL_KNOWLEDGE = {
     "**Internet & SIM**: Safaricom and Airtel offer excellent 4G/5G coverage in Nairobi, major towns, and transit corridors. Some remote conservancies and deep valleys have limited coverage, so we recommend downloading offline navigation.",
 };
 
-function getDynamicGreeting(inv: SystemInventory): string {
+function getDynamicGreeting(inv: SystemInventory, timeGreeting?: string): string {
+  const prefix = timeGreeting || 'Hello! Welcome to M-TRAVEL.';
   if (inv.isEmpty) {
-    return "Jambo! I'm your M-TRAVEL AI Concierge. We currently do not have active vehicles or destinations available in our system at the moment. Please try again later or contact our 24/7 Concierge Support Desk for upcoming schedule releases.";
+    return `${prefix} I'm on the M-TRAVEL Concierge Desk today. We currently don't have active vehicles or destinations published right this moment, but I'm happy to answer any questions about how our booking system, M-Pesa checkout, or fleet hosting works!`;
   }
   if (inv.liveDestinations.length > 0 && inv.availableVehicles.length > 0) {
-    return `Jambo! I'm your M-TRAVEL AI Concierge — your real-time guide to travel planning and vehicle hire. We currently have **${inv.liveDestinations.length} active destination(s)** and **${inv.availableVehicles.length} verified vehicle(s)** ready in our live system. Ask me about available tours, fleet pricing, route estimates, or trip advice!`;
+    return `${prefix} I'm with the M-TRAVEL Concierge team. Right now we have **${inv.availableVehicles.length} verified vehicle(s)** ready for hire and **${inv.liveDestinations.length} active destination package(s)** in our system. How can I help you today?`;
   }
   if (inv.liveDestinations.length > 0) {
-    return `Jambo! I'm your M-TRAVEL AI Concierge. We currently have **${inv.liveDestinations.length} active travel experience(s)** published in our live system. Ask me about any available trip, pricing, or itineraries!`;
+    return `${prefix} I'm with the M-TRAVEL Concierge team. We currently have **${inv.liveDestinations.length} active travel experience(s)** open for booking. How can I help you plan or book your trip today?`;
   }
-  return `Jambo! I'm your M-TRAVEL AI Concierge. We currently have **${inv.availableVehicles.length} verified vehicle(s)** ready for hire in our active fleet. Ask me about vehicle specs, daily rates, or road trip recommendations!`;
+  return `${prefix} I'm with the M-TRAVEL Concierge team. We currently have **${inv.availableVehicles.length} verified vehicle(s)** ready for immediate booking in our fleet. Which ride are you looking for, or how can I help you today?`;
 }
 
-// ─── Real-Time AI Response Engine ──────────────────────────────────────────────
+// Helper to match a vehicle mentioned in a query against the live fleet
+function findMatchingVehicleInQuery(q: string, vehicles: StoredVehicle[]): StoredVehicle | undefined {
+  const clean = q.toLowerCase();
+  // 1. Direct make/model/plate substring match against live vehicles
+  const direct = vehicles.find((v) => {
+    const make = (v.make || '').toLowerCase();
+    const model = (v.model || '').toLowerCase();
+    const fullName = `${make} ${model}`.trim();
+    const plate = (v.plateNumber || '').toLowerCase();
+    if (fullName && clean.includes(fullName)) return true;
+    if (make.length >= 3 && clean.includes(make)) return true;
+    // Match individual model words (e.g. "west", "coach", "prado", "cruiser", "coaster")
+    const modelTokens = model.split(/\s+/).filter((t) => t.length >= 3);
+    if (modelTokens.some((tok) => clean.includes(tok))) return true;
+    if (plate && plate.length >= 4 && clean.includes(plate)) return true;
+    return false;
+  });
+  if (direct) return direct;
+
+  // 2. Category match (e.g. "bus", "coach", "suv", "van", "sedan", "pickup")
+  if (/\b(bus|buses|coach|coaster)\b/.test(clean)) {
+    return vehicles.find((v) => isBusVehicle(v) || `${v.make} ${v.model} ${v.type}`.toLowerCase().includes('bus') || `${v.make} ${v.model}`.toLowerCase().includes('coach'));
+  }
+  if (/\b(prado)\b/.test(clean)) {
+    return vehicles.find((v) => `${v.make} ${v.model}`.toLowerCase().includes('prado'));
+  }
+  if (/\b(cruiser)\b/.test(clean)) {
+    return vehicles.find((v) => `${v.make} ${v.model}`.toLowerCase().includes('cruiser'));
+  }
+  if (/\b(van|minibus)\b/.test(clean)) {
+    return vehicles.find((v) => (v.type || '').toUpperCase() === 'VAN' || `${v.make} ${v.model}`.toLowerCase().includes('van'));
+  }
+  if (/\b(suv|4x4)\b/.test(clean)) {
+    return vehicles.find((v) => (v.type || '').toUpperCase() === 'SUV' || (v.type || '').toUpperCase() === '4X4');
+  }
+  return undefined;
+}
+
+// ─── Real-Time Conversational AI Response Engine ───────────────────────────────
 
 function buildLiveAiResponse(
   query: string,
-  inv: SystemInventory
+  inv: SystemInventory,
+  history: Message[] = []
 ): {
   text: string;
   dest?: TravelDestinationItem;
@@ -170,45 +210,372 @@ function buildLiveAiResponse(
 } {
   const q = query.toLowerCase().trim();
 
-  // 1. GREETING DETECTION
-  if (/\b(hi|hello|hey|jambo|habari|hujambo|good morning|good evening|sup|what's up)\b/.test(q)) {
-    return { text: getDynamicGreeting(inv) };
+  // Extract conversational context (most recently discussed vehicle or destination)
+  const lastAiWithVehicle = [...history].reverse().find((m) => m.sender === 'ai' && m.vehicleData);
+  const lastAiWithDest = [...history].reverse().find((m) => m.sender === 'ai' && m.destinationData);
+  const contextVehicle: StoredVehicle | undefined =
+    findMatchingVehicleInQuery(q, inv.liveVehicles) || lastAiWithVehicle?.vehicleData;
+  const contextDest: TravelDestinationItem | undefined = lastAiWithDest?.destinationData;
+
+  // 1. NATURAL HUMAN GREETINGS & STAFF CONVERSATION
+  // Check if user ONLY sent a greeting or pleasantry (or greeting + short pleasantry)
+  const isPureGreeting =
+    /^(good\s*morning|morning|good\s*afternoon|afternoon|good\s*evening|evening|good\s*night|goodnight|hi|hello|hey|jambo|habari|hujambo|sasa|mambo|niaje|greetings|howdy|sup|yo)[\s!.,?]*$/i.test(
+      q
+    );
+
+  if (isPureGreeting) {
+    if (/good\s*morning|^morning/i.test(q)) {
+      return {
+        text: getDynamicGreeting(
+          inv,
+          'Good morning! ☀️ Welcome to M-TRAVEL. I hope your day is off to a wonderful start!'
+        ),
+      };
+    }
+    if (/good\s*afternoon|^afternoon/i.test(q)) {
+      return {
+        text: getDynamicGreeting(
+          inv,
+          'Good afternoon! Welcome to M-TRAVEL. I hope you are having a great day so far!'
+        ),
+      };
+    }
+    if (/good\s*evening|^evening/i.test(q)) {
+      return {
+        text: getDynamicGreeting(
+          inv,
+          'Good evening! Welcome to M-TRAVEL. I hope you had a lovely day!'
+        ),
+      };
+    }
+    if (/good\s*night|goodnight/i.test(q)) {
+      return {
+        text: "Good night! 🌙 Have a wonderful, restful night. Whenever you're ready to book a vehicle, charter a bus, or plan your next trip with M-TRAVEL, we'll be right here to help!",
+      };
+    }
+    if (/jambo|habari|hujambo|sasa|mambo|niaje/i.test(q)) {
+      return {
+        text: getDynamicGreeting(
+          inv,
+          'Jambo! Karibu sana to M-TRAVEL. It is a pleasure speaking with you today!'
+        ),
+      };
+    }
+    return {
+      text: getDynamicGreeting(inv, 'Hello there! 👋 Welcome to M-TRAVEL.'),
+    };
   }
 
-  // 2. CHECK IF SYSTEM IS COMPLETELY EMPTY
-  if (inv.isEmpty) {
-    // If it's a procedural question (payment, visa, packing, etc.), answer helpfully with empty note
-    if (/mpesa|payment|pay|card|wallet/.test(q)) {
+  // "How are you?" / pleasantries
+  if (/^(how are you|how's it going|how are things|how do you do|hope you are well|are you there)[\s!.,?]*$/i.test(q)) {
+    return {
+      text: `I'm doing great, thank you so much for asking! 😊 I'm right here at the M-TRAVEL Concierge Desk and ready to help. We currently have **${inv.availableVehicles.length} available vehicle(s)**${
+        inv.liveDestinations.length > 0 ? ` and **${inv.liveDestinations.length} destination package(s)**` : ''
+      } in our system. How are you doing today, and what can I help you check or book?`,
+    };
+  }
+
+  // "Thank you" / "Thanks" / acknowledgements
+  if (/^(thank you|thanks|thx|thank u|asante|asante sana|shukran|appreciate it|many thanks)[\s!.,?]*$/i.test(q)) {
+    return {
+      text: `You're very welcome! 😊 It's always my pleasure to help. Please let me know if you need anything else — whether it's booking ${
+        contextVehicle ? `the **${contextVehicle.make} ${contextVehicle.model}**` : 'a vehicle'
+      }, checking rates, or learning how M-Pesa checkout works!`,
+      ...(contextVehicle
+        ? {
+            action: {
+              label: `Book ${contextVehicle.make} ${contextVehicle.model}`,
+              url: `/vehicles/${contextVehicle.id}`,
+            },
+          }
+        : {}),
+    };
+  }
+
+  // "Okay" / "Great" / "Awesome" / "Got it"
+  if (/^(ok|okay|k|alright|cool|great|awesome|nice|perfect|understood|got it|sounds good)[\s!.,?]*$/i.test(q)) {
+    if (contextVehicle) {
       return {
-        text: `${PROCEDURAL_KNOWLEDGE.mpesa}\n\n*(Note: Our marketplace catalogue currently does not have active vehicles or destinations available at the moment. Please try again later.)*`,
+        text: `Wonderful! Whenever you're ready to reserve the **${contextVehicle.make} ${contextVehicle.model}**, just click the button below to open its booking page, choose your travel dates, and complete checkout. Let me know if you have any other questions!`,
+        action: {
+          label: `Go to ${contextVehicle.make} ${contextVehicle.model} Booking Page`,
+          url: `/vehicles/${contextVehicle.id}`,
+        },
       };
     }
-    if (/visa|entry|passport|permit/.test(q)) {
+    return {
+      text: "Great! Just let me know if there's any vehicle, bus, or travel question I can help you with.",
+    };
+  }
+
+  // "Bye" / "Goodbye"
+  if (/^(bye|goodbye|see you|see ya|talk later|have a good day|kwaheri)[\s!.,?]*$/i.test(q)) {
+    return {
+      text: "Goodbye and safe travels! 👋 Thank you for chatting with M-TRAVEL. Whenever you need a vehicle or travel assistance, feel free to reach out anytime!",
+    };
+  }
+
+  // Check if the user started their question with a greeting (e.g., "Good morning, how can I book the Isuzu bus?")
+  let greetingLeadIn = '';
+  if (/\bgood\s*morning\b/i.test(q)) greetingLeadIn = 'Good morning! ☀️ ';
+  else if (/\bgood\s*afternoon\b/i.test(q)) greetingLeadIn = 'Good afternoon! ';
+  else if (/\bgood\s*evening\b/i.test(q)) greetingLeadIn = 'Good evening! ';
+  else if (/\b(hi|hello|hey|jambo|habari)\b/i.test(q)) greetingLeadIn = 'Hello! ';
+
+  // 2. BOOKING INSTRUCTIONS & "HOW CAN I BOOK IT?" (CONTEXT-AWARE + SYSTEM-WIDE)
+  const isHowToBookQuery =
+    /\b(how\s+(can|do|to|would|should)\s+(i|we|someone|a traveler)\s+(book|reserve|hire|rent|get|pay for)|how\s+to\s+(book|reserve|hire|rent)|steps?\s+to\s+book|booking\s+process|how\s+does\s+booking\s+work|can\s+i\s+book\s+(it|this|that|the)|i\s+want\s+to\s+(book|reserve|hire|rent)|where\s+(can|do)\s+i\s+book|book\s+it|reserve\s+it|hire\s+it)\b/i.test(
+      q
+    );
+
+  if (isHowToBookQuery) {
+    if (contextVehicle) {
+      const isBus = isBusVehicle(contextVehicle);
+      const hireStatus = getVehicleHireStatus(contextVehicle.id);
+
+      if (hireStatus.isOnTrip || hireStatus.isAwaitingHandover) {
+        return {
+          text:
+            `${greetingLeadIn}The **${contextVehicle.make} ${contextVehicle.model}** is currently booked out on an active trip${
+              hireStatus.returnDate ? ` until ${hireStatus.returnDate}` : ''
+            }. As soon as the vehicle returns and passes our Admin Return Inspection, it will immediately become available for booking again!\n\n` +
+            `In the meantime, you can book any of our other available vehicles by clicking **View Available Fleet** below.`,
+          action: {
+            label: 'View Available Fleet',
+            url: '/catalogue',
+          },
+        };
+      }
+
+      const driverAndDocsStep = isBus
+        ? `3. **Driver & Pickup Documents**: Because this is a bus charter, a **certified M-TRAVEL company coach driver is automatically included** (no self-drive option and no driver's license needed from you). You only need to bring your **original National ID or Passport** for physical handover verification.`
+        : `3. **Service Mode & Documents**: Choose **Self-Drive** (bring your original National ID/Passport + valid Driving License at pickup) or **With Chauffeur** (+KES 2,500/day, National ID/Passport only).`;
+
       return {
-        text: `${PROCEDURAL_KNOWLEDGE.visaKenya}\n\n*(Note: We currently do not have active vehicles or destinations available in our system at the moment. Please try again later.)*`,
+        text:
+          `${greetingLeadIn}Booking the **${contextVehicle.make} ${contextVehicle.model}** on M-TRAVEL is quick and straightforward! Here is how you can book it right now:\n\n` +
+          `1. **Open the Booking Page**: Click the **"Book ${contextVehicle.make} ${contextVehicle.model}"** button right below (or select it from our **Fleet Catalogue**).\n` +
+          `2. **Select Travel Dates & Times**: Enter your **Pick-up Date & Time**, **Return Date & Time**, and pickup/drop-off locations. The system automatically calculates your total at **KES ${contextVehicle.pricePerDay.toLocaleString()}/day**.\n` +
+          `${driverAndDocsStep}\n` +
+          `4. **Pay via M-Pesa or Wallet**: Enter your M-Pesa phone number to complete instant checkout (or pay directly from your M-TRAVEL Wallet if funded). Remember to sign in to your **Traveler Account** first.\n` +
+          `5. **Get Your Booking Pass**: Once confirmed, you'll receive an instant confirmation email/WhatsApp and can download your official **PDF Expedition Pass** under **My Bookings**!`,
+        vehicle: contextVehicle,
+        action: {
+          label: `Book ${contextVehicle.make} ${contextVehicle.model} Now`,
+          url: `/vehicles/${contextVehicle.id}`,
+        },
       };
-    }
-    if (/pack|luggage|gear|clothing/.test(q)) {
-      return { text: PROCEDURAL_KNOWLEDGE.packingList };
-    }
-    if (/malaria|health|vaccine/.test(q)) {
-      return { text: PROCEDURAL_KNOWLEDGE.malaria };
     }
 
-    // For all destinations, vehicles, bookings, costs, or trip questions:
+    if (contextDest) {
+      return {
+        text:
+          `${greetingLeadIn}Here is how to book **${contextDest.title}** on M-TRAVEL:\n\n` +
+          `1. **Go to Holidays & Tours**: Click the **"Book ${contextDest.title}"** button below.\n` +
+          `2. **Choose Your Travel Dates & Guests**: Select your preferred departure date and number of travelers (**KES ${contextDest.priceKES.toLocaleString()} ${contextDest.priceUnit || '/ person'}**).\n` +
+          `3. **Complete M-Pesa or Wallet Checkout**: Confirm your reservation with instant M-Pesa payment or your M-TRAVEL Wallet.\n` +
+          `4. **Receive Your Travel Voucher**: Your confirmed itinerary voucher and booking reference will appear immediately in **My Bookings** and be sent to your email!`,
+        dest: contextDest,
+        action: {
+          label: `Book ${contextDest.title}`,
+          url: '/holidays',
+        },
+      };
+    }
+
+    // General "How can I book?" without a prior vehicle in context
     return {
-      text: "We currently do not have active vehicles or destinations available in our system at the moment. Please try again later or contact our 24/7 Concierge Support Desk for upcoming schedule releases.",
+      text:
+        `${greetingLeadIn}Booking a vehicle, bus, or safari trip on **M-TRAVEL** takes less than 2 minutes! Here is the step-by-step process:\n\n` +
+        `1. **Sign In / Create a Traveler Account**: Click **Sign In / Register** at the top navigation bar.\n` +
+        `2. **Choose Your Ride or Destination**: Browse the **Fleet Catalogue** (for 4x4 SUVs, cars, and charter buses) or **Holidays & Tours** and click on the listing you want.\n` +
+        `3. **Pick Your Travel Dates & Times**: Select your pick-up and return dates/times. For regular vehicles, you can choose **Self-Drive** or **Chauffeur-Driven** (buses automatically come with a certified company coach captain).\n` +
+        `4. **Checkout with M-Pesa or Wallet**: Pay securely via M-Pesa STK push or your M-TRAVEL Wallet.\n` +
+        `5. **Download Your Pass & Pick Up**: Download your **PDF Booking Pass** from **My Bookings** and present your ID (plus Driving License for self-drive cars) at our station hub for vehicle handover!`,
       action: {
-        label: "Contact Concierge Desk",
-        url: "https://wa.me/254791888840?text=Hello%20M-Travel,%20I%20would%20like%20to%20inquire%20about%20upcoming%20destinations%20and%20fleet%20availability",
+        label: 'Browse Available Fleet to Book',
+        url: '/catalogue',
       },
     };
   }
 
-  // 3. PROCEDURAL GENERAL QUESTIONS
-  if (/m.?travel|about us|who are you|your company|your platform/.test(q)) {
+  // 3. CONTEXTUAL FOLLOW-UP QUESTIONS ABOUT THE CURRENT VEHICLE ("how much for 3 days?", "does it have a driver?", "what documents?", "where is it located?")
+  if (contextVehicle) {
+    // Follow-up about multi-day pricing / cost for "it" or the vehicle
+    const daysMatch = q.match(/(\d+)\s*day/);
+    if (
+      daysMatch ||
+      /\b(how much is it|what is the price|how much does it cost|price per day|daily rate|total cost)\b/i.test(q)
+    ) {
+      const days = daysMatch ? Math.max(1, parseInt(daysMatch[1], 10)) : 1;
+      const total = contextVehicle.pricePerDay * days;
+      const isBus = isBusVehicle(contextVehicle);
+      return {
+        text:
+          `${greetingLeadIn}The **${contextVehicle.make} ${contextVehicle.model}** is **KES ${contextVehicle.pricePerDay.toLocaleString()} per day**.\n\n` +
+          `• **Cost for ${days} day(s)**: **KES ${total.toLocaleString()}**\n` +
+          `• **Driver / Captain**: ${
+            isBus
+              ? 'Included in the daily rate (Certified M-TRAVEL Coach Captain provided)'
+              : 'Self-Drive included, or add a certified station chauffeur for +KES 2,500/day'
+          }\n` +
+          `• **Insurance**: Comprehensive commercial & PSV insurance included.\n\n` +
+          `Would you like to go ahead and book it for ${days} day(s)?`,
+        vehicle: contextVehicle,
+        action: {
+          label: `Book ${contextVehicle.make} ${contextVehicle.model}`,
+          url: `/vehicles/${contextVehicle.id}`,
+        },
+      };
+    }
+
+    // Follow-up about driver / chauffeur / self-drive for the vehicle
+    if (/\b(driver|chauffeur|captain|self.?drive|who drives)\b/i.test(q)) {
+      const isBus = isBusVehicle(contextVehicle);
+      return {
+        text: isBus
+          ? `${greetingLeadIn}Yes! Since the **${contextVehicle.make} ${contextVehicle.model}** is an executive charter bus, it **automatically comes with a certified M-TRAVEL company coach driver** included in your booking. Self-drive is not required for buses, so you only need to present your **National ID or Passport** at pickup!`
+          : `${greetingLeadIn}For the **${contextVehicle.make} ${contextVehicle.model}**, you have two flexible options on the booking page:\n\n` +
+            `• **Self-Drive**: Drive yourself (requires your original National ID/Passport + valid Driving License at handover).\n` +
+            `• **With Certified Chauffeur**: Add an experienced M-TRAVEL driver during checkout (+KES 2,500/day) and simply present your National ID/Passport at pickup!`,
+        vehicle: contextVehicle,
+        action: {
+          label: `Book ${contextVehicle.make} ${contextVehicle.model}`,
+          url: `/vehicles/${contextVehicle.id}`,
+        },
+      };
+    }
+
+    // Follow-up about documents / requirements / pickup / handover for the vehicle
+    if (/\b(document|id|passport|license|licence|require|pickup|pick up|handover|collect|where is it)\b/i.test(q)) {
+      const isBus = isBusVehicle(contextVehicle);
+      return {
+        text:
+          `${greetingLeadIn}For the **${contextVehicle.make} ${contextVehicle.model}**, here are the pickup and document details:\n\n` +
+          `• **Pickup Hub**: ${contextVehicle.address || 'M-TRAVEL Station Hub, Nairobi'}\n` +
+          `• **Required Documents at Handover**: ${
+            isBus
+              ? '**Original National ID or Passport only** (A company coach driver is assigned to your bus, so no driving license is needed from you).'
+              : '**Original National ID or Passport + Valid Driving License** for Self-Drive (or National ID/Passport only if you select a Chauffeur).'
+          }\n` +
+          `• **Handover Process**: Once you arrive at the station, our M-TRAVEL Admin verifies your booking pass and documents and releases the vehicle to you immediately!`,
+        vehicle: contextVehicle,
+        action: {
+          label: `Book ${contextVehicle.make} ${contextVehicle.model}`,
+          url: `/vehicles/${contextVehicle.id}`,
+        },
+      };
+    }
+  }
+
+  // 4. SYSTEM-SPECIFIC OPERATIONAL QUESTIONS (Handover, Return Inspection, Hosts, Wallet, Account, Cancellations, Incidents, Contact)
+  if (/\b(document|id|passport|driving\s*licen[cs]e|handover|pick\s*up\s*process|return\s*inspection|late\s*return|overdue|credit\s*score)\b/i.test(q)) {
     return {
-      text: `${PROCEDURAL_KNOWLEDGE.mtravel}\n\n**Current Live System Status**:\n• Verified Active Vehicles: **${inv.availableVehicles.length} available**${inv.onTripVehicles.length > 0 ? ` (${inv.onTripVehicles.length} on trip)` : ''}\n• Published Destinations / Tours: **${inv.liveDestinations.length} active**`,
+      text:
+        `${greetingLeadIn}Here is how **Vehicle Handover, Documents & Return Inspection** work on M-TRAVEL:\n\n` +
+        `• **Self-Drive Cars & SUVs**: Bring your **Original National ID (or Passport)** and a **valid Driving License** at pickup.\n` +
+        `• **Buses & Chauffeur Rides**: Every bus charter includes a certified M-TRAVEL coach driver, so travelers only need to present their **Original National ID or Passport**.\n` +
+        `• **Return Inspection & Immediate Re-Booking**: When you return a vehicle or bus, our **M-TRAVEL Admin** completes a quick Return Inspection (checking condition, fuel, and odometer). Once verified — whether returned early, on time, or after the due date — the trip is marked completed and the vehicle is immediately freed for new bookings!`,
+      action: {
+        label: 'View My Bookings',
+        url: '/dashboard/bookings',
+      },
+    };
+  }
+
+  if (/\b(host|list\s+my\s+(car|vehicle|bus)|rent\s+out\s+my|owner|partner|commission|payout|earn\s+money)\b/i.test(q)) {
+    return {
+      text:
+        `${greetingLeadIn}You can partner with **M-TRAVEL** as a **Fleet Host** and earn from your vehicles or buses!\n\n` +
+        `1. **Register a Fleet Host Account**: Click **Sign In / Register** and select the **Vehicle Owner / Fleet Host** role.\n` +
+        `2. **Submit Your Vehicle**: From your **Host Dashboard**, add your vehicle's make, model, plate number, daily rate in KES, and clear photos.\n` +
+        `3. **Admin Quality Inspection**: **M-TRAVEL Admin** reviews and approves roadworthy vehicles so they go live on the marketplace.\n` +
+        `4. **Automatic Earnings (75% Payout)**: Whenever a traveler books your vehicle and handover is verified, **75%** of the booking value is credited to your personal **Host Wallet** (with 25% platform service commission), ready for M-Pesa withdrawal anytime!`,
+      action: {
+        label: 'Register as a Fleet Host',
+        url: '/register',
+      },
+    };
+  }
+
+  if (/\b(cancel|cancellation|refund|change\s+date|reschedule)\b/i.test(q)) {
+    return {
+      text:
+        `${greetingLeadIn}Here is how **Cancellations & Refunds** work on M-TRAVEL:\n\n` +
+        `• **Before Handover**: All booking payments are protected in our **M-TRAVEL Trust Escrow** until physical vehicle handover takes place.\n` +
+        `• **Managing Your Reservation**: You can view your active reservations anytime under **My Bookings** in your dashboard, download your booking pass, or contact our 24/7 Concierge Desk via WhatsApp (` +
+        `**+254 791 888 840**) if you need assistance adjusting your dates or cancelling prior to dispatch.`,
+      action: {
+        label: 'Open My Bookings',
+        url: '/dashboard/bookings',
+      },
+    };
+  }
+
+  if (/\b(incident|breakdown|accident|emergency|roadside|help\s+on\s+trip|support|contact|phone\s*number|whatsapp|call|email|office|location|address)\b/i.test(q)) {
+    return {
+      text:
+        `${greetingLeadIn}Our **M-TRAVEL 24/7 Concierge & Roadside Support Team** is always here for you:\n\n` +
+        `• **24/7 Concierge Hotline**: **+254 722 374 535**\n` +
+        `• **WhatsApp Operations Desk**: **+254 791 888 840**\n` +
+        `• **Support Email**: **support@mtravel.co.ke**\n` +
+        `• **Station Hub**: Westlands Square, Nairobi, Kenya\n` +
+        `• **On-Trip Incident Reporting**: If you are currently on an active trip, you can also log a roadside or safety alert directly from **My Bookings** so our Admin team can dispatch immediate assistance!`,
+      action: {
+        label: 'Chat with Concierge on WhatsApp',
+        url: 'https://wa.me/254791888840?text=Hello%20M-TRAVEL%20Concierge,%20I%20would%20like%20assistance%20with%20my%20booking.',
+      },
+    };
+  }
+
+  if (/\b(account|sign\s*up|register|login|log\s*in|forgot\s*password|reset\s*password|otp|profile)\b/i.test(q)) {
+    return {
+      text:
+        `${greetingLeadIn}Managing your **M-TRAVEL Account** is simple and secure:\n\n` +
+        `• **Travelers & Fleet Hosts**: Click **Sign In / Register** at the top right to create your account or sign in.\n` +
+        `• **Forgot Password**: On the login page, click **Forgot Password?** to receive a 6-digit **One-Time Verification Code (OTP)** in your email and set a new password.\n` +
+        `• **Personal Wallet & Bookings**: Every user has their own dedicated **Wallet**, **My Bookings** pass centre, and **My Profile** dashboard.`,
+      action: {
+        label: 'Go to Sign In / Register',
+        url: '/login',
+      },
+    };
+  }
+
+  // 5. CHECK IF SYSTEM IS COMPLETELY EMPTY
+  if (inv.isEmpty) {
+    if (/mpesa|payment|pay|card|wallet/.test(q)) {
+      return {
+        text: `${greetingLeadIn}${PROCEDURAL_KNOWLEDGE.mpesa}\n\n*(Note: Our marketplace catalogue currently does not have active vehicles or destinations available at the moment. Please try again later.)*`,
+      };
+    }
+    if (/visa|entry|passport|permit/.test(q)) {
+      return {
+        text: `${greetingLeadIn}${PROCEDURAL_KNOWLEDGE.visaKenya}`,
+      };
+    }
+    if (/pack|luggage|gear|clothing/.test(q)) {
+      return { text: `${greetingLeadIn}${PROCEDURAL_KNOWLEDGE.packingList}` };
+    }
+    if (/malaria|health|vaccine/.test(q)) {
+      return { text: `${greetingLeadIn}${PROCEDURAL_KNOWLEDGE.malaria}` };
+    }
+    if (/vehicle|car|bus|coach|fleet|destination|safari|holiday|tour|available|book|hire|rent/.test(q)) {
+      return {
+        text: `${greetingLeadIn}We currently do not have active vehicles or destinations available in our system at the moment. Please try again later or contact our 24/7 Concierge Support Desk for upcoming schedule releases.`,
+        action: {
+          label: 'Contact Concierge Desk',
+          url: 'https://wa.me/254791888840?text=Hello%20M-TRAVEL,%20I%20would%20like%20to%20inquire%20about%20upcoming%20destinations%20and%20fleet%20availability',
+        },
+      };
+    }
+  }
+
+  // 6. PROCEDURAL GENERAL QUESTIONS
+  if (/m.?travel|about us|who are you|what do you do|your company|your platform|how does this system work/.test(q)) {
+    return {
+      text: `${greetingLeadIn}${PROCEDURAL_KNOWLEDGE.mtravel}\n\n**Current Live System Status**:\n• Verified Active Vehicles: **${inv.availableVehicles.length} available**${inv.onTripVehicles.length > 0 ? ` (${inv.onTripVehicles.length} currently on trip)` : ''}\n• Published Destinations / Tours: **${inv.liveDestinations.length} active**`,
       action: {
         label: inv.liveDestinations.length > 0 ? 'Browse Live Destinations' : 'View Fleet Catalogue',
         url: inv.liveDestinations.length > 0 ? '/holidays' : '/catalogue',
@@ -216,76 +583,74 @@ function buildLiveAiResponse(
     };
   }
 
-  if (/mpesa|m-pesa|payment|pay|card|visa|mastercard|wallet/.test(q)) {
-    return { text: PROCEDURAL_KNOWLEDGE.mpesa };
+  if (/\b(mpesa|m-pesa|payment|pay|card|mastercard|wallet|top\s*up|withdraw|escrow)\b/.test(q)) {
+    return {
+      text:
+        `${greetingLeadIn}${PROCEDURAL_KNOWLEDGE.mpesa}\n\n` +
+        `• **Every User Has Their Own Wallet**: Travelers can top up their wallet via M-Pesa or pay directly at checkout, and Fleet Hosts receive their 75% booking payouts into their personal Host Wallet once vehicle handover is verified.`,
+    };
   }
 
-  if (/visa|entry|passport|permit|immigration/.test(q)) {
-    return { text: PROCEDURAL_KNOWLEDGE.visaKenya };
+  if (/\b(visa|eta|entry|immigration)\b/.test(q)) {
+    return { text: `${greetingLeadIn}${PROCEDURAL_KNOWLEDGE.visaKenya}` };
   }
 
-  if (/pack|what to bring|luggage|clothes|kit|gear/.test(q)) {
-    return { text: PROCEDURAL_KNOWLEDGE.packingList };
+  if (/\b(pack|what to bring|luggage|clothes|kit|gear)\b/.test(q)) {
+    return { text: `${greetingLeadIn}${PROCEDURAL_KNOWLEDGE.packingList}` };
   }
 
-  if (/malaria|health|vaccine|vaccination|medicine|mosquito/.test(q)) {
-    return { text: PROCEDURAL_KNOWLEDGE.malaria };
+  if (/\b(malaria|health|vaccine|vaccination|medicine|mosquito)\b/.test(q)) {
+    return { text: `${greetingLeadIn}${PROCEDURAL_KNOWLEDGE.malaria}` };
   }
 
-  if (/currency|money|exchange|shilling|kes|usd|forex/.test(q)) {
-    return { text: PROCEDURAL_KNOWLEDGE.currency };
+  if (/\b(currency|money|exchange|shilling|kes|usd|forex)\b/.test(q)) {
+    return { text: `${greetingLeadIn}${PROCEDURAL_KNOWLEDGE.currency}` };
   }
 
-  if (/safe|security|danger|crime|risk|is kenya safe/.test(q)) {
-    return { text: PROCEDURAL_KNOWLEDGE.safety };
+  if (/\b(safe|safety|security|is kenya safe)\b/.test(q)) {
+    return { text: `${greetingLeadIn}${PROCEDURAL_KNOWLEDGE.safety}` };
   }
 
-  if (/sim|internet|wifi|data|network|safaricom|connectivity/.test(q)) {
-    return { text: PROCEDURAL_KNOWLEDGE.connectivity };
+  if (/\b(sim|internet|wifi|data|network|safaricom|connectivity)\b/.test(q)) {
+    return { text: `${greetingLeadIn}${PROCEDURAL_KNOWLEDGE.connectivity}` };
   }
 
-  // 4. CHECK SPECIFIC VEHICLE MENTIONS OR FLEET QUERIES
+  // 7. CHECK SPECIFIC VEHICLE MENTIONS OR FLEET QUERIES
+  const matchedDirectVehicle = findMatchingVehicleInQuery(q, inv.liveVehicles);
   const vehicleKeywords = [
-    'vehicle', 'car', 'suv', 'van', 'prado', 'land cruiser', '4x4', 'pickup',
-    'fleet', 'hire a car', 'rent a car', 'bus', 'coaster', 'coach', 'sedan',
-    'toyota', 'isuzu', 'subaru', 'mercedes', 'vitz', 'harrier', 'rav4', 'minibus'
+    'vehicle', 'vehicles', 'car', 'cars', 'suv', 'van', 'prado', 'land cruiser', 'cruiser', '4x4', 'pickup',
+    'fleet', 'hire', 'rent', 'bus', 'buses', 'coaster', 'coach', 'sedan',
+    'toyota', 'isuzu', 'subaru', 'mercedes', 'vitz', 'harrier', 'rav4', 'minibus', 'scania', 'nissan', 'mitsubishi',
+    'available', 'ride', 'rides', 'cheapest', 'seat', 'seats'
   ];
-  const isVehicleQuery = vehicleKeywords.some((k) => q.includes(k));
+  const isVehicleQuery = Boolean(matchedDirectVehicle) || vehicleKeywords.some((k) => q.includes(k));
 
   if (isVehicleQuery) {
-    // Check if user specifically requested a particular model
+    // Check if user mentioned a specific model or brand
     const requestedModel =
+      matchedDirectVehicle ? `${matchedDirectVehicle.make} ${matchedDirectVehicle.model}` :
       q.includes('prado') ? 'Toyota Land Cruiser Prado' :
-      q.includes('land cruiser') ? 'Toyota Land Cruiser' :
+      q.includes('land cruiser') || q.includes('cruiser') ? 'Toyota Land Cruiser' :
+      q.includes('isuzu') ? 'Isuzu Coach / Bus' :
       q.includes('coach') || q.includes('bus') ? 'Tour Coach / Bus' :
       q.includes('van') || q.includes('minibus') ? 'Safari Minibus Van' :
       q.includes('rav4') ? 'Toyota RAV4' :
       q.includes('subaru') ? 'Subaru' :
+      q.includes('mercedes') ? 'Mercedes-Benz' :
       q.includes('sedan') ? 'Executive Sedan' :
       q.includes('pickup') ? '4x4 Pickup' : null;
 
     if (requestedModel) {
-      // Find if this vehicle exists in the live fleet
-      const matchedVehicle = inv.liveVehicles.find((v) => {
-        const name = `${v.make} ${v.model} ${v.type}`.toLowerCase();
-        return (
-          (q.includes('prado') && name.includes('prado')) ||
-          (q.includes('land cruiser') && name.includes('cruiser')) ||
-          ((q.includes('bus') || q.includes('coach')) && (isBusVehicle(v) || name.includes('bus') || name.includes('coach'))) ||
-          (q.includes('van') && (v.type === 'VAN' || name.includes('van') || name.includes('minibus'))) ||
-          (q.includes('rav4') && name.includes('rav4')) ||
-          (q.includes('pickup') && (v.type === 'PICKUP' || name.includes('pickup')))
-        );
-      });
+      const matchedVehicle = matchedDirectVehicle;
 
       if (matchedVehicle) {
         const hireStatus = getVehicleHireStatus(matchedVehicle.id);
+        const isBus = isBusVehicle(matchedVehicle);
 
         if (hireStatus.isOnTrip) {
-          // Vehicle is currently out on a trip
-          let text = `The **${matchedVehicle.make} ${matchedVehicle.model}** is **currently on an active trip with a traveler**${
+          let text = `${greetingLeadIn}The **${matchedVehicle.make} ${matchedVehicle.model}** is **currently on an active trip with a traveler**${
             hireStatus.returnDate ? ` until ${hireStatus.returnDate}` : ''
-          }. Booking and payment are disabled until the vehicle returns and inspection is completed by Admin.\n\n`;
+          }. Once it is returned and verified through our Admin Return Inspection, it will immediately open up for booking again.\n\n`;
 
           if (inv.availableVehicles.length > 0) {
             text += `Here are alternative vehicles **currently available** in our active fleet:\n\n`;
@@ -304,7 +669,7 @@ function buildLiveAiResponse(
                   title: `${v.make} ${v.model}`,
                   subtitle: `${v.seats} Seats · ${v.transmission} · ${v.fuelType}`,
                   priceText: `KES ${v.pricePerDay.toLocaleString()} / day`,
-                  url: isBusVehicle(v) ? '/catalogue?category=buses' : `/vehicles/${v.id}`,
+                  url: `/vehicles/${v.id}`,
                   imageUrl: v.images?.[0],
                   specs: [`${v.seats} Seats`, v.transmission, v.fuelType],
                 })),
@@ -315,13 +680,13 @@ function buildLiveAiResponse(
               },
             };
           } else {
-            text += `There are currently no other vehicles available in the fleet. Please check back later once this vehicle completes its trip.`;
+            text += `There are currently no other vehicles available in the fleet. Please check back soon once this vehicle completes its return inspection.`;
             return { text };
           }
         }
 
         if (hireStatus.isAwaitingHandover) {
-          let text = `The **${matchedVehicle.make} ${matchedVehicle.model}** is **reserved and scheduled for departure**.\n\n`;
+          let text = `${greetingLeadIn}The **${matchedVehicle.make} ${matchedVehicle.model}** is **currently reserved and awaiting handover**.\n\n`;
           if (inv.availableVehicles.length > 0) {
             text += `Here are alternative vehicles **currently available** in our fleet:\n\n`;
             inv.availableVehicles.slice(0, 3).forEach((v) => {
@@ -337,7 +702,7 @@ function buildLiveAiResponse(
                   title: `${v.make} ${v.model}`,
                   subtitle: `${v.seats} Seats · ${v.transmission} · ${v.fuelType}`,
                   priceText: `KES ${v.pricePerDay.toLocaleString()} / day`,
-                  url: isBusVehicle(v) ? '/catalogue?category=buses' : `/vehicles/${v.id}`,
+                  url: `/vehicles/${v.id}`,
                   imageUrl: v.images?.[0],
                 })),
               },
@@ -350,23 +715,34 @@ function buildLiveAiResponse(
 
         // Available!
         return {
-          text: `The **${matchedVehicle.make} ${matchedVehicle.model} (${matchedVehicle.year})** is **currently available for hire** in our fleet!\n\n• **Daily Rate**: KES ${matchedVehicle.pricePerDay.toLocaleString()}/day\n• **Capacity**: ${matchedVehicle.seats} Passengers\n• **Transmission**: ${matchedVehicle.transmission} · **Fuel**: ${matchedVehicle.fuelType}\n• **Pickup Location**: ${matchedVehicle.address || 'Nairobi, Kenya'}\n• **Status**: Verified, commercially insured, and ready for immediate booking.`,
+          text:
+            `${greetingLeadIn}Yes! The **${matchedVehicle.make} ${matchedVehicle.model} (${matchedVehicle.year})** is **currently available for hire** in our fleet!\n\n` +
+            `• **Daily Rate**: KES ${matchedVehicle.pricePerDay.toLocaleString()}/day\n` +
+            `• **Capacity**: ${matchedVehicle.seats} Passengers\n` +
+            `• **Transmission**: ${matchedVehicle.transmission} · **Fuel**: ${matchedVehicle.fuelType}\n` +
+            `• **Service Mode**: ${
+              isBus
+                ? 'Executive Bus Charter (Certified M-TRAVEL Coach Driver Included)'
+                : 'Self-Drive or Chauffeur-Driven'
+            }\n` +
+            `• **Pickup Location**: ${matchedVehicle.address || 'Nairobi, Kenya'}\n\n` +
+            `To book it right now, simply click the **"Book ${matchedVehicle.make} ${matchedVehicle.model}"** button below, choose your travel dates, and complete your M-Pesa or Wallet payment!`,
           vehicle: matchedVehicle,
           action: {
             label: `Book ${matchedVehicle.make} ${matchedVehicle.model}`,
-            url: isBusVehicle(matchedVehicle) ? '/catalogue?category=buses' : `/vehicles/${matchedVehicle.id}`,
+            url: `/vehicles/${matchedVehicle.id}`,
           },
         };
       }
 
       // The requested model is NOT in live fleet
-      let text = `**"${requestedModel}"** is currently **not available in our fleet** as it has been unlisted or removed.\n\n`;
+      let text = `${greetingLeadIn}We don't currently have a **${requestedModel}** listed in our active fleet right now.\n\n`;
       if (inv.availableVehicles.length > 0) {
-        text += `However, we currently have the following verified vehicle(s) **available in our active fleet**:\n\n`;
+        text += `However, we have these verified vehicles **ready for immediate booking**:\n\n`;
         inv.availableVehicles.slice(0, 3).forEach((v) => {
           text += `• **${v.make} ${v.model}** (${v.year}) — KES ${v.pricePerDay.toLocaleString()}/day · ${v.seats} Seats\n`;
         });
-        text += `\nWould you like to book one of these available options?`;
+        text += `\nWould you like to book one of these available options, or hear more about any of them?`;
         return {
           text,
           alternatives: {
@@ -377,35 +753,36 @@ function buildLiveAiResponse(
               title: `${v.make} ${v.model}`,
               subtitle: `${v.seats} Seats · ${v.transmission} · ${v.fuelType}`,
               priceText: `KES ${v.pricePerDay.toLocaleString()} / day`,
-              url: isBusVehicle(v) ? '/catalogue?category=buses' : `/vehicles/${v.id}`,
+              url: `/vehicles/${v.id}`,
               imageUrl: v.images?.[0],
             })),
           },
           action: { label: 'Explore Fleet Catalogue', url: '/catalogue' },
         };
       } else {
-        text = "We currently do not have active vehicles available in our fleet at the moment. Please try again later.";
+        text = `${greetingLeadIn}We currently do not have active vehicles available in our fleet at the moment. Please try again later.`;
         return { text };
       }
     }
 
-    // General vehicle fleet question ("What vehicles do you have?")
+    // General vehicle fleet question ("What vehicles do you have?", "Which cars are available?")
     if (inv.availableVehicles.length === 0 && inv.liveVehicles.length === 0) {
       return {
-        text: "There are currently no vehicles available for hire in our fleet at the moment. Please try again later or check back soon as hosts add new vehicles.",
+        text: `${greetingLeadIn}There are currently no vehicles available for hire in our fleet at the moment. Please try again later or check back soon as hosts add new vehicles.`,
       };
     }
 
-    let text = `Here are the vehicles **currently in our active fleet**:\n\n`;
+    let text = `${greetingLeadIn}Here are the vehicles **currently in our active M-TRAVEL fleet**:\n\n`;
     inv.liveVehicles.forEach((v) => {
       const hire = getVehicleHireStatus(v.id);
       const statusText = hire.isOnTrip
         ? `⚠️ *(Currently on trip${hire.returnDate ? ` until ${hire.returnDate}` : ''})*`
         : hire.isAwaitingHandover
         ? `🔒 *(Booked · Awaiting departure)*`
-        : `✅ *(Available for hire)*`;
+        : `✅ *(Available for immediate booking)*`;
       text += `• **${v.make} ${v.model} (${v.year})** — KES ${v.pricePerDay.toLocaleString()}/day · ${v.seats} Seats · ${statusText}\n`;
     });
+    text += `\nClick **"View & Book"** on any vehicle card below to choose your dates and reserve it!`;
 
     if (inv.availableVehicles.length > 0) {
       return {
@@ -418,7 +795,7 @@ function buildLiveAiResponse(
             title: `${v.make} ${v.model}`,
             subtitle: `${v.seats} Seats · ${v.transmission} · ${v.fuelType}`,
             priceText: `KES ${v.pricePerDay.toLocaleString()} / day`,
-            url: isBusVehicle(v) ? '/catalogue?category=buses' : `/vehicles/${v.id}`,
+            url: `/vehicles/${v.id}`,
             imageUrl: v.images?.[0],
           })),
         },
@@ -429,8 +806,7 @@ function buildLiveAiResponse(
     return { text };
   }
 
-  // 5. DESTINATION MATCHING AGAINST CURRENT LIVE SYSTEM DATA
-  // Check if query matches a destination CURRENTLY in the system
+  // 8. DESTINATION MATCHING AGAINST CURRENT LIVE SYSTEM DATA
   const matchingLiveDest = inv.liveDestinations.find((d) => {
     const t = (d.title || '').toLowerCase();
     const loc = (d.location || '').toLowerCase();
@@ -448,7 +824,6 @@ function buildLiveAiResponse(
     );
   });
 
-  // Scenario A: Destination IS currently published in the system!
   if (matchingLiveDest) {
     const daysMatch = q.match(/(\d+)\s*day/);
     const paxMatch = q.match(/(\d+)\s*(person|people|passenger|pax)/);
@@ -470,7 +845,7 @@ function buildLiveAiResponse(
         : '';
 
     const text =
-      `Great choice! Here are the details for **${matchingLiveDest.title}** currently available in our system:\n\n` +
+      `${greetingLeadIn}Great choice! Here are the details for **${matchingLiveDest.title}** currently available in our system:\n\n` +
       `• **Location**: ${matchingLiveDest.location}\n` +
       `• **Price**: KES ${matchingLiveDest.priceKES.toLocaleString()} ${matchingLiveDest.priceUnit || '/ person'}` +
       `${highlightsText}\n` +
@@ -502,8 +877,6 @@ function buildLiveAiResponse(
     };
   }
 
-  // Scenario B: User asked about a specific destination that is NOT in the system
-  // (e.g. they asked for Maasai Mara, Amboseli, Diani Beach, Naivasha, Mount Kenya, Tsavo, etc., but it was removed)
   const knownDestinationNames: Record<string, string> = {
     mara: 'Maasai Mara National Reserve',
     masai: 'Maasai Mara National Reserve',
@@ -529,9 +902,8 @@ function buildLiveAiResponse(
 
   if (matchedKnownKeyword) {
     const missingDestName = knownDestinationNames[matchedKnownKeyword];
-    let text = `**"${missingDestName}"** is currently **not available in our active catalogue** as it has been removed or is temporarily unlisted.\n\n`;
+    let text = `${greetingLeadIn}**"${missingDestName}"** is currently **not listed as a pre-packaged tour** in our active catalogue.\n\n`;
 
-    // Suggest available destination alternatives
     if (inv.liveDestinations.length > 0) {
       text += `However, we currently have the following verified travel experiences **available in our system** as great alternatives:\n\n`;
       inv.liveDestinations.slice(0, 3).forEach((d) => {
@@ -562,13 +934,12 @@ function buildLiveAiResponse(
       };
     }
 
-    // No destinations, but vehicles exist
     if (inv.availableVehicles.length > 0) {
-      text += `Currently, there are no packaged tours published in our catalogue. However, we have **${inv.availableVehicles.length} verified vehicle(s)** ready for custom self-drive hire or road trips:\n\n`;
+      text += `However, we have **${inv.availableVehicles.length} verified vehicle(s)** ready for custom self-drive hire or chauffeur-driven road trips to **${missingDestName}**:\n\n`;
       inv.availableVehicles.slice(0, 3).forEach((v) => {
         text += `• **${v.make} ${v.model}** (${v.year}) — KES ${v.pricePerDay.toLocaleString()}/day · ${v.seats} Seats\n`;
       });
-      text += `\nYou can hire an available vehicle and travel to any destination across Kenya on your own schedule!`;
+      text += `\nYou can book any of these vehicles and travel to **${missingDestName}** on your own schedule!`;
 
       return {
         text,
@@ -580,7 +951,7 @@ function buildLiveAiResponse(
             title: `${v.make} ${v.model}`,
             subtitle: `${v.seats} Seats · ${v.transmission} · ${v.fuelType}`,
             priceText: `KES ${v.pricePerDay.toLocaleString()} / day`,
-            url: '/catalogue',
+            url: `/vehicles/${v.id}`,
             imageUrl: v.images?.[0],
           })),
         },
@@ -591,24 +962,23 @@ function buildLiveAiResponse(
       };
     }
 
-    // Both 0
     return {
-      text: "We currently do not have active vehicles or destinations available in our system at the moment. Please try again later or contact our 24/7 concierge support desk.",
+      text: `${greetingLeadIn}We currently do not have active vehicles or destinations available in our system at the moment. Please try again later or contact our 24/7 concierge support desk.`,
       action: {
-        label: "Contact Concierge Desk",
-        url: "https://wa.me/254791888840",
+        label: 'Contact Concierge Desk',
+        url: 'https://wa.me/254791888840',
       },
     };
   }
 
-  // 6. GENERAL TRAVEL / ITINERARY PLANNING QUESTIONS ("Plan a trip", "Suggest a holiday", etc.)
-  if (/plan|itinerary|suggest|recommend|where|trip|travel|destination|safari|holiday|tour/.test(q)) {
+  // 9. GENERAL TRAVEL / ITINERARY PLANNING / PRICING QUESTIONS
+  if (/\b(plan|itinerary|suggest|recommend|trip|travel|destination|safari|holiday|tour|cost|price|how\s+much|rates?|budget|help)\b/.test(q)) {
     if (inv.liveDestinations.length > 0) {
-      let text = `I'd love to help you plan your journey! Here are the premier travel experiences **currently published in our system**:\n\n`;
+      let text = `${greetingLeadIn}I'd love to help you plan your journey! Here are the premier travel experiences **currently published in our system**:\n\n`;
       inv.liveDestinations.slice(0, 4).forEach((d) => {
         text += `• **${d.title}** (${d.location}) — KES ${d.priceKES.toLocaleString()} ${d.priceUnit || '/ person'}\n  ${d.subtitle || d.specs?.join(' · ') || ''}\n`;
       });
-      text += `\nTell me which experience interests you, or how many days and travelers you have, and I will prepare a complete itinerary!`;
+      text += `\nTell me which experience interests you, or how many days and travelers you have, and I will prepare a complete cost estimate!`;
 
       return {
         text,
@@ -634,23 +1004,23 @@ function buildLiveAiResponse(
     }
 
     if (inv.availableVehicles.length > 0) {
-      let text = `We currently do not have pre-packaged tour packages in our catalogue, but we have **${inv.availableVehicles.length} verified vehicle(s)** ready for custom self-drive hire or guided road trips:\n\n`;
-      inv.availableVehicles.slice(0, 3).forEach((v) => {
-        text += `• **${v.make} ${v.model}** (${v.year}) — KES ${v.pricePerDay.toLocaleString()}/day · ${v.seats} Seats\n`;
+      let text = `${greetingLeadIn}We currently have **${inv.availableVehicles.length} verified vehicle(s)** ready for immediate hire across Kenya:\n\n`;
+      inv.availableVehicles.slice(0, 4).forEach((v) => {
+        text += `• **${v.make} ${v.model}** (${v.year}) — **KES ${v.pricePerDay.toLocaleString()}/day** · ${v.seats} Seats\n`;
       });
-      text += `\nYou can hire a vehicle for your chosen number of days. Where would you like to travel?`;
+      text += `\nClick **"View & Book"** on any vehicle below to pick your travel dates and reserve your ride, or ask me anything about a specific vehicle!`;
 
       return {
         text,
         alternatives: {
           type: 'VEHICLE',
-          items: inv.availableVehicles.slice(0, 3).map((v) => ({
+          items: inv.availableVehicles.slice(0, 4).map((v) => ({
             id: v.id,
             type: 'VEHICLE',
             title: `${v.make} ${v.model}`,
             subtitle: `${v.seats} Seats · ${v.transmission} · ${v.fuelType}`,
             priceText: `KES ${v.pricePerDay.toLocaleString()} / day`,
-            url: '/catalogue',
+            url: `/vehicles/${v.id}`,
             imageUrl: v.images?.[0],
           })),
         },
@@ -659,25 +1029,24 @@ function buildLiveAiResponse(
     }
 
     return {
-      text: "We currently do not have active vehicles or destinations available in our system at the moment. Please try again later or contact our concierge support desk.",
+      text: `${greetingLeadIn}We currently do not have active vehicles or destinations available in our system at the moment. Please try again later or contact our concierge support desk.`,
       action: {
-        label: "Contact Concierge Desk",
-        url: "https://wa.me/254791888840",
+        label: 'Contact Concierge Desk',
+        url: 'https://wa.me/254791888840',
       },
     };
   }
 
-  // 7. DEFAULT HELPFUL FALLBACK
+  // 10. STRICT OUT-OF-SCOPE GUARDRAIL FOR UNRELATED QUESTIONS
   return {
-    text: `I'm your real-time M-TRAVEL AI Concierge! I am synchronized with our live system (${inv.liveDestinations.length} active destination(s) and ${inv.availableVehicles.length} available vehicle(s)).\n\nYou can ask me:\n${
-      inv.liveDestinations.length > 0
-        ? `• "Tell me about ${inv.liveDestinations[0].title}"\n`
-        : ''
-    }${
-      inv.availableVehicles.length > 0
-        ? `• "Is the ${inv.availableVehicles[0].make} ${inv.availableVehicles[0].model} available?"\n`
-        : ''
-    }• "What vehicles are in our fleet?"\n• "How does direct M-Pesa payment work?"\n• "What should I pack for safari?"\n\nHow can I assist your journey?`,
+    text:
+      `I'm sorry, that question is outside the scope of the **M-TRAVEL** system, so I'm unable to answer it.\n\n` +
+      `As an M-TRAVEL Concierge staff assistant, I can only help with questions related to our platform — such as:\n` +
+      `• Checking available **vehicles, 4x4 SUVs, and charter buses**\n` +
+      `• **How to book** a vehicle or holiday package step-by-step\n` +
+      `• Daily **rental rates**, trip cost calculations, and **M-Pesa / Wallet** payments\n` +
+      `• **Handover documents**, return inspections, or becoming a **Fleet Host**\n\n` +
+      `Please try again with a question related to M-TRAVEL!`,
   };
 }
 
@@ -782,7 +1151,26 @@ export function AiTravelAssistant({
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
+  const messagesRef = useRef<Message[]>(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
   const [isTyping, setIsTyping] = useState(false);
+
+  const handleActionNavigate = useCallback(
+    (url: string) => {
+      if (url.startsWith('http')) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      if (isModal && onClose) {
+        onClose();
+      }
+      navigate(url);
+    },
+    [isModal, onClose, navigate]
+  );
 
   // Calculator state
   const [selectedDestId, setSelectedDestId] = useState<string>(
@@ -834,15 +1222,18 @@ export function AiTravelAssistant({
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    const updatedHistory = [...messagesRef.current, userMsg];
+    messagesRef.current = updatedHistory;
+    setMessages(updatedHistory);
     setIsTyping(true);
 
     setTimeout(() => {
-      // Read the most up-to-date real-time inventory
+      // Read the most up-to-date real-time inventory & conversation history
       const freshInventory = getLiveSystemInventory();
       const { text: aiText, dest, vehicle, cost, action, alternatives } = buildLiveAiResponse(
         text,
-        freshInventory
+        freshInventory,
+        messagesRef.current
       );
 
       const aiMsg: Message = {
@@ -857,9 +1248,13 @@ export function AiTravelAssistant({
         alternatives,
       };
 
-      setMessages((prev) => [...prev, aiMsg]);
+      setMessages((prev) => {
+        const next = [...prev, aiMsg];
+        messagesRef.current = next;
+        return next;
+      });
       setIsTyping(false);
-    }, 600);
+    }, 550);
   }, []);
 
   const handledInitialPrompt = useRef<string | null>(null);
@@ -870,9 +1265,21 @@ export function AiTravelAssistant({
     }
   }, [initialPrompt, handleSend]);
 
-  // Dynamic preset prompts derived from LIVE inventory
+  // Dynamic preset prompts derived from LIVE inventory & conversation context
   const presetPrompts = useMemo(() => {
     const list: Array<{ text: string; icon: any }> = [];
+    const hasRecentVehicle = [...messages].reverse().some((m) => m.sender === 'ai' && m.vehicleData);
+
+    if (hasRecentVehicle) {
+      list.push({
+        text: 'How can I book it?',
+        icon: Car,
+      });
+      list.push({
+        text: 'What documents do I need at pickup?',
+        icon: Compass,
+      });
+    }
 
     if (inventory.liveDestinations.length > 0) {
       list.push({
@@ -912,7 +1319,7 @@ export function AiTravelAssistant({
     }
 
     return list;
-  }, [inventory]);
+  }, [inventory, messages]);
 
   // Calculator computation
   const calculatedResult = useMemo(() => {
@@ -1121,7 +1528,7 @@ export function AiTravelAssistant({
                       {/* ACTION BUTTON */}
                       {msg.suggestedAction && (
                         <button
-                          onClick={() => navigate(msg.suggestedAction!.url)}
+                          onClick={() => handleActionNavigate(msg.suggestedAction!.url)}
                           className="btn-primary w-full text-xs !py-2.5 flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <Compass className="h-4 w-4" /> {msg.suggestedAction.label}
@@ -1160,7 +1567,7 @@ export function AiTravelAssistant({
 
                       {msg.suggestedAction && (
                         <button
-                          onClick={() => navigate(msg.suggestedAction!.url)}
+                          onClick={() => handleActionNavigate(msg.suggestedAction!.url)}
                           className="btn-primary w-full text-xs !py-2.5 flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <Car className="h-4 w-4" /> {msg.suggestedAction.label}
@@ -1201,7 +1608,7 @@ export function AiTravelAssistant({
                               </div>
                             </div>
                             <button
-                              onClick={() => navigate(item.url)}
+                              onClick={() => handleActionNavigate(item.url)}
                               className="mt-2.5 w-full rounded-lg bg-slate-950 text-white text-[11px] font-semibold py-1.5 hover:bg-slate-800 transition flex items-center justify-center gap-1 cursor-pointer"
                             >
                               <span>View &amp; Book</span>
@@ -1217,13 +1624,7 @@ export function AiTravelAssistant({
                   {!msg.destinationData && !msg.vehicleData && msg.suggestedAction && (
                     <div className="pt-1">
                       <button
-                        onClick={() => {
-                          if (msg.suggestedAction!.url.startsWith('http')) {
-                            window.open(msg.suggestedAction!.url, '_blank');
-                          } else {
-                            navigate(msg.suggestedAction!.url);
-                          }
-                        }}
+                        onClick={() => handleActionNavigate(msg.suggestedAction!.url)}
                         className="btn-primary w-full text-xs !py-2.5 flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <Compass className="h-4 w-4" /> {msg.suggestedAction.label}
