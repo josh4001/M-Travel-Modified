@@ -505,11 +505,11 @@ CREATE POLICY "Allow All Audit Logs Operations" ON audit_logs FOR ALL USING (tru
 
 -- ==============================================================================
 -- INITIAL SEED DATA
--- Primary Admin Contact: Amos (safari@jambo.africa / 0722374535)
+-- Primary Admin Contact: M-Travel Admin (maurice7868@gmail.com / 0722374535)
 -- ==============================================================================
 
 INSERT INTO users (id, email, phone, password_hash, first_name, last_name, role) VALUES
-('a0000000-0000-0000-0000-000000000001', 'safari@jambo.africa', '0722374535', '$2a$12$FcgCkt0j41e9vnp7pXSzzeGGZ.VPoec/vZ1N3Xxt1RLU4LC6UDt4u', 'Amos', 'M-TRAVEL', 'ADMIN'),
+('a0000000-0000-0000-0000-000000000001', 'maurice7868@gmail.com', '0722374535', '$2a$12$FcgCkt0j41e9vnp7pXSzzeGGZ.VPoec/vZ1N3Xxt1RLU4LC6UDt4u', 'M-Travel', 'Admin', 'ADMIN'),
 ('a0000000-0000-0000-0000-000000000002', 'james.mwangi@mtravel.co.ke', '0712345678', '$2a$12$popjt7TXu8/i0Q.wTg34C.6Wzx26cj9t1hPMfco6oVmc9M0s5SCf.', 'James', 'Mwangi', 'VEHICLE_OWNER'),
 ('a0000000-0000-0000-0000-000000000003', 'sarah.ochieng@gmail.com', '0723456789', '$2a$12$YYIumgDr0LzGLS2Y2RhA3Oavdcd1yemS2BLyug7A1YzwAAJDf1Bgy', 'Sarah', 'Ochieng', 'TOURIST'),
 ('a0000000-0000-0000-0000-000000000004', 'driver@mtravel.co.ke', '0799887766', '$2a$12$FcgCkt0j41e9vnp7pXSzzeGGZ.VPoec/vZ1N3Xxt1RLU4LC6UDt4u', 'Samuel', 'Omondi', 'DRIVER'),
