@@ -23,7 +23,7 @@ import {
 } from '@/lib/communicationService';
 import { LuxuryEmailPreviewModal } from '@/components/ui/LuxuryEmailPreviewModal';
 
-type TabFilter = 'ALL' | 'TOUR' | 'HOLIDAY_HOME';
+type TabFilter = 'ALL' | 'DESTINATION' | 'TOUR' | 'HOLIDAY_HOME';
 
 export default function HolidaysAndTours() {
   const navigate = useNavigate();
@@ -38,6 +38,7 @@ export default function HolidaysAndTours() {
 
   const tabParam = searchParams.get('tab');
   const [activeCategory, setActiveCategory] = useState<TabFilter>(() => {
+    if (tabParam === 'destinations' || tabParam === 'circuits') return 'DESTINATION';
     if (tabParam === 'homes') return 'HOLIDAY_HOME';
     if (tabParam === 'tours') return 'TOUR';
     return 'ALL';
@@ -94,6 +95,8 @@ export default function HolidaysAndTours() {
     setActiveCategory(cat);
     if (cat === 'ALL') {
       searchParams.delete('tab');
+    } else if (cat === 'DESTINATION') {
+      searchParams.set('tab', 'circuits');
     } else if (cat === 'TOUR') {
       searchParams.set('tab', 'tours');
     } else if (cat === 'HOLIDAY_HOME') {
@@ -246,6 +249,7 @@ export default function HolidaysAndTours() {
           <div className="flex items-center gap-2">
             {[
               { id: 'ALL' as TabFilter, label: 'All Holidays & Tours', icon: Compass, count: destinations.length },
+              { id: 'DESTINATION' as TabFilter, label: 'Kenyan Regional Circuits', icon: MapPin, count: destinations.filter(d => d.category === 'DESTINATION').length },
               { id: 'TOUR' as TabFilter, label: 'Guided Safaris & Tours', icon: Palmtree, count: destinations.filter(d => d.category === 'TOUR').length },
               { id: 'HOLIDAY_HOME' as TabFilter, label: 'Holiday Homes & Villas', icon: Home, count: destinations.filter(d => d.category === 'HOLIDAY_HOME').length },
             ].map((tab) => {
@@ -441,7 +445,7 @@ export default function HolidaysAndTours() {
                 <div className="p-6 space-y-3">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-300">
-                      {item.category === 'TOUR' ? 'Safari Package' : 'Holiday Home'}
+                      {item.category === 'DESTINATION' ? 'Kenyan Circuit' : item.category === 'TOUR' ? 'Safari Package' : 'Holiday Home'}
                     </span>
                   </div>
 
@@ -605,7 +609,7 @@ export default function HolidaysAndTours() {
               {selectedItem.details.scheduleOrItinerary && selectedItem.details.scheduleOrItinerary.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="font-serif text-base font-bold text-slate-900">
-                    {selectedItem.category === 'TOUR' ? 'Expedition Itinerary' : 'Stay Schedule & Policies'}
+                    {selectedItem.category === 'DESTINATION' ? 'Circuit Route & Itinerary' : selectedItem.category === 'TOUR' ? 'Expedition Itinerary' : 'Stay Schedule & Policies'}
                   </h4>
                   <div className="space-y-2">
                     {selectedItem.details.scheduleOrItinerary.map((step, i) => (
@@ -632,7 +636,7 @@ export default function HolidaysAndTours() {
                   </p>
                   <div className="pt-2 flex items-center justify-between border-t border-purple-200/70 text-[11px] text-purple-800">
                     <span>Package Status: <strong className="font-semibold text-purple-950">Live &amp; Published</strong></span>
-                    <span>Category: <strong className="font-semibold text-purple-950">{selectedItem.category === 'TOUR' ? 'Safari Package' : 'Holiday Home'}</strong></span>
+                    <span>Category: <strong className="font-semibold text-purple-950">{selectedItem.category === 'DESTINATION' ? 'Kenyan Tourist Circuit' : selectedItem.category === 'TOUR' ? 'Safari Package' : 'Holiday Home'}</strong></span>
                   </div>
                 </div>
               ) : !user ? (
