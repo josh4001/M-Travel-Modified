@@ -1,19 +1,15 @@
-# Tours & Travel module
+# Tours & Travel Module
 
-**Status: scaffolded, not yet wired to controllers.**
+**Status: Implemented & Wired to Controllers.**
 
-The database tables this module needs already exist in `prisma/schema.prisma`
-(TourOperatorProfile, Tour), so the data shape won't need to change when this is built out.
+The module handles all tourist circuits, guided safaris, and destination packages.
+Includes full support for the **10 Official Regional Kenyan Tourist Circuits** curated from leadership documentation.
 
-## To implement this module
+## Endpoints
 
-1. Add `tours.module.ts`, `tours.service.ts`, `tours.controller.ts`
-   following the pattern in `src/modules/vehicles/` (closest sibling module).
-2. Register the module in `src/app.module.ts`.
-3. Add DTOs under `dto/` with `class-validator` decorators, mirroring
-   `vehicles/dto/create-vehicle.dto.ts`.
-4. Reuse `JwtAuthGuard` + `RolesGuard` + `@Roles(...)` for access control.
-
-## Notes specific to this module
----
-- Packages (Safari/Beach/Hiking/Camping/City) map to `Tour.category` — consider a lookup table if operators need custom categories later.
+- `GET /api/v1/tours/circuits` — Returns all 10 Official Regional Kenyan Tourist Circuits with full itineraries, attractions, tourist typologies, and original images.
+- `GET /api/v1/tours` — Search and browse tours, safari packages, and circuits (supports query params: `search`, `category`, `region`, `minPrice`, `maxPrice`).
+- `GET /api/v1/tours/:id` — Retrieve details for a specific tour or circuit.
+- `POST /api/v1/tours` — Create a new tour package (Admin / Tour Operator role required).
+- `PATCH /api/v1/tours/:id` — Update an existing tour package.
+- `DELETE /api/v1/tours/:id` — Delete a tour package (Admin role required).

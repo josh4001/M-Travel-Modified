@@ -10,6 +10,7 @@ import { BookingsModule } from './modules/bookings/bookings.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { ToursModule } from './modules/tours/tours.module';
 
 @Module({
   imports: [
@@ -24,7 +25,8 @@ import { PaymentsModule } from './modules/payments/payments.module';
     WalletModule,
     ReviewsModule,
     PaymentsModule,
-    // Bus, Tours, Holiday Homes, Notifications, Admin: see modules/*/README.md
+    ToursModule,
+    // Bus, Holiday Homes, Notifications, Admin: see modules/*/README.md
     // in each folder — data model exists in prisma/schema.prisma, controllers
     // are stubbed pending product prioritization.
   ],
