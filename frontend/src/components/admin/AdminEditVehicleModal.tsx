@@ -43,7 +43,12 @@ export const AdminEditVehicleModal: React.FC<AdminEditVehicleModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Form State
-  const [pricePerDay, setPricePerDay] = useState<number | string>(vehicle.pricePerDay || '');
+  const [pricePerDay, setPricePerDay] = useState<string>(() => {
+    if (vehicle.pricePerDay && Number(vehicle.pricePerDay) > 0) {
+      return String(vehicle.pricePerDay);
+    }
+    return '';
+  });
   const [pricePerKm, setPricePerKm] = useState<number | undefined>((vehicle as any).pricePerKm);
   const [make, setMake] = useState<string>(vehicle.make || '');
   const [model, setModel] = useState<string>(vehicle.model || '');
@@ -72,7 +77,8 @@ export const AdminEditVehicleModal: React.FC<AdminEditVehicleModalProps> = ({
   // Common quick adjustment presets for daily rate
   const adjustPrice = (delta: number) => {
     const current = Number(pricePerDay) || 0;
-    setPricePerDay(Math.max(1000, current + delta));
+    const next = Math.max(0, current + delta);
+    setPricePerDay(next > 0 ? String(next) : '');
   };
 
   const handleDocumentStatusChange = (docId: string, status: 'VERIFIED' | 'PENDING' | 'REJECTED') => {
@@ -345,33 +351,65 @@ export const AdminEditVehicleModal: React.FC<AdminEditVehicleModalProps> = ({
 
               {/* DAILY RATE INPUT */}
               <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4 shadow-2xs">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                  Daily Hiring Rate (KES / 24 Hours) *
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Daily Hiring Rate (KES / 24 Hours) *
+                  </label>
+                  {pricePerDay && pricePerDay !== '' && pricePerDay !== '0' && (
+                    <button
+                      type="button"
+                      onClick={() => setPricePerDay('')}
+                      className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      <span>Clear rate</span>
+                    </button>
+                  )}
+                </div>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                   <div className="relative flex-1">
-                    <span className="absolute left-4 top-3 text-sm font-bold text-slate-500 font-mono">KES</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500 font-mono pointer-events-none select-none">
+                      KES
+                    </span>
                     <input
-                      type="number"
-                      min={0}
-                      step={500}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       placeholder="e.g. 15000"
-                      value={pricePerDay}
-                      onChange={e => setPricePerDay(e.target.value)}
+                      value={pricePerDay === '0' ? '' : pricePerDay}
+                      onChange={e => {
+                        const clean = e.target.value.replace(/[^0-9]/g, '');
+                        // If typed 0 alone or empty, keep it completely empty
+                        if (clean === '0') {
+                          setPricePerDay('');
+                        } else {
+                          setPricePerDay(clean);
+                        }
+                      }}
                       onFocus={e => {
-                        if (pricePerDay === 0 || pricePerDay === '0') {
+                        if (pricePerDay === '0' || pricePerDay === '') {
                           setPricePerDay('');
                         } else {
                           e.target.select();
                         }
                       }}
-                      className="input-field pl-16 text-lg font-bold font-mono text-slate-900 border-slate-300 focus:border-purple-600"
+                      className="input-field pl-16 pr-10 text-lg font-bold font-mono text-slate-900 border-slate-300 focus:border-purple-600 focus:ring-2 focus:ring-purple-200 w-full"
                     />
+                    {pricePerDay && pricePerDay !== '' && pricePerDay !== '0' && (
+                      <button
+                        type="button"
+                        onClick={() => setPricePerDay('')}
+                        title="Clear amount"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-full transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-center shrink-0">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-center shrink-0 min-w-[140px]">
                     <span className="block text-[10px] text-slate-500 font-semibold uppercase">Formatted Preview</span>
                     <span className="text-base font-bold text-purple-950 font-serif">
-                      {pricePerDay === '' || Number(pricePerDay) <= 0
+                      {!pricePerDay || pricePerDay === '' || Number(pricePerDay) <= 0
                         ? 'KES 0/day'
                         : `${formatPrice(Number(pricePerDay))}/day`}
                     </span>
