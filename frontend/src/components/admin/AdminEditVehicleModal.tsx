@@ -43,14 +43,14 @@ export const AdminEditVehicleModal: React.FC<AdminEditVehicleModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Form State
-  const [pricePerDay, setPricePerDay] = useState<number>(vehicle.pricePerDay || 15000);
+  const [pricePerDay, setPricePerDay] = useState<number | string>(vehicle.pricePerDay || '');
   const [pricePerKm, setPricePerKm] = useState<number | undefined>((vehicle as any).pricePerKm);
   const [make, setMake] = useState<string>(vehicle.make || '');
   const [model, setModel] = useState<string>(vehicle.model || '');
-  const [year, setYear] = useState<number>(vehicle.year || 2024);
+  const [year, setYear] = useState<number | string>(vehicle.year || 2024);
   const [type, setType] = useState<string>(vehicle.type || 'SUV');
   const [plateNumber, setPlateNumber] = useState<string>(vehicle.plateNumber || '');
-  const [seats, setSeats] = useState<number>(vehicle.seats || 7);
+  const [seats, setSeats] = useState<number | string>(vehicle.seats || 7);
   const [fuelType, setFuelType] = useState<string>(vehicle.fuelType || 'DIESEL');
   const [transmission, setTransmission] = useState<string>(vehicle.transmission || 'AUTOMATIC');
   const [address, setAddress] = useState<string>(vehicle.address || 'Nairobi Central');
@@ -71,7 +71,8 @@ export const AdminEditVehicleModal: React.FC<AdminEditVehicleModalProps> = ({
 
   // Common quick adjustment presets for daily rate
   const adjustPrice = (delta: number) => {
-    setPricePerDay(prev => Math.max(1000, prev + delta));
+    const current = Number(pricePerDay) || 0;
+    setPricePerDay(Math.max(1000, current + delta));
   };
 
   const handleDocumentStatusChange = (docId: string, status: 'VERIFIED' | 'PENDING' | 'REJECTED') => {
@@ -135,16 +136,23 @@ export const AdminEditVehicleModal: React.FC<AdminEditVehicleModalProps> = ({
     setIsSaving(true);
     setErrorMessage(null);
 
+    const parsedPrice = Number(pricePerDay);
+    if (!pricePerDay || isNaN(parsedPrice) || parsedPrice <= 0) {
+      setErrorMessage('Please enter a valid daily hiring rate greater than 0.');
+      setIsSaving(false);
+      return;
+    }
+
     try {
       const cleanPlate = plateNumber.trim().toUpperCase();
       const updatedFields: Partial<StoredVehicle> = {
         make: make.trim(),
         model: model.trim(),
-        year: Number(year),
+        year: Number(year) || 2024,
         type,
         plateNumber: cleanPlate || undefined,
-        pricePerDay: Number(pricePerDay),
-        seats: Number(seats),
+        pricePerDay: parsedPrice,
+        seats: Number(seats) || 7,
         fuelType,
         transmission,
         address: address.trim(),
@@ -345,16 +353,28 @@ export const AdminEditVehicleModal: React.FC<AdminEditVehicleModalProps> = ({
                     <span className="absolute left-4 top-3 text-sm font-bold text-slate-500 font-mono">KES</span>
                     <input
                       type="number"
-                      min={1000}
+                      min={0}
                       step={500}
+                      placeholder="e.g. 15000"
                       value={pricePerDay}
-                      onChange={e => setPricePerDay(Number(e.target.value) || 0)}
+                      onChange={e => setPricePerDay(e.target.value)}
+                      onFocus={e => {
+                        if (pricePerDay === 0 || pricePerDay === '0') {
+                          setPricePerDay('');
+                        } else {
+                          e.target.select();
+                        }
+                      }}
                       className="input-field pl-16 text-lg font-bold font-mono text-slate-900 border-slate-300 focus:border-purple-600"
                     />
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-center shrink-0">
                     <span className="block text-[10px] text-slate-500 font-semibold uppercase">Formatted Preview</span>
-                    <span className="text-base font-bold text-purple-950 font-serif">{formatPrice(pricePerDay)}/day</span>
+                    <span className="text-base font-bold text-purple-950 font-serif">
+                      {pricePerDay === '' || Number(pricePerDay) <= 0
+                        ? 'KES 0/day'
+                        : `${formatPrice(Number(pricePerDay))}/day`}
+                    </span>
                   </div>
                 </div>
 
@@ -587,10 +607,11 @@ export const AdminEditVehicleModal: React.FC<AdminEditVehicleModalProps> = ({
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Model Year *</label>
                   <input
                     type="number"
-                    min={2000}
+                    min={1990}
                     max={2030}
+                    placeholder="2024"
                     value={year}
-                    onChange={e => setYear(Number(e.target.value) || 2024)}
+                    onChange={e => setYear(e.target.value)}
                     className="input-field text-xs text-slate-900 font-mono"
                   />
                 </div>
@@ -627,8 +648,9 @@ export const AdminEditVehicleModal: React.FC<AdminEditVehicleModalProps> = ({
                     type="number"
                     min={1}
                     max={65}
+                    placeholder="7"
                     value={seats}
-                    onChange={e => setSeats(Number(e.target.value) || 7)}
+                    onChange={e => setSeats(e.target.value)}
                     className="input-field text-xs text-slate-900 font-mono"
                   />
                 </div>
