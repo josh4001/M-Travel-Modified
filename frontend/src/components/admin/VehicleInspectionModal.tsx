@@ -3,7 +3,7 @@ import {
   AlertTriangle, CheckCircle2, X,
   MessageSquare, Trash2, ExternalLink, FileText, ShieldCheck,
   Eye, Download, ZoomIn, Check,
-  ChevronLeft, ChevronRight, ShieldAlert, Paperclip
+  ChevronLeft, ChevronRight, ShieldAlert, Paperclip, Edit3
 } from 'lucide-react';
 import type { StoredVehicle, VehicleDocument } from '@/lib/bookingStore';
 import { ensureVehicleComplianceDocs, isBusVehicle, resolveRealDocumentUrl, getDocumentFromVault } from '@/lib/bookingStore';
@@ -18,6 +18,7 @@ interface VehicleInspectionModalProps {
   onApprove: () => void;
   onReject: (reasons: string[], customFeedback: string) => void;
   onClose: () => void;
+  onEdit?: () => void;
 }
 
 export const MANUAL_REJECTION_REASONS = [
@@ -41,6 +42,7 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
   onApprove,
   onReject,
   onClose,
+  onEdit,
 }) => {
   const [activeTab, setActiveTab] = useState<'PHOTOS' | 'DOCUMENTS' | 'REJECT_REASONS' | 'WHATSAPP_PREVIEW'>('PHOTOS');
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
@@ -238,6 +240,18 @@ export const VehicleInspectionModal: React.FC<VehicleInspectionModalProps> = ({
               <MessageSquare className="h-3.5 w-3.5 text-emerald-400" />
               <span>4. WhatsApp Message Preview</span>
             </button>
+
+            {onEdit && (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="rounded-xl px-3.5 py-2 text-xs font-bold transition flex items-center gap-1.5 bg-purple-600/30 text-purple-200 hover:bg-purple-600 hover:text-white border border-purple-500/50 sm:ml-auto cursor-pointer"
+                title="Modify vehicle price, specifications, or replace documents"
+              >
+                <Edit3 className="h-3.5 w-3.5 text-purple-300" />
+                <span>Modify Price &amp; Docs</span>
+              </button>
+            )}
           </div>
         </div>
 

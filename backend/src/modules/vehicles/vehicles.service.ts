@@ -1,4 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { SearchVehicleDto } from './dto/search-vehicle.dto';
@@ -63,8 +64,13 @@ export class VehiclesService {
     return vehicle;
   }
 
-  async update(id: string, ownerId: string, data: Partial<CreateVehicleDto>) {
-    await this.assertOwner(id, ownerId);
+  async update(id: string, requesterId: string, role: Role, data: Partial<CreateVehicleDto>) {
+    if (role !== Role.ADMIN && role !== Role.SUPER_ADMIN) {
+      await this.assertOwner(id, requesterId);
+    } else {
+      const vehicle = await this.prisma.vehicle.findUnique({ where: { id } });
+      if (!vehicle) throw new NotFoundException('Vehicle not found');
+    }
     return this.prisma.vehicle.update({ where: { id }, data });
   }
 

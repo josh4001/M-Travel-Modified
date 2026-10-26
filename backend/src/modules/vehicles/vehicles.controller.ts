@@ -53,13 +53,13 @@ export class VehiclesController {
   @Patch(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.VEHICLE_OWNER, Role.ADMIN)
+  @Roles(Role.VEHICLE_OWNER, Role.ADMIN, Role.SUPER_ADMIN)
   update(
     @Param('id') id: string,
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: { userId: string; role: Role },
     @Body() dto: Partial<CreateVehicleDto>,
   ) {
-    return this.vehiclesService.update(id, user.userId, dto);
+    return this.vehiclesService.update(id, user.userId, user.role, dto);
   }
 
   @Post(':id/telemetry')

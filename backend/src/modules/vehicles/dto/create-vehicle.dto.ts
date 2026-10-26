@@ -13,6 +13,11 @@ export class CreateVehicleDto {
   @ApiProperty() @IsNumber() pricePerDay: number;
   @ApiProperty({ required: false }) @IsOptional() @IsNumber() pricePerKm?: number;
   @ApiProperty({ required: false }) @IsOptional() @IsBoolean() hasInsurance?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsString() plateNumber?: string;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isSelfDriveAvailable?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isWithDriverAvailable?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isAvailable?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isApproved?: boolean;
   @ApiProperty() @IsNumber() latitude: number;
   @ApiProperty() @IsNumber() longitude: number;
   @ApiProperty({ required: false }) @IsOptional() @IsString() address?: string;

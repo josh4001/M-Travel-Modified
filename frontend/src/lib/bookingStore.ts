@@ -2039,12 +2039,15 @@ export const updateStoredVehicle = (vehicleId: string, partial: Partial<StoredVe
   let updatedVehicle: StoredVehicle | null = null;
   const updated = vehicles.map(v => {
     if (v.id === vehicleId) {
-      updatedVehicle = { ...v, ...partial };
+      updatedVehicle = { ...v, ...partial, updatedAt: new Date().toISOString() };
       return updatedVehicle;
     }
     return v;
   });
   if (updatedVehicle) {
+    if (partial.documents && Array.isArray(partial.documents)) {
+      saveVehicleDocuments(vehicleId, partial.documents);
+    }
     try {
       localStorage.setItem(VEHICLES_KEY, JSON.stringify(updated));
       window.dispatchEvent(new CustomEvent('mt_vehicle_updated', { detail: updatedVehicle }));

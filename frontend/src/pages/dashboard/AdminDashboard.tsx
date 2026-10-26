@@ -42,6 +42,7 @@ import type { RootState } from '@/store';
 import { DestinationVoucherModal } from '@/components/ui/DestinationVoucherModal';
 import { FactoryResetModal } from '@/components/admin/FactoryResetModal';
 import { VehicleInspectionModal } from '@/components/admin/VehicleInspectionModal';
+import { AdminEditVehicleModal } from '@/components/admin/AdminEditVehicleModal';
 import { VehicleHandoverModal } from '@/components/handover/VehicleHandoverModal';
 import { VehicleReturnInspectionModal } from '@/components/handover/VehicleReturnInspectionModal';
 import {
@@ -185,6 +186,7 @@ export default function AdminDashboard() {
 
   // De-registration / Vehicle Deletion & Smart Inspection Modals (Admin Exclusive)
   const [inspectingVehicle, setInspectingVehicle] = useState<StoredVehicle | null>(null);
+  const [editingFleetVehicle, setEditingFleetVehicle] = useState<StoredVehicle | null>(null);
   const [vehicleToDelete, setVehicleToDelete] = useState<StoredVehicle | null>(null);
   const [deleteReason, setDeleteReason] = useState<string>('Violation of vehicle safety or roadworthiness standards');
   const [deleteCustomReason, setDeleteCustomReason] = useState<string>('');
@@ -1732,6 +1734,14 @@ export default function AdminDashboard() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => setEditingFleetVehicle(v)}
+                      className="rounded-xl border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 hover:text-purple-900 font-bold py-2.5 px-3 text-xs shadow-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                      title="Modify vehicle price, specifications, or documents"
+                    >
+                      <Edit2 className="h-4 w-4" /> Edit
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => handleApproveVehicle(v)}
                       className="btn-primary flex-1 text-xs !py-2.5 font-bold shadow-sm flex items-center justify-center gap-1.5 text-white bg-emerald-600 hover:bg-emerald-500"
                     >
@@ -2165,6 +2175,16 @@ export default function AdminDashboard() {
                           </a>
                         );
                       })()}
+
+                      {/* ADMIN EDIT / MODIFY VEHICLE INFO & DOCS */}
+                      <button
+                        type="button"
+                        onClick={() => setEditingFleetVehicle(v)}
+                        className="p-1.5 rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 hover:text-purple-900 transition shadow-xs flex items-center justify-center shrink-0 cursor-pointer"
+                        title="Admin Modify: Price, Specs & Documentation"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </button>
 
                       <button
                         type="button"
@@ -3139,7 +3159,32 @@ export default function AdminDashboard() {
             onReject={(reasons, customFeedback) => {
               handleRejectVehicle(inspectingVehicle, reasons, customFeedback);
             }}
+            onEdit={() => {
+              const v = inspectingVehicle;
+              setInspectingVehicle(null);
+              setEditingFleetVehicle(v);
+            }}
             onClose={() => setInspectingVehicle(null)}
+          />
+        );
+      })()}
+
+      {/* ── ADMIN VEHICLE & COMPLIANCE DOCUMENTATION MODIFICATION MODAL ── */}
+      {editingFleetVehicle && (() => {
+        const { hostName, hostPhone, hostEmail } = resolveHostDetails(editingFleetVehicle);
+        return (
+          <AdminEditVehicleModal
+            vehicle={editingFleetVehicle}
+            hostName={hostName}
+            hostPhone={hostPhone}
+            hostEmail={hostEmail}
+            adminName={adminName}
+            adminRole={adminRole}
+            onSave={(updated) => {
+              setVehicles(prev => prev.map(v => v.id === updated.id ? updated : v));
+              setEditingFleetVehicle(null);
+            }}
+            onClose={() => setEditingFleetVehicle(null)}
           />
         );
       })()}
